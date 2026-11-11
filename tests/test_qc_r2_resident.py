@@ -251,7 +251,7 @@ def test_resident_all_jobs_fire_with_db_evidence(tmp_path, monkeypatch):
                            "arrival_check", "bundling", "variant_sweep",
                            "prefix_sweep", "doujin_harvest", "webpages",
                            "goods", "maintenance", "daily_catchup",
-                           "yahoo_used"}
+                           "yahoo_used", "market_api"}
 
         ok = _wait_for(lambda: (
             res.calls["discogs"] >= 1 and res.calls["blip_run"] >= 1

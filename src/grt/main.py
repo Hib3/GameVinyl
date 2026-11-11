@@ -512,6 +512,16 @@ def run() -> None:
             run_yahoo_used_sweep(conn)
         _run_job("yahoo_used", body)
 
+    def market_api_job():
+        def body(conn):
+            from .used_market import run_market_api_sweep
+            for provider in ("ebay", "rakuten"):
+                try:
+                    run_market_api_sweep(conn, provider)
+                except Exception as exc:
+                    _log_job_error("market_api_" + provider, exc)
+        _run_job("market_api", body)
+
     def goods_job():
         # GOODS lane (agreement-09): approved GOODS sources are
         # fetched on the ladder like other source jobs.
@@ -725,6 +735,9 @@ def run() -> None:
                       misfire_grace_time=GRACE_INTERVAL_S)
     scheduler.add_job(yahoo_used_job, "interval", minutes=15,
                       id="yahoo_used", max_instances=1, coalesce=True,
+                      misfire_grace_time=GRACE_INTERVAL_S)
+    scheduler.add_job(market_api_job, "interval", minutes=15,
+                      id="market_api", max_instances=1, coalesce=True,
                       misfire_grace_time=GRACE_INTERVAL_S)
     scheduler.add_job(goods_job, "interval", minutes=15, id="goods",
                       misfire_grace_time=GRACE_INTERVAL_S)

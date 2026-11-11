@@ -52,7 +52,8 @@ EBAY_PAYLOAD = {
     "itemSummaries": [
         {"title": "Game OST Vinyl TGCS-123",
          "itemWebUrl": "https://www.ebay.com/itm/111",
-         "price": {"value": "45.50", "currency": "USD"}},
+         "price": {"value": "45.50", "currency": "USD"},
+         "image": {"imageUrl": "https://i.ebayimg.com/images/g/abc/s-l1600.jpg"}},
         {"title": "TGCS-123 loose disc, no price listed",
          "itemWebUrl": "https://www.ebay.com/itm/222"},
     ],
@@ -86,10 +87,13 @@ def test_ebay_item_mapping(db, monkeypatch):
     assert f.enabled is True
     items = f.search_catalog(CATALOG)
     assert calls["params"]["q"] == CATALOG
+    assert calls["params"]["filter"] == \
+        "conditions:{USED},deliveryCountry:JP"
     assert calls["headers"]["Authorization"] == "Bearer test-token"
     assert items[0] == {
         "title": "Game OST Vinyl TGCS-123",
         "url": "https://www.ebay.com/itm/111",
+        "image_url": "https://i.ebayimg.com/images/g/abc/s-l1600.jpg",
         "price": 45.50,
         "currency": "USD",
         "raw_title": "Game OST Vinyl TGCS-123",

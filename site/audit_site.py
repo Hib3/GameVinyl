@@ -96,8 +96,8 @@ def pending_candidates(bot):
                         'url':link})
     return out
 
-def approved_yahoo_listings(bot, now):
-    """Read only Yahoo listings whose latest identity decision was human approval."""
+def approved_market_api_listings(bot, now):
+    """Read fresh API listings only after a human approved their edition match."""
     tables={r[0] for r in bot.execute(
         "select name from sqlite_master where type='table'")}
     if not {'listings','match_decisions'} <= tables:
@@ -106,32 +106,47 @@ def approved_yahoo_listings(bot, now):
     image_expr='l.image_url' if 'image_url' in cols else 'NULL'
     out=defaultdict(list)
     rows=bot.execute(f"""
-      select l.edition_id,l.url,{image_expr},l.raw_title,l.last_seen
+      select l.source,l.edition_id,l.url,{image_expr},l.raw_title,l.last_seen,
+             l.price,l.currency
       from listings l join match_decisions d
         on d.listing_id=l.id and d.edition_id=l.edition_id
-      where l.source='Yahoo Shopping used' and l.edition_id is not null
+      where l.source in ('Yahoo Shopping used','eBay Browse used','Rakuten Ichiba')
+        and l.edition_id is not null
         and d.id=(select max(d2.id) from match_decisions d2
                   where d2.listing_id=l.id and d2.edition_id=l.edition_id)
         and d.matcher_version='human-review-1'
         and d.price_confidence='高'
       order by l.last_seen desc, l.id desc
     """).fetchall()
-    for edition_id,url,image,title,seen in rows:
+    source_rules={
+        'Yahoo Shopping used':('shopping.yahoo.co.jp','yimg.jp',
+                               'Yahoo!ショッピング中古'),
+        'eBay Browse used':('ebay.com','ebayimg.com','eBay中古'),
+        'Rakuten Ichiba':('rakuten.co.jp','image.rakuten.co.jp','楽天市場'),
+    }
+    for source,edition_id,url,image,title,seen,price,currency in rows:
+        listing_host,image_suffix,label=source_rules[source]
         host=(urlsplit(url).hostname or '').lower() if safe_https(url) else ''
-        if not (host=='shopping.yahoo.co.jp' or
-                host.endswith('.shopping.yahoo.co.jp')):
+        if not (host==listing_host or host.endswith('.'+listing_host)):
             continue
         checked=parse_date(seen)
-        if checked is None or checked>now:
+        if checked is None or checked>now or checked<now-timedelta(hours=48):
             continue
         image_host=(urlsplit(image).hostname or '').lower() if safe_https(image) else ''
-        image_ok=(image_host=='yimg.jp' or image_host.endswith('.yimg.jp'))
+        image_ok=(source=='Yahoo Shopping used' and
+                  (image_host==image_suffix or image_host.endswith('.'+image_suffix)))
         items=out[edition_id]
         if len(items)<3:
             items.append({'url':url,'image':image if image_ok else None,
                           'title':' '.join(str(title or '').split())[:200],
-                          'lastSeen':str(seen)[:40]})
+                          'lastSeen':str(seen)[:40], 'source':source,
+                          'sourceLabel':label,
+                          'price':price if price_ok(price) else None,
+                          'currency':currency if isinstance(currency,str) else None})
     return out
+
+
+approved_yahoo_listings=approved_market_api_listings
 
 def price_ok(x):
     return type(x) in (int,float) and math.isfinite(x) and x>0
@@ -164,7 +179,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
         monitored_ids={row[0] for row in bot.execute('select id from editions where watch_level>0')}
         monitored=len(monitored_ids)
         discoveries=pending_candidates(bot)
-        yahoo_market=approved_yahoo_listings(bot,now)
+        yahoo_market=approved_market_api_listings(bot,now)
     with closing(sqlite3.connect(db)) as c:
         c.execute('pragma foreign_keys=on')
         rows=c.execute('select id,identity_status,tool_json,muse_json,html_json from editions order by id').fetchall()
@@ -265,7 +280,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                         links.append({'label':'調査出典（版・在庫は未確定）','url':url})
             if rid in market: links.append({'label':'Discogsの盤別出品一覧（在庫未確認）','url':market[rid]})
             for item in yahoo_market.get(rid,[]):
-                links.append({'label':'Yahoo!ショッピング中古出品（最終観測 '+item['lastSeen']+'・現在在庫は未保証）','url':item['url']})
+                links.append({'label':item['sourceLabel']+'（最終観測 '+item['lastSeen']+'・現在在庫は未保証）','url':item['url']})
             if key[0]=='data discs' and key[1] in merchants:
                 links.append({'label':'公式商品ページ（型番共通・盤違いに注意）','url':merchants[key[1]]})
             offers=collector_map.get(rid,[])
@@ -331,14 +346,14 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
             used_status=('candidate_needs_review' if market_candidate else
                          'source_unverified' if collector_state=='healthy' else
                          'error' if collector_state=='error' else 'no_route')
-            used_reason=('人間承認済みYahoo中古出品あり（最終観測日時表示・現在在庫は未保証）' if rid in yahoo_market else
+            used_reason=('人間承認済みAPI商品ページあり（最終観測日時表示・現在在庫は未保証）' if rid in yahoo_market else
                          '店舗/マーケット候補があり在庫・版は未確認' if market_candidate else
                          '取得済み情報に盤別候補なし（市場全体での不存在は未確認）' if collector_state=='healthy' else
                          'Collector候補DBを読めず' if collector_state=='error' else
                          'Collector候補DBが未配置')
             add_coverage('used_listing',used_status,used_reason,
                           offers[0]['observed'] if offers else (yahoo_market[rid][0]['lastSeen'] if rid in yahoo_market else None),
-                          offers[0]['source'] if offers else ('yahoo_shopping' if rid in yahoo_market else ('discogs_marketplace' if rid in market else None)))
+                          offers[0]['source'] if offers else (yahoo_market[rid][0]['source'] if rid in yahoo_market else ('discogs_marketplace' if rid in market else None)))
             priced_observations=[item for item in evidence[rid] if price_ok(item[2])]
             latest_price=max(priced_observations,key=lambda item:item[0]) if priced_observations else None
             has_price=bool(snap) or bool(latest_price)
@@ -359,8 +374,8 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                 availability_at,availability_source=offers[0]['observed'],offers[0]['source']
             elif rid in yahoo_market:
                 availability_status='candidate_needs_review'
-                availability_reason='Yahoo APIで中古・在庫ありの返却履歴あり（現在在庫は未保証）'
-                availability_at,availability_source=yahoo_market[rid][0]['lastSeen'],'yahoo_shopping'
+                availability_reason='人間承認済みAPI返却履歴あり（現在在庫は未保証）'
+                availability_at,availability_source=yahoo_market[rid][0]['lastSeen'],yahoo_market[rid][0]['source']
             elif rid in monitored_ids:
                 availability_status='source_unverified'; availability_reason='Bot監視対象だが在庫観測なし'
                 availability_at=availability_source=None
@@ -376,7 +391,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
             add_coverage('purchase_url','candidate_needs_review' if purchase_candidate else 'no_route',
                          '購入ページ候補あり・最終観測日時表示、現在の購入可否は未保証' if rid in yahoo_market else ('購入ページ候補あり・対象盤/購入可否の人手確認待ち' if purchase_candidate else '盤一致を確認した購入URLなし'),
                          offers[0]['observed'] if offers else (yahoo_market[rid][0]['lastSeen'] if rid in yahoo_market else None),
-                         offers[0]['source'] if offers else ('yahoo_shopping' if rid in yahoo_market else ('data_discs' if official else ('discogs_marketplace' if rid in market else None))))
+                         offers[0]['source'] if offers else (yahoo_market[rid][0]['source'] if rid in yahoo_market else ('data_discs' if official else ('discogs_marketplace' if rid in market else None))))
             assert len(coverage_items)==len(COVERAGE_AREAS)
             r['fieldAudit']={'summary':summary,'priceDate':None,
               'priceStatus':'価格表示停止中（出典・通貨・利用条件を再確認中）',

@@ -437,32 +437,61 @@ def test_only_human_approved_yahoo_listing_is_exported_with_attribution(site_fix
     with c:
         c.executescript("""
           create table listings(id integer,edition_id text,source text,url text,
-            image_url text,raw_title text,last_seen text);
+            image_url text,raw_title text,last_seen text,price real,currency text);
           create table match_decisions(id integer,listing_id integer,
             edition_id text,matcher_version text,price_confidence text);
         """)
-        c.execute("insert into listings values(1,'AR-000001',?,?,?, ?,?)",
+        c.execute("insert into listings values(1,'AR-000001',?,?,?, ?,?,?,?)",
                   ('Yahoo Shopping used',
                    'https://store.shopping.yahoo.co.jp/shop/record.html',
                    'https://item-shopping.c.yimg.jp/i/g/record',
-                   'Vintage record',seen))
+                   'Vintage record',seen,4200,'JPY'))
         c.execute("insert into match_decisions values(1,1,'AR-000001',"
                   "'human-review-1','高')")
-        c.execute("insert into listings values(2,'AR-000002',?,?,?, ?,?)",
+        c.execute("insert into listings values(2,'AR-000002',?,?,?, ?,?,?,?)",
                   ('Yahoo Shopping used',
                    'https://store.shopping.yahoo.co.jp/shop/unreviewed.html',
                    'https://item-shopping.c.yimg.jp/i/g/unreviewed',
-                   'Unreviewed',seen))
+                   'Unreviewed',seen,4000,'JPY'))
         c.execute("insert into match_decisions values(2,2,'AR-000002',"
                   "'matcher-1','高')")
+        c.execute("insert into listings values(3,'AR-000003',?,?,?, ?,?,?,?)",
+                  ('eBay Browse used','https://www.ebay.com/itm/123',
+                   'https://i.ebayimg.com/image.jpg','eBay vintage',seen,18,'USD'))
+        c.execute("insert into match_decisions values(3,3,'AR-000003',"
+                  "'human-review-1','高')")
+        c.execute("insert into listings values(4,'AR-000004',?,?,?, ?,?,?,?)",
+                  ('Rakuten Ichiba','https://item.rakuten.co.jp/shop/abc/',
+                   'https://thumbnail.image.rakuten.co.jp/a.jpg',
+                   'Rakuten item',seen,3000,'JPY'))
+        c.execute("insert into match_decisions values(4,4,'AR-000004',"
+                  "'human-review-1','高')")
+        stale=(datetime.now(timezone.utc)-timedelta(days=3)).isoformat()
+        c.execute("insert into listings values(5,'AR-000005',?,?,?, ?,?,?,?)",
+                  ('eBay Browse used','https://www.ebay.com/itm/stale',None,
+                   'Stale eBay item',stale,20,'USD'))
+        c.execute("insert into match_decisions values(5,5,'AR-000005',"
+                  "'human-review-1','高')")
     c.close()
 
     target=tmp_path/'index.html'
     audit.run(site,bot,template,target,tmp_path/'audit.csv')
     html=target.read_text(encoding='utf-8')
+    records,_=json.JSONDecoder().raw_decode(html[html.index('[{'):])
+    exported={row['id']:row for row in records}
     assert 'https://store.shopping.yahoo.co.jp/shop/record.html' in html
     assert 'https://item-shopping.c.yimg.jp/i/g/record' in html
     assert 'unreviewed.html' not in html
+    assert 'https://www.ebay.com/itm/123' in html
+    ebay=exported['AR-000003']['fieldAudit']['marketListings'][0]
+    assert ebay['title']=='eBay vintage' and ebay['price']==18 and ebay['currency']=='USD'
+    assert ebay['image'] is None
+    assert 'https://item.rakuten.co.jp/shop/abc/' in html
+    rakuten=exported['AR-000004']['fieldAudit']['marketListings'][0]
+    assert rakuten['title']=='Rakuten item' and rakuten['price']==3000
+    assert rakuten['currency']=='JPY' and rakuten['image'] is None
+    assert exported['AR-000005']['fieldAudit']['marketListings']==[]
+    assert 'image.jpg' not in html and '/stale' not in html
     assert 'marketListings' in html
     production_template=(Path(__file__).resolve().parents[1]/'site'/'site_template.html').read_text(encoding='utf-8')
     assert '<!-- Begin Yahoo! JAPAN Web Services Attribution Snippet -->' in production_template

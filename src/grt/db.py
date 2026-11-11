@@ -69,6 +69,10 @@ _LATE_COLUMNS = (
     # REPRESS transition when the copy returns.
     ("listings", "oos_declared", "INTEGER DEFAULT 0"),
     ("listings", "image_url", "TEXT"),
+    ("market_api_search_state", "last_success", "TEXT"),
+    ("market_api_search_state", "last_blocked", "TEXT"),
+    ("market_api_search_state", "last_error", "TEXT"),
+    ("market_api_search_state", "last_no_query", "TEXT"),
 )
 
 
@@ -111,6 +115,8 @@ _INDEXES = (
     " ON match_decisions(decided_at)",
     "CREATE INDEX IF NOT EXISTS idx_used_market_search_checked"
     " ON used_market_search_state(last_checked, edition_id)",
+    "CREATE INDEX IF NOT EXISTS idx_market_api_search_checked"
+    " ON market_api_search_state(provider, last_checked, edition_id)",
     # W-check B3 (adversarial 4): listings identity is (source,
     # url); without a UNIQUE index the SELECT-then-INSERT in
     # register_ingested raced under concurrent lanes and produced

@@ -1036,8 +1036,10 @@
             return '<a href="' + esc(link.url) + '" target="_blank" rel="noopener noreferrer">' + esc(link.label) + '</a>';
           }).join("");
           var marketListings = (a.marketListings || []).map(function (item) {
-            var photo = item.image ? '<img src="' + esc(item.image) + '" alt="Yahoo!ショッピング中古出品の商品写真" loading="lazy" width="64" height="64">' : '';
-            return '<a class="market-listing" href="' + esc(item.url) + '" target="_blank" rel="noopener noreferrer">' + photo + '<span>' + esc(item.title || 'Yahoo!ショッピング中古出品') + '<small>最終観測 ' + esc(item.lastSeen) + '・現在在庫は未保証</small></span></a>';
+            var label = item.sourceLabel || 'マーケット出品';
+            var photo = item.image ? '<img src="' + esc(item.image) + '" alt="' + esc(label) + 'の商品写真" loading="lazy" width="64" height="64">' : '';
+            var price = item.price && item.currency ? '・観測価格 ' + esc(item.price) + ' ' + esc(item.currency) : '';
+            return '<a class="market-listing" href="' + esc(item.url) + '" target="_blank" rel="noopener noreferrer"><span>' + esc(item.title || label) + '<small>' + esc(label) + '・最終観測 ' + esc(item.lastSeen) + price + '・現在在庫は未保証</small></span>' + photo + '</a>';
           }).join("");
           if (r.audit) {
             rows.push(["同定・監査", auditLabels[r.audit] || r.audit]);
@@ -1076,7 +1078,7 @@
               deal +
             "</div>" +
             '<button type="button" class="detail-btn" data-detail="' + r.id + '" aria-expanded="' + open + '">' + (open ? "詳細を閉じる ▲" : "詳細を見る ▼") + "</button>" +
-            '<div class="detail' + (open ? " open" : "") + '" id="detail-' + r.id + '"><dl>' + rows + '</dl><div class="audit-links">' + links + "</div>" + (marketListings ? '<div class="market-listings" aria-label="確認済みYahoo中古出品">' + marketListings + '</div>' : '') + '</div>' +
+            '<div class="detail' + (open ? " open" : "") + '" id="detail-' + r.id + '"><dl>' + rows + '</dl><div class="audit-links">' + links + "</div>" + (marketListings ? '<div class="market-listings" aria-label="盤一致を人が確認した商品ページ">' + marketListings + '</div>' : '') + '</div>' +
           "</article>";
         }
 

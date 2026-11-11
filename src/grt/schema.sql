@@ -232,6 +232,19 @@ CREATE TABLE IF NOT EXISTS used_market_search_state(
   attempts INTEGER NOT NULL DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS market_api_search_state(
+  provider TEXT NOT NULL, edition_id TEXT NOT NULL,
+  last_checked TEXT, last_result TEXT, error_code TEXT,
+  last_success TEXT, last_blocked TEXT, last_error TEXT, last_no_query TEXT,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY(provider, edition_id)
+);
+
+CREATE TABLE IF NOT EXISTS market_api_source_state(
+  provider TEXT NOT NULL PRIMARY KEY,
+  blocked_until TEXT, last_error TEXT
+);
+
 -- Supplementary dictionary tables (section 5 notes).
 CREATE TABLE IF NOT EXISTS catalog_prefix_dict(
   prefix TEXT NOT NULL PRIMARY KEY, label TEXT
