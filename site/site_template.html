@@ -1,0 +1,1479 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="ゲーム音楽レコード3,777盤の目録を検索・絞り込みできます。出典と確認状況を表示し、未確認の価格・在庫・画像は現行情報として掲載しません。" />
+    <link rel="icon" href="data:," />
+    <title>ゲーム音楽レコードDB</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Shippori+Mincho+B1:wght@700;800&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f3f1ec;
+        --surface: #ffffff;
+        --surface-2: #ebe8e0;
+        --ink: #1b1c1e;
+        --ink-soft: #45484d;
+        --muted: #5f646a;
+        --line: #d8d4c9;
+        --line-strong: #b9b4a6;
+        --accent: #b3351f;
+        --accent-ink: #ffffff;
+        --accent-soft: #f7e3dd;
+        --ok: #1e6b45;
+        --ok-soft: #dcefe3;
+        --warn: #96660a;
+        --warn-soft: #f6ead0;
+        --none: #5d6066;
+        --none-soft: #e6e6e3;
+        --masthead: #17181a;
+        --masthead-ink: #f2efe7;
+        --masthead-sub: #a9a69c;
+        --gold: #a97b12;
+        --shadow: 0 1px 2px rgba(27, 28, 30, .06), 0 6px 18px rgba(27, 28, 30, .05);
+        --radius: 10px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --bg: #121315;
+          --surface: #1c1e21;
+          --surface-2: #26282c;
+          --ink: #eceae4;
+          --ink-soft: #c6c4bd;
+          --muted: #9a9da2;
+          --line: #33363b;
+          --line-strong: #4a4e55;
+          --accent: #e0603f;
+          --accent-ink: #ffffff;
+          --accent-soft: #43231b;
+          --ok: #5cc48c;
+          --ok-soft: #1d3328;
+          --warn: #e0aa4e;
+          --warn-soft: #3a2f18;
+          --none: #a3a6ab;
+          --none-soft: #2b2d31;
+          --masthead: #0b0c0d;
+          --masthead-ink: #f2efe7;
+          --masthead-sub: #8f8c83;
+          --gold: #d9a83e;
+          --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .3);
+        }
+      }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+      button, input, select { font: inherit; color: inherit; }
+      :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+      /* ---------- masthead ---------- */
+      .masthead { background: var(--masthead); color: var(--masthead-ink); }
+      .masthead-inner {
+        max-width: 1280px; margin: 0 auto; padding: 26px 20px 22px;
+        display: flex; flex-wrap: wrap; gap: 18px 32px; align-items: flex-end; justify-content: space-between;
+      }
+      .masthead h1 {
+        margin: 0; font-family: "Shippori Mincho B1", "Hiragino Mincho ProN", serif;
+        font-size: clamp(24px, 4.5vw, 36px); font-weight: 800; letter-spacing: .04em; line-height: 1.25;
+      }
+      .masthead .sub { margin: 6px 0 0; color: var(--masthead-sub); font-size: 13px; letter-spacing: .08em; }
+      .stats { display: flex; flex-wrap: wrap; gap: 10px; }
+      .stat {
+        border: 1px solid #3a3b3e; border-radius: var(--radius); padding: 8px 14px 7px; min-width: 118px;
+        background: rgba(255, 255, 255, .03);
+      }
+      .stat .num { font-size: 22px; font-weight: 900; line-height: 1.15; font-variant-numeric: tabular-nums; }
+      .stat .num small { font-size: 12px; font-weight: 500; color: var(--masthead-sub); margin-left: 4px; }
+      .stat .lbl { font-size: 11.5px; color: var(--masthead-sub); letter-spacing: .05em; }
+
+      /* ---------- era strip ---------- */
+      .era-strip-wrap { border-bottom: 1px solid var(--line); background: var(--surface); }
+      .era-strip {
+        max-width: 1280px; margin: 0 auto; padding: 14px 20px;
+        display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+      }
+      .era-strip .strip-label { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .1em; margin-right: 4px; }
+      .era-chip {
+        border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px;
+        padding: 5px 13px; cursor: pointer; font-size: 13.5px; font-weight: 500;
+        display: inline-flex; gap: 7px; align-items: baseline;
+      }
+      .era-chip .c { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+      .era-chip:hover { border-color: var(--accent); }
+      .era-chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+      .era-chip[aria-pressed="true"] .c { color: var(--accent-ink); opacity: .85; }
+
+      /* ---------- layout ---------- */
+      .layout {
+        max-width: 1280px; margin: 0 auto; padding: 18px 20px 30px;
+        display: grid; grid-template-columns: 272px minmax(0, 1fr); gap: 22px; align-items: start;
+      }
+
+      /* ---------- filters ---------- */
+      .filters {
+        background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+        box-shadow: var(--shadow); position: sticky; top: 14px; max-height: calc(100vh - 28px); overflow: auto;
+      }
+      .filters-head {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 13px 16px 10px; border-bottom: 1px solid var(--line);
+      }
+      .filters-head h2 { margin: 0; font-size: 14px; letter-spacing: .08em; }
+      .clear-btn {
+        border: none; background: none; color: var(--accent); cursor: pointer; font-size: 12.5px; font-weight: 700; padding: 4px 2px;
+      }
+      .clear-btn:disabled { color: var(--muted); cursor: default; font-weight: 500; }
+      .facet { padding: 12px 16px 14px; border-bottom: 1px solid var(--line); }
+      .facet:last-child { border-bottom: none; }
+      .facet h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .1em; color: var(--ink-soft); }
+      .facet h3 .hint { font-weight: 400; color: var(--muted); letter-spacing: 0; font-size: 11px; margin-left: 5px; }
+      .facet-list { display: flex; flex-direction: column; gap: 2px; }
+      .facet-item {
+        display: flex; justify-content: space-between; align-items: center; gap: 8px;
+        width: 100%; text-align: left; border: 1px solid transparent; background: none;
+        border-radius: 7px; padding: 4.5px 8px; cursor: pointer; font-size: 13.5px; line-height: 1.4;
+      }
+      .facet-item:hover { background: var(--surface-2); }
+      .facet-item .name { overflow-wrap: anywhere; }
+      .facet-item .cnt { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+      .facet-item[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); font-weight: 700; }
+      .facet-item[aria-pressed="true"] .cnt { color: var(--accent); }
+      .facet-item.zero { opacity: .42; }
+      .facet-more {
+        border: none; background: none; color: var(--accent); cursor: pointer;
+        font-size: 12.5px; font-weight: 700; padding: 6px 8px 0;
+      }
+      .price-inputs { display: flex; align-items: center; gap: 7px; }
+      .price-inputs input {
+        width: 100%; min-width: 0; border: 1px solid var(--line-strong); border-radius: 7px;
+        background: var(--surface); padding: 6px 8px; font-size: 13.5px;
+      }
+      .price-inputs span { color: var(--muted); flex: none; }
+      .price-presets { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+      .price-presets button {
+        border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px;
+        padding: 2px 10px; font-size: 12px; cursor: pointer;
+      }
+      .price-presets button:hover { border-color: var(--accent); }
+
+      .filters-toggle {
+        display: none; width: 100%; border: 1px solid var(--line-strong); background: var(--surface);
+        border-radius: var(--radius); padding: 11px 14px; font-weight: 700; cursor: pointer;
+        justify-content: space-between; align-items: center; box-shadow: var(--shadow);
+      }
+      .filters-toggle .badge {
+        background: var(--accent); color: var(--accent-ink); border-radius: 999px;
+        font-size: 11.5px; padding: 1px 9px; font-weight: 700;
+      }
+
+      /* ---------- toolbar ---------- */
+      .toolbar {
+        display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px;
+      }
+      .search-box { position: relative; flex: 1 1 300px; }
+      .search-box svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 17px; height: 17px; stroke: var(--muted); fill: none; stroke-width: 2; }
+      .search-box input {
+        width: 100%; border: 1px solid var(--line-strong); border-radius: var(--radius);
+        background: var(--surface); padding: 11px 38px 11px 38px; font-size: 15px; box-shadow: var(--shadow);
+      }
+      .search-box .x {
+        position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+        border: none; background: none; cursor: pointer; color: var(--muted); font-size: 18px; padding: 4px 8px; line-height: 1;
+      }
+      .sort-wrap { display: flex; align-items: center; gap: 7px; flex: none; }
+      .sort-wrap label { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+      .sort-wrap select, .perpage select {
+        border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface);
+        padding: 8px 8px; font-size: 13.5px; max-width: 210px;
+      }
+      .result-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin: 2px 0 12px; }
+      .result-count { font-size: 15px; }
+      .result-count strong { font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; }
+      .active-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+      .chip {
+        display: inline-flex; align-items: center; gap: 6px; background: var(--accent-soft);
+        border: 1px solid var(--accent); color: var(--ink); border-radius: 999px;
+        font-size: 12.5px; padding: 2px 6px 2px 11px; font-weight: 500;
+      }
+      .chip button { border: none; background: none; cursor: pointer; font-size: 15px; line-height: 1; padding: 2px 4px; color: var(--accent); }
+
+      /* ---------- record cards ---------- */
+      .cards { display: flex; flex-direction: column; gap: 10px; }
+      .card {
+        background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+        box-shadow: var(--shadow); padding: 14px 16px; display: grid;
+        grid-template-columns: 64px minmax(0, 1fr) auto; gap: 6px 16px;
+      }
+      .card .year-block { text-align: center; padding-top: 2px; }
+      .card .year {
+        font-family: "Shippori Mincho B1", serif; font-weight: 800; font-size: 21px; line-height: 1.1;
+        font-variant-numeric: tabular-nums;
+      }
+      .card .year.unknown { font-size: 13px; color: var(--muted); font-family: inherit; font-weight: 700; padding-top: 5px; }
+      .card .era-lbl { font-size: 10.5px; color: var(--muted); margin-top: 3px; letter-spacing: .03em; }
+      .card h3 { margin: 0; font-size: 16.5px; line-height: 1.45; font-weight: 700; overflow-wrap: anywhere; }
+      .card .game { color: var(--accent); font-weight: 700; font-size: 13.5px; margin-top: 1px; overflow-wrap: anywhere; }
+      .card .artist { color: var(--ink-soft); font-size: 13px; margin-top: 1px; overflow-wrap: anywhere; }
+      .card .meta { color: var(--muted); font-size: 12.5px; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 3px 12px; }
+      .card .meta b { color: var(--ink-soft); font-weight: 500; }
+      .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; align-items: center; }
+      .badge {
+        font-size: 11.5px; font-weight: 700; border-radius: 5px; padding: 1.5px 8px; letter-spacing: .03em; white-space: nowrap;
+      }
+      .badge.fmt { background: var(--surface-2); color: var(--ink-soft); border: 1px solid var(--line); }
+      .badge.content { background: none; border: 1px solid var(--line-strong); color: var(--ink-soft); }
+      .badge.sales-promo { background: #efe0f2; color: #6d2a75; border: 1px solid #d3aedb; }
+      @media (prefers-color-scheme: dark) { .badge.sales-promo { background: #37233c; color: #d9a8e2; border-color: #5a3d63; } }
+      .badge.audit-neither { background: var(--accent); color: #fff; border: 1px solid var(--accent); }
+      .badge.mt-sampling { background: #f3ddc8; color: #8a4a12; border: 1px solid #dfb287; }
+      @media (prefers-color-scheme: dark) { .badge.mt-sampling { background: #40301d; color: #eab98a; border-color: #6b4c2a; } }
+      .badge.mt-inspired { background: #d8ecea; color: #1f5f5b; border: 1px solid #a3cdc9; }
+      @media (prefers-color-scheme: dark) { .badge.mt-inspired { background: #1d3433; color: #8fd0cb; border-color: #33514f; } }
+      .badge.mt-mismatch { background: none; color: var(--accent); border: 1.5px solid var(--accent); }
+      .badge.mt-unknown { background: none; color: var(--muted); border: 1px dashed var(--line-strong); }
+      .badge.audit-anime { background: #dbe7f5; color: #2c4f7c; border: 1px solid #a9c2de; }
+      @media (prefers-color-scheme: dark) { .badge.audit-anime { background: #22344a; color: #a9c8ec; border-color: #41597a; } }
+      .card .game .id-tag {
+        display: inline-block; margin-left: 7px; padding: 0 6px; vertical-align: 1px;
+        font-size: 10.5px; font-weight: 700; letter-spacing: .04em; white-space: nowrap;
+        color: var(--muted); background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 4px;
+      }
+      .card .game .id-tag.anime { color: #2c4f7c; background: #dbe7f5; border-color: #a9c2de; }
+      @media (prefers-color-scheme: dark) { .card .game .id-tag.anime { color: #a9c8ec; background: #22344a; border-color: #41597a; } }
+      .deal-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 5px; }
+      .deal-badges .deal-badge { margin-bottom: 0; }
+      .deal-badge.audit-neither { background: var(--accent); color: #fff; }
+      .deal-badge.mt-sampling { background: #f3ddc8; color: #8a4a12; border: 1px solid #dfb287; }
+      @media (prefers-color-scheme: dark) { .deal-badge.mt-sampling { background: #40301d; color: #eab98a; border-color: #6b4c2a; } }
+      .deal-badge.mt-inspired { background: #d8ecea; color: #1f5f5b; border: 1px solid #a3cdc9; }
+      @media (prefers-color-scheme: dark) { .deal-badge.mt-inspired { background: #1d3433; color: #8fd0cb; border-color: #33514f; } }
+      .deal-badge.audit-anime { background: #dbe7f5; color: #2c4f7c; }
+      @media (prefers-color-scheme: dark) { .deal-badge.audit-anime { background: #22344a; color: #a9c8ec; } }
+      .deal-badge.audit-comp { background: var(--surface-2); color: var(--ink-soft); border: 1px solid var(--line-strong); }
+      .deal-badge.audit-id { background: none; color: var(--muted); border: 1px solid var(--line-strong); }
+      .badge.st-ok { background: var(--ok-soft); color: var(--ok); }
+      .badge.st-past { background: var(--warn-soft); color: var(--warn); }
+      .badge.st-none { background: var(--none-soft); color: var(--none); }
+      .rarity { font-size: 11.5px; font-weight: 900; border-radius: 5px; padding: 1.5px 8px; letter-spacing: .06em; white-space: nowrap; }
+      .rarity.r1 { background: var(--none-soft); color: var(--none); }
+      .rarity.r2 { background: #dde4ee; color: #33507c; }
+      .rarity.r3 { background: #d7ecdf; color: #1e6b45; }
+      .rarity.r4 { background: #f6ead0; color: #865900; }
+      .rarity.r5 { background: var(--accent); color: #fff; box-shadow: inset 0 0 0 1.5px var(--gold); }
+      .rarity.rn { background: none; border: 1px dashed var(--line-strong); color: var(--muted); font-weight: 500; }
+      @media (prefers-color-scheme: dark) {
+        .rarity.r2 { background: #263449; color: #9db9dd; }
+        .rarity.r3 { background: #1d3328; color: #5cc48c; }
+        .rarity.r4 { background: #3a2f18; color: #e0aa4e; }
+      }
+      .price-block { text-align: right; min-width: 128px; }
+      .price-block .cur-lbl { font-size: 10.5px; color: var(--muted); letter-spacing: .08em; }
+      .price-block .cur { font-size: 23px; font-weight: 900; line-height: 1.2; font-variant-numeric: tabular-nums; }
+      .price-block .cur.none { font-size: 14px; color: var(--muted); font-weight: 500; padding-top: 4px; }
+      .price-block .med { font-size: 12.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; margin-top: 2px; }
+      .price-block .med span { color: var(--muted); }
+      .price-block .asof { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+      .price-block .deal { font-size: 11.5px; font-weight: 700; color: var(--ok); margin-top: 2px; }
+      .detail-btn {
+        grid-column: 2 / 4; justify-self: start; border: none; background: none; cursor: pointer;
+        color: var(--accent); font-size: 12.5px; font-weight: 700; padding: 4px 0 0;
+      }
+      .detail {
+        grid-column: 1 / 4; border-top: 1px dashed var(--line-strong); margin-top: 8px; padding-top: 10px;
+        display: none;
+      }
+      .detail.open { display: block; }
+      .detail dl {
+        margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px 22px;
+      }
+      .detail .row { display: flex; gap: 8px; font-size: 13px; }
+      .detail dt { color: var(--muted); flex: none; min-width: 74px; }
+      .detail dd { margin: 0; overflow-wrap: anywhere; }
+
+      .empty {
+        background: var(--surface); border: 1px dashed var(--line-strong); border-radius: var(--radius);
+        padding: 44px 20px; text-align: center; color: var(--muted);
+      }
+      .empty p { margin: 0 0 12px; font-size: 15px; }
+      .empty button {
+        border: 1px solid var(--accent); color: var(--accent); background: none; border-radius: 8px;
+        padding: 7px 18px; font-weight: 700; cursor: pointer;
+      }
+
+      /* ---------- pagination ---------- */
+      .pagination { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; margin-top: 20px; }
+      .pagination button {
+        border: 1px solid var(--line-strong); background: var(--surface); border-radius: 8px;
+        min-width: 38px; padding: 6px 10px; cursor: pointer; font-variant-numeric: tabular-nums; font-size: 13.5px;
+      }
+      .pagination button[aria-current="page"] { background: var(--ink); color: var(--bg); border-color: var(--ink); font-weight: 900; }
+      .pagination button:disabled { opacity: .4; cursor: default; }
+      .pagination .ellipsis { color: var(--muted); padding: 0 2px; }
+      .page-info { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+
+      /* ---------- view tabs ---------- */
+      .is-hidden { display: none !important; }
+      .view-tabs-wrap { background: var(--surface); border-bottom: 1px solid var(--line); }
+      .view-tabs { max-width: 1280px; margin: 0 auto; padding: 0 20px; display: flex; gap: 2px; }
+      .view-tab {
+        border: none; background: none; cursor: pointer; padding: 13px 16px 11px;
+        font-size: 15px; font-weight: 700; color: var(--muted);
+        border-bottom: 3px solid transparent; margin-bottom: -1px;
+        display: inline-flex; align-items: center;
+      }
+      .view-tab:hover { color: var(--ink); }
+      .view-tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+      .view-tab .tab-count {
+        font-size: 11.5px; font-weight: 700; background: var(--accent-soft); color: var(--accent);
+        border-radius: 999px; padding: 1px 8px; margin-left: 7px; font-variant-numeric: tabular-nums;
+      }
+      @media (prefers-color-scheme: dark) {
+        .view-tab .tab-count { color: #ffab95; }
+      }
+      .visually-hidden {
+        position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+        overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+      }
+
+      /* ---------- deals view ---------- */
+      .deals-view { max-width: 1280px; margin: 0 auto; padding: 24px 20px 36px; }
+      .deals-head h2 {
+        margin: 0; font-family: "Shippori Mincho B1", "Hiragino Mincho ProN", serif;
+        font-size: clamp(21px, 3.4vw, 28px); font-weight: 800; letter-spacing: .03em; line-height: 1.3;
+      }
+      .deals-lede { margin: 9px 0 0; color: var(--ink-soft); font-size: 14px; }
+      .deals-lede strong { font-variant-numeric: tabular-nums; color: var(--ink); }
+      .deals-note { margin: 5px 0 0; color: var(--muted); font-size: 12.5px; }
+      .deals-controls {
+        display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center;
+        margin: 18px 0 6px; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+      }
+      .deals-controls[hidden] { display: none; }
+      .ctl-group { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+      .ctl-lbl { font-size: 12.5px; color: var(--muted); font-weight: 700; margin-right: 2px; }
+      .deal-chip {
+        border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px;
+        padding: 3px 12px; font-size: 12.5px; cursor: pointer;
+      }
+      .deal-chip:hover { border-color: var(--accent); }
+      .deal-chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+      .deals-controls select {
+        border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface);
+        padding: 7px 8px; font-size: 13.5px; max-width: 230px;
+      }
+      .deals-count-line { font-size: 13.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; margin-left: auto; }
+      .deals-count-line strong { font-size: 17px; font-weight: 900; }
+      .deals-status { color: var(--muted); font-size: 13.5px; margin: 14px 0 0; }
+      .deal-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; margin-top: 14px; }
+      .deal-card {
+        background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+        box-shadow: var(--shadow); padding: 12px; display: flex; gap: 13px;
+      }
+      .deal-thumb {
+        flex: none; width: 106px; height: 106px; border-radius: 7px; overflow: hidden;
+        background: var(--surface-2); border: 1px solid var(--line); position: relative;
+      }
+      .deal-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .deal-thumb .noimg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+      .deal-thumb .noimg::before {
+        content: ""; width: 62px; height: 62px; border-radius: 50%;
+        background: radial-gradient(circle, var(--surface) 0 7px, var(--masthead) 8px 100%);
+        border: 1px solid var(--line-strong);
+      }
+      .deal-thumb .noimg span { position: absolute; bottom: 5px; left: 0; right: 0; text-align: center; font-size: 9px; letter-spacing: .14em; color: var(--muted); }
+      .deal-body { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+      .deal-badge {
+        align-self: flex-start; font-size: 11px; font-weight: 900; letter-spacing: .04em;
+        border-radius: 5px; padding: 1.5px 8px; margin-bottom: 5px; white-space: nowrap;
+      }
+      .deal-badge.lowest { background: var(--ok); color: #fff; }
+      .deal-badge.median { background: var(--warn-soft); color: var(--warn); }
+      .deal-body h3 {
+        margin: 0; font-size: 14.5px; line-height: 1.45; font-weight: 700; overflow-wrap: anywhere;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      }
+      .deal-cat { margin: 2px 0 0; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+      .deal-meta { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-soft); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      .deal-meta b { font-weight: 700; color: var(--ink); }
+      .deal-meta .sep { color: var(--muted); margin: 0 2px; }
+      .deal-price-row { display: flex; align-items: flex-end; gap: 6px 10px; margin-top: auto; padding-top: 9px; flex-wrap: wrap; }
+      .deal-price { font-size: 21px; font-weight: 900; line-height: 1.15; font-variant-numeric: tabular-nums; }
+      .deal-price small { display: block; font-size: 10px; color: var(--muted); font-weight: 500; letter-spacing: .07em; margin-bottom: 1px; }
+      .deal-vs {
+        font-size: 12px; font-weight: 700; color: var(--ok); background: var(--ok-soft);
+        border-radius: 5px; padding: 1.5px 7px; font-variant-numeric: tabular-nums; white-space: nowrap;
+      }
+      .deal-vs.above { color: var(--muted); background: var(--none-soft); }
+      .deal-hist { margin: 6px 0 0; font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+      .deal-hist span { color: var(--muted); }
+      .deal-buy {
+        margin-top: 10px; display: block; text-align: center; background: var(--accent); color: var(--accent-ink);
+        text-decoration: none; font-weight: 700; font-size: 13.5px; border-radius: 8px; padding: 8px 10px;
+      }
+      .deal-buy:hover { opacity: .88; }
+      .deals-more { text-align: center; margin-top: 20px; }
+      .deals-more button {
+        border: 1px solid var(--line-strong); background: var(--surface); border-radius: 8px;
+        padding: 9px 28px; font-weight: 700; cursor: pointer; font-size: 14px;
+      }
+      .deals-more button:hover { border-color: var(--accent); color: var(--accent); }
+      .deals-remaining { color: var(--muted); font-size: 12.5px; margin: 7px 0 0; font-variant-numeric: tabular-nums; }
+      .discovery-view { max-width: 1280px; margin: 0 auto; padding: 24px 20px 36px; }
+      .discovery-head h2 { margin: 0; font-family: "Shippori Mincho B1", "Hiragino Mincho ProN", serif; font-size: clamp(21px, 3.4vw, 28px); line-height: 1.3; }
+      .discovery-note { margin: 8px 0 0; color: var(--ink-soft); font-size: 13.5px; }
+      .discovery-tools { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 18px; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+      .discovery-tools label { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+      .discovery-search { width: min(100%, 420px); min-height: 40px; padding: 8px 11px; border: 1px solid var(--line-strong); border-radius: 7px; background: var(--surface); color: var(--ink); font: inherit; }
+      .discovery-count { margin-left: auto; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+      .discovery-list { list-style: none; padding: 0; margin: 8px 0 0; }
+      .discovery-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px 18px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); }
+      .discovery-title { margin: 0; font-size: 15px; line-height: 1.5; font-weight: 700; overflow-wrap: anywhere; }
+      .discovery-meta { margin: 4px 0 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+      .discovery-state { display: inline-block; margin-top: 6px; color: var(--warn); font-size: 12px; font-weight: 700; }
+      .discovery-link { display: inline-flex; align-items: center; min-height: 40px; padding: 6px 10px; border: 1px solid var(--line-strong); border-radius: 6px; color: var(--ink-soft); font-size: 12.5px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+      .discovery-link:hover { border-color: var(--accent); color: var(--accent); }
+      .discovery-empty { padding: 20px 0; color: var(--muted); border-bottom: 1px solid var(--line); }
+      @media (max-width: 560px) {
+        .deal-cards { grid-template-columns: 1fr; }
+        .deal-thumb { width: 88px; height: 88px; }
+        .masthead h1 { font-size: 22px; letter-spacing: .02em; }
+        .masthead h1 span { display: block; }
+        .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; width: 100%; }
+        .stat { min-width: 0; }
+        .view-tabs { padding: 0 8px; }
+        .view-tab { flex: 0 0 auto; white-space: nowrap; padding: 12px 5px 10px; font-size: 12.5px; }
+        .deals-count-line { margin-left: 0; }
+        .discovery-count { width: 100%; margin-left: 0; }
+        .discovery-row { grid-template-columns: 1fr; gap: 8px; }
+        .discovery-link { justify-self: start; }
+      }
+      @media (max-width: 360px) {
+        .view-tabs { overflow-x: auto; overflow-y: hidden; padding: 0; }
+        .view-tab { padding-left: 2px; padding-right: 2px; }
+      }
+
+      footer {
+        max-width: 1280px; margin: 0 auto; padding: 6px 20px 34px; color: var(--muted); font-size: 12.5px;
+      }
+      footer .note { border-top: 1px solid var(--line); padding-top: 14px; }
+      footer p { margin: 0 0 5px; }
+
+      @media (max-width: 920px) {
+        .layout { grid-template-columns: 1fr; padding-top: 12px; }
+        .filters-toggle { display: flex; }
+        .filters { position: static; max-height: none; display: none; }
+        .filters.open { display: block; }
+        .card { grid-template-columns: 52px minmax(0, 1fr); }
+        .price-block { grid-column: 2; text-align: left; display: flex; flex-wrap: wrap; gap: 2px 16px; align-items: baseline; min-width: 0; }
+        .price-block .cur { font-size: 20px; }
+        .detail-btn { grid-column: 2; }
+        .detail { grid-column: 1 / 3; }
+        .stat { min-width: 104px; padding: 6px 9px 5px; }
+        .stat .num { font-size: 19px; }
+      }
+
+      .audit-disclosure { margin: 0 0 1rem; }
+      .audit-disclosure summary { color: var(--ink-soft); cursor: pointer; }
+      .audit-overview { margin: .55rem 0 0; line-height: 1.6; }
+      .search-match { margin-top: .25rem; color: var(--muted); font-size: .76rem; }
+      .audit-art {display: block; width: 52px; height: 52px; margin-top: .35rem; object-fit: contain;}
+      .audit-art-fallback {display: inline-grid; width: 52px; height: 52px; margin-top: .35rem; place-content: center; text-align: center; border: 1px solid currentColor; border-radius: 4px; font-size: .62rem; line-height: 1.2; background: radial-gradient(circle, transparent 31%, rgba(127,127,127,.17) 32%, transparent 35%, rgba(127,127,127,.17) 42%, transparent 45%);}
+      .audit-links {display: flex; gap: .4rem 1rem; flex-wrap: wrap; margin-top: .7rem;}
+      .audit-links a {text-decoration: underline;}
+    </style>
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="masthead-inner">
+        <div>
+          <h1><span>ゲーム音楽レコード</span><span>データベース</span></h1>
+          <p class="sub">GAME MUSIC VINYL — MASTER DATABASE / 全収録盤ブラウザ</p>
+        </div>
+        <div class="stats" id="stats" aria-label="収録統計"></div>
+      </div>
+    </header>
+
+    <div class="view-tabs-wrap">
+      <div class="view-tabs" role="tablist" aria-label="表示切替">
+        <button type="button" class="view-tab" id="tab-db" role="tab" aria-controls="db-layout" aria-selected="true" tabindex="0">全収録盤データベース</button>
+        <button type="button" class="view-tab" id="tab-deals" role="tab" aria-controls="deals-view" aria-selected="false" tabindex="-1">価格比較<span class="tab-count" id="deals-tab-count" hidden></span></button>
+        <button type="button" class="view-tab" id="tab-discovery" role="tab" aria-controls="discovery-view" aria-selected="false" tabindex="-1">発見候補<span class="tab-count" id="discovery-tab-count" hidden></span></button>
+      </div>
+    </div>
+
+    <div class="era-strip-wrap" id="era-strip-wrap">
+      <div class="era-strip" id="era-strip">
+        <span class="strip-label">年代から探す</span>
+      </div>
+    </div>
+
+    <div class="layout" id="db-layout" role="tabpanel" aria-labelledby="tab-db" tabindex="0">
+      <div>
+        <button class="filters-toggle" id="filters-toggle" aria-expanded="false">
+          <span>絞り込み条件</span>
+          <span class="badge" id="filters-badge" hidden>0</span>
+        </button>
+        <aside class="filters" id="filters" aria-label="絞り込み">
+          <div class="filters-head">
+            <h2>絞り込み</h2>
+            <button class="clear-btn" id="clear-all" type="button">すべて解除</button>
+          </div>
+          <div id="facet-root"></div>
+          <section class="facet" aria-label="価格帯">
+            <h3>価格（現在非表示）</h3>
+            <div class="price-inputs">
+              <input type="number" id="price-min" min="0" inputmode="decimal" placeholder="現在非表示" aria-label="価格の下限（現在非表示）" disabled />
+              <span>〜</span>
+              <input type="number" id="price-max" min="0" inputmode="decimal" placeholder="現在非表示" aria-label="価格の上限（現在非表示）" disabled />
+            </div>
+            <div class="price-presets" id="price-presets">
+              <button type="button" data-min="" data-max="25">〜$25</button>
+              <button type="button" data-min="25" data-max="100">$25–100</button>
+              <button type="button" data-min="100" data-max="300">$100–300</button>
+              <button type="button" data-min="300" data-max="">$300〜</button>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <main aria-labelledby="edition-results-heading">
+        <h2 class="visually-hidden" id="edition-results-heading">収録盤の検索結果</h2>
+        <div class="toolbar">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
+            <input type="search" id="search" placeholder="タイトル / ゲーム / 型番 / 調査メモなどで検索" aria-label="タイトル、ゲーム、メーカー、型番、レーベル、アーティスト、同定根拠、監査注記、種別根拠で検索" />
+            <button class="x" id="search-clear" type="button" aria-label="検索をクリア" hidden>×</button>
+          </div>
+          <div class="sort-wrap">
+            <label for="sort">並び替え</label>
+            <select id="sort">
+              <option value="year-desc">年：新しい順</option>
+              <option value="year-asc">年：古い順</option>
+              <option value="price-asc" disabled>調査時価格：安い順（停止中）</option>
+              <option value="price-desc" disabled>調査時価格：高い順（停止中）</option>
+              <option value="median-desc" disabled>成約中央値：高い順（停止中）</option>
+              <option value="median-asc" disabled>成約中央値：安い順（停止中）</option>
+              <option value="title">タイトル順</option>
+            </select>
+          </div>
+          <div class="sort-wrap perpage">
+            <label for="perpage">表示件数</label>
+            <select id="perpage">
+              <option value="30">30件</option>
+              <option value="60" selected>60件</option>
+              <option value="100">100件</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="result-line">
+          <span class="result-count" id="result-count"></span>
+          <span class="active-chips" id="active-chips"></span>
+        </div>
+
+        <details class="audit-disclosure">
+          <summary>監査の詳細（取得範囲・確認状態）</summary>
+          <p class="audit-overview" id="audit-overview">@@AUDIT_OVERVIEW@@</p>
+        </details>
+        <div class="cards" id="cards"></div>
+        <div class="empty" id="empty" hidden>
+          <p>条件に合う盤が見つかりませんでした。</p>
+          <button type="button" id="empty-clear">条件をすべて解除する</button>
+        </div>
+
+        <nav class="pagination" id="pagination" aria-label="ページ送り"></nav>
+        <p class="page-info" id="page-info"></p>
+      </main>
+    </div>
+
+    <section class="deals-view is-hidden" id="deals-view" role="tabpanel" aria-labelledby="tab-deals" tabindex="0" aria-label="価格比較情報">
+      <div class="deals-head">
+        <h2>価格情報</h2>
+        <p class="deals-lede">価格比較の掲載を一時停止しています。</p>
+        <p class="deals-note">旧調査値の出典と通貨、Discogs APIの利用条件を確認できるまで価格を表示しません。購入時の価格・在庫はリンク先でご確認ください。</p>
+      </div>
+      <div class="deals-controls" hidden>
+        <div class="ctl-group" role="group" aria-label="種類で絞り込み">
+          <span class="ctl-lbl">種類</span>
+          <button type="button" class="deal-chip" data-dtype="all" aria-pressed="true">すべて</button>
+          <button type="button" class="deal-chip" data-dtype="below_lowest" aria-pressed="false">過去最安値以下</button>
+          <button type="button" class="deal-chip" data-dtype="below_median_only" aria-pressed="false">中央値のみ以下</button>
+        </div>
+        <div class="ctl-group" role="group" aria-label="価格帯で絞り込み">
+          <span class="ctl-lbl">価格帯</span>
+          <button type="button" class="deal-chip" data-band="all" aria-pressed="true">すべて</button>
+          <button type="button" class="deal-chip" data-band="u25" aria-pressed="false">〜$25</button>
+          <button type="button" class="deal-chip" data-band="m25" aria-pressed="false">$25–100</button>
+          <button type="button" class="deal-chip" data-band="m100" aria-pressed="false">$100–300</button>
+          <button type="button" class="deal-chip" data-band="o300" aria-pressed="false">$300〜</button>
+        </div>
+        <div class="ctl-group">
+          <label class="ctl-lbl" for="deals-maker">メーカー</label>
+          <select id="deals-maker">
+            <option value="all" selected>すべてのメーカー</option>
+          </select>
+        </div>
+        <div class="ctl-group">
+          <label class="ctl-lbl" for="deals-sort">並び替え</label>
+          <select id="deals-sort">
+            <option value="median" selected>中央値比の割引率が大きい順</option>
+            <option value="lowest">最安値比の割引率が大きい順</option>
+            <option value="saving">値引き額（対中央値）が大きい順</option>
+            <option value="price-asc">調査時価格：安い順</option>
+            <option value="price-desc">調査時価格：高い順</option>
+            <option value="year-desc">販売年：新しい順</option>
+            <option value="year-asc">販売年：古い順</option>
+          </select>
+        </div>
+        <span class="deals-count-line" id="deals-count-line"></span>
+      </div>
+      <p class="deals-status" id="deals-status">価格データの出典・通貨・利用条件を確認中です。</p>
+      <div class="deal-cards" id="deal-cards"></div>
+      <div class="deals-more">
+        <button type="button" id="deals-more-btn" hidden>さらに表示する</button>
+        <p class="deals-remaining" id="deals-remaining"></p>
+      </div>
+    </section>
+
+    <section class="discovery-view is-hidden" id="discovery-view" role="tabpanel" aria-labelledby="tab-discovery" tabindex="0">
+      <header class="discovery-head">
+        <h2>発見候補・確認待ち <span id="discovery-total">0</span>件</h2>
+        <p class="discovery-note">BotがRSSなどから見つけた未確認候補です。目録との一致、版・媒体、価格、在庫はまだ確認されていません。登録の承認・却下はTelegram Botで行います。</p>
+      </header>
+      <div class="discovery-tools">
+        <label for="discovery-search">候補を絞り込む</label>
+        <input class="discovery-search" id="discovery-search" type="search" autocomplete="off" placeholder="タイトルまたは出典を検索">
+        <p class="discovery-count" id="discovery-count" aria-live="polite"></p>
+      </div>
+      <ul class="discovery-list" id="discovery-list"></ul>
+      <p class="discovery-empty is-hidden" id="discovery-empty">条件に合う確認待ち候補はありません。</p>
+    </section>
+
+    <footer>
+      <div class="note">
+        <p>This application uses Discogs’ API but is not affiliated with, sponsored or endorsed by Discogs. “Discogs” is a trademark of Zink Media, LLC.</p>
+        <p>価格は出典・通貨・利用条件の再確認まで非表示です。</p>
+        <p><a href="./edition_coverage.csv">3,777盤の7領域別監査CSV</a>（状態・理由・確認日時・情報源ID）</p>
+        <p>希少度（R1〜R5）はサーベイ時点の証拠に基づく評価で、未評価の盤も含まれます。対応機種は判明しているもののみ記載しています。</p>
+        <p>販売年はレコードの発売年です。ゲームメーカーは、そのゲームの発売元・フランチャイズの権利元を発売当時の社名で表示しています（例：マリオ＝任天堂、ソニック＝セガ、ドラゴンクエスト＝エニックス／スクウェア・エニックス）。判明したもののみ記載し、不明なものは空欄です。</p>
+        <p>添付HTMLの説明文では、ゲーム名が空欄だった863件のうち855件をゲーム／コンピレーション／アニメとして再同定し、ゲームでもアニメでもない8件と Yellow Magic Orchestra の各国プレス23件を「混入疑い」に分類したとされています（同説明文の日付は2026-10-29）。これは提供元の説明で、盤ごとの一次資料URLや監査ログが注釈に紐付いていないため、当サイトで独立確認済みの結果とは扱いません。各盤の詳細では提供元の注釈・確度・根拠文を確認できます。</p>
+        <p>添付HTMLの説明文では、音楽種別とゲーム名帰属を2026-10-30時点で監査したとされています。種別（全3,777件）・帰属（全3,777件）の注釈は保持していますが、注釈自体に各判断を裏付ける一次資料URLや監査ログの紐付けはありません。このサイトで独立に再検証した事実としては扱いません。種別内訳は絞り込み欄に表示されます。「同定・監査」欄の注釈は886件分です。各盤の詳細では提供元の注釈・確度・根拠文を確認できます。</p>
+        <p>価格データの根拠が確認できた範囲から再掲載します。</p>
+      </div>
+    </footer>
+
+    <script id="records-data" type="application/json">@@AUDITED_RECORDS@@</script>
+    <script id="discovery-data" type="application/json">@@DISCOVERED_CANDIDATES@@</script>
+    <script>
+      (function () {
+        "use strict";
+        var DATA = JSON.parse(document.getElementById("records-data").textContent);
+        var DISCOVERY = JSON.parse(document.getElementById("discovery-data").textContent);
+
+        /* ---------- helpers ---------- */
+        function fmtPrice(v) {
+          if (v === null || v === undefined) return null;
+          var opts = { maximumFractionDigits: 2, minimumFractionDigits: (v % 1 !== 0 ? 2 : 0) };
+          return "$" + v.toLocaleString("en-US", opts);
+        }
+        function fmtNum(n) { return n.toLocaleString("ja-JP"); }
+        function esc(s) {
+          if (s === null || s === undefined) return "";
+          return String(s).replace(/[&<>"']/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+          });
+        }
+        function norm(s) { return (s || "").toString().toLowerCase().replace(/\s+/g, ""); }
+
+        /* ---------- status definitions ---------- */
+        function statusKey(r) {
+          if (r.status === "CURRENT_CONFIRMED" && r.price !== null) return "buyable";
+          if (r.status === "PAST_ONLY") return "past";
+          if (r.price === null && r.median === null) return "noprice";
+          return "other";
+        }
+        function statusBadge(r) {
+          if (r.status === "CURRENT_CONFIRMED" && r.price !== null) return { cls: "st-ok", txt: "調査時に出品あり" };
+          if (r.status === "CURRENT_CONFIRMED") return { cls: "st-ok", txt: "過去調査で出品あり・現在未確認" };
+          if (r.status === "PAST_ONLY") return { cls: "st-past", txt: "過去の販売のみ" };
+          if (r.status === "NO_SALES_DATA") return { cls: "st-none", txt: "販売データなし" };
+          if (r.status === "NO_ROUTE") return { cls: "st-none", txt: "販売経路未特定" };
+          if (r.status === "BLOCKED") return { cls: "st-none", txt: "価格取得できず" };
+          if (r.price !== null) return { cls: "st-ok", txt: "調査時価格あり" };
+          return { cls: "st-none", txt: "未調査" };
+        }
+        function rarityClass(r) {
+          if (r.rarity === "R1") return "r1";
+          if (r.rarity === "R2") return "r2";
+          if (r.rarity === "R3") return "r3";
+          if (r.rarity === "R4") return "r4";
+          if (r.rarity === "R5") return "r5";
+          return "rn";
+        }
+
+        /* ---------- facet definitions ---------- */
+        var ERA_ORDER = ["1970年代以前", "1980年代", "1990年代", "2000年代", "2010年代", "2020年代", "年代不明"];
+        var FORMAT_ORDER = ["LP", "2xLP", "3xLP", "4xLP", "5xLP", "6xLP", "7xLP", "8xLP", "9xLP", "11xLP", "13xLP", "15xLP", "7インチ", "10インチ", "12インチ", "ピクチャー盤", "その他"];
+        var RARITY_ORDER = ["R5", "R4", "R3", "R2", "R1", "未評価"];
+        var MTYPE_ORDER = ["ORIGINAL", "ARRANGE", "REMIX", "ANIME", "SAMPLING", "INSPIRED", "NEITHER", "UNKNOWN"];
+        var MTYPE_LABELS = {
+          ORIGINAL: "原曲・オリジナル音源", ARRANGE: "アレンジ", REMIX: "リミックス", ANIME: "アニソン",
+          SAMPLING: "サンプリング", INSPIRED: "Inspired（触発のみ）", NEITHER: "混入疑い（ゲーム音楽でもアニソンでもない）", UNKNOWN: "判定保留"
+        };
+        var ATTRIB_LABELS = { OK: "OK（ゲーム名と一致）", MISMATCH: "帰属ミスマッチ", UNVERIFIABLE: "未検証" };
+        function isNeither(r) { return r.audit === "NEITHER_SUSPECT" || r.mtype === "NEITHER"; }
+        function facetValues(r, key) {
+          if (key === "audit") {
+            var vs = [];
+            if (r.audit) vs.push(r.audit);
+            if (r.mtype === "NEITHER" && r.audit !== "NEITHER_SUSPECT") vs.push("NEITHER_SUSPECT");
+            return vs;
+          }
+          var v = r[key];
+          return (v === null || v === undefined) ? [] : [v];
+        }
+
+        function countBy(field) {
+          var m = {};
+          DATA.forEach(function (r) { var v = r[field]; if (v !== null && v !== undefined) m[v] = (m[v] || 0) + 1; });
+          return m;
+        }
+        function topValues(field, n) {
+          var m = countBy(field);
+          return Object.keys(m).sort(function (a, b) { return m[b] - m[a] || a.localeCompare(b); }).slice(0, n);
+        }
+        function orderedValues(field, order) {
+          var m = countBy(field);
+          var keys = Object.keys(m);
+          return keys.sort(function (a, b) {
+            var ia = order.indexOf(a), ib = order.indexOf(b);
+            if (ia === -1) ia = 999; if (ib === -1) ib = 999;
+            return ia - ib || m[b] - m[a];
+          });
+        }
+
+        var FACETS = [
+          { key: "era", label: "年代", values: ERA_ORDER.filter(function (v) { return countBy("era")[v]; }) },
+          { key: "content", label: "内容カテゴリ", values: orderedValues("content", []) },
+          { key: "format", label: "形態（フォーマット）", values: orderedValues("format", FORMAT_ORDER) },
+          { key: "sales", label: "流通", values: orderedValues("sales", []) },
+          { key: "console", label: "対応機種", hint: "判明分のみ", values: topValues("console", 60), limit: 12 },
+          { key: "label", label: "レーベル", hint: "主要レーベル", values: topValues("label", 18) },
+          { key: "maker", label: "ゲームメーカー", hint: "判明分のみ", values: topValues("maker", 999), limit: 14 },
+          { key: "rarity", label: "希少度", values: RARITY_ORDER.filter(function (v) { return countBy("rarity")[v]; }) },
+          { key: "status", label: "販売状況", values: ["buyable", "past", "noprice"],
+            labels: { buyable: "調査時に出品あり（現在出品・価格あり）", past: "過去の販売のみ", noprice: "価格情報なし" } },
+          { key: "audit", label: "同定・監査", hint: "提供元の注釈", values: ["GAME_IDENTIFIED", "GAME_COMPILATION", "ANIME_IDENTIFIED", "NEITHER_SUSPECT"].filter(function (v) { return v === "NEITHER_SUSPECT" || countBy("audit")[v]; }),
+            labels: { GAME_IDENTIFIED: "ゲーム同定済み", GAME_COMPILATION: "コンピレーションとして同定", ANIME_IDENTIFIED: "アニメ（アニソン）", NEITHER_SUSPECT: "混入疑い" } },
+          { key: "mtype", label: "音楽種別", hint: "添付HTMLの注釈", values: MTYPE_ORDER.filter(function (v) { return countBy("mtype")[v]; }),
+            labels: MTYPE_LABELS }
+        ];
+
+        /* ---------- state ---------- */
+        var state = {
+          q: "",
+          era: {}, content: {}, format: {}, sales: {}, console: {}, label: {}, maker: {}, rarity: {}, status: {}, audit: {}, mtype: {},
+          priceMin: null, priceMax: null,
+          sort: "year-desc", page: 1, perPage: 60
+        };
+        var expanded = {}; // facet key -> show all
+
+        var SEARCH_FIELDS = [
+          { key: "title", label: "タイトル" }, { key: "game", label: "ゲーム" },
+          { key: "maker", label: "メーカー" }, { key: "catalog", label: "型番" },
+          { key: "label", label: "レーベル" }, { key: "artist", label: "アーティスト" },
+          { key: "auditBasis", label: "同定根拠" }, { key: "auditNote", label: "監査注記" },
+          { key: "mtypeBasis", label: "種別根拠" }
+        ];
+        function searchHitFields(r) {
+          var terms = state.q.split(/\s+/).map(norm).filter(Boolean);
+          return SEARCH_FIELDS.filter(function (field) {
+            var value = norm(r[field.key]);
+            return terms.some(function (term) { return value.indexOf(term) !== -1; });
+          }).map(function (field) { return field.label; });
+        }
+
+        function facetMatch(r, key) {
+          var sel = state[key];
+          var any = false, k;
+          for (k in sel) { if (sel[k]) { any = true; break; } }
+          if (!any) return true;
+          if (key === "status") return !!sel[statusKey(r)];
+          var vs = facetValues(r, key);
+          for (var i = 0; i < vs.length; i++) { if (sel[vs[i]]) return true; }
+          return false;
+        }
+        function baseMatch(r, excludeKey) {
+          if (state.q) {
+            var hay = SEARCH_FIELDS.map(function (field) { return norm(r[field.key]); }).join("|");
+            var terms = state.q.split(/\s+/);
+            for (var i = 0; i < terms.length; i++) {
+              if (terms[i] && hay.indexOf(norm(terms[i])) === -1) return false;
+            }
+          }
+          if (state.priceMin !== null || state.priceMax !== null) {
+            if (r.price === null) return false;
+            if (state.priceMin !== null && r.price < state.priceMin) return false;
+            if (state.priceMax !== null && r.price > state.priceMax) return false;
+          }
+          for (var j = 0; j < FACETS.length; j++) {
+            var key = FACETS[j].key;
+            if (key === excludeKey) continue;
+            if (!facetMatch(r, key)) return false;
+          }
+          return true;
+        }
+        function filtered(excludeKey) {
+          return DATA.filter(function (r) { return baseMatch(r, excludeKey); });
+        }
+
+        /* ---------- header stats ---------- */
+        (function renderStats() {
+          var total = DATA.length;
+          var withPrice = DATA.filter(function (r) { return r.price !== null; }).length;
+          var withEvidence = DATA.filter(function (r) { return r.price !== null || r.median !== null; }).length;
+          var buyable = DATA.filter(function (r) { return statusKey(r) === "buyable"; }).length;
+          function pct(n) { return (Math.round(n / total * 1000) / 10) + "%"; }
+          var items = [
+            { num: fmtNum(total), lbl: "収録盤 総数" },
+            { num: fmtNum(withPrice), sub: pct(withPrice), lbl: "調査時価格あり" },
+            { num: fmtNum(withEvidence), sub: pct(withEvidence), lbl: "価格証跡あり（現在＋過去）" },
+            { num: fmtNum(buyable), sub: pct(buyable), lbl: "調査時に出品あり（出品・価格確認）" }
+          ];
+          document.getElementById("stats").innerHTML = items.map(function (it) {
+            return '<div class="stat"><div class="num">' + it.num + (it.sub ? "<small>" + it.sub + "</small>" : "") +
+              '</div><div class="lbl">' + it.lbl + "</div></div>";
+          }).join("");
+        })();
+
+        /* ---------- era strip ---------- */
+        var eraStrip = document.getElementById("era-strip");
+        var eraCounts = countBy("era");
+        FACETS[0].values.forEach(function (v) {
+          var b = document.createElement("button");
+          b.type = "button"; b.className = "era-chip"; b.dataset.value = v;
+          b.setAttribute("aria-pressed", "false");
+          b.innerHTML = esc(v) + '<span class="c">' + fmtNum(eraCounts[v] || 0) + "件</span>";
+          b.addEventListener("click", function () {
+            state.era[v] = !state.era[v];
+            state.page = 1; render();
+          });
+          eraStrip.appendChild(b);
+        });
+
+        /* ---------- facet UI ---------- */
+        var facetRoot = document.getElementById("facet-root");
+        var facetButtons = {}; // key -> {value: button}
+        FACETS.forEach(function (f) {
+          var sec = document.createElement("section");
+          sec.className = "facet"; sec.setAttribute("aria-label", f.label);
+          var h = document.createElement("h3");
+          h.innerHTML = esc(f.label) + (f.hint ? '<span class="hint">' + esc(f.hint) + "</span>" : "");
+          sec.appendChild(h);
+          var list = document.createElement("div");
+          list.className = "facet-list";
+          facetButtons[f.key] = {};
+          var showN = f.limit || f.values.length;
+          f.values.forEach(function (v, idx) {
+            var b = document.createElement("button");
+            b.type = "button"; b.className = "facet-item"; b.dataset.value = v;
+            b.setAttribute("aria-pressed", "false");
+            if (f.limit && idx >= showN) b.hidden = true;
+            var label = f.labels ? f.labels[v] : v;
+            b.title = label;
+            b.innerHTML = '<span class="name">' + esc(label) + '</span><span class="cnt"></span>';
+            b.addEventListener("click", function () {
+              state[f.key][v] = !state[f.key][v];
+              state.page = 1; render();
+            });
+            facetButtons[f.key][v] = b;
+            list.appendChild(b);
+          });
+          sec.appendChild(list);
+          if (f.limit && f.values.length > showN) {
+            var more = document.createElement("button");
+            more.type = "button"; more.className = "facet-more";
+            more.textContent = "すべて表示（" + f.values.length + "件）";
+            more.addEventListener("click", function () {
+              expanded[f.key] = !expanded[f.key];
+              f.values.forEach(function (v, idx) {
+                if (idx >= showN) facetButtons[f.key][v].hidden = !expanded[f.key];
+              });
+              more.textContent = expanded[f.key] ? "閉じる" : "すべて表示（" + f.values.length + "件）";
+            });
+            sec.appendChild(more);
+          }
+          facetRoot.appendChild(sec);
+        });
+
+        function updateFacetCounts() {
+          FACETS.forEach(function (f) {
+            var pool = filtered(f.key);
+            var counts = {};
+            pool.forEach(function (r) {
+              if (f.key === "status") { var sv = statusKey(r); counts[sv] = (counts[sv] || 0) + 1; return; }
+              facetValues(r, f.key).forEach(function (v) { counts[v] = (counts[v] || 0) + 1; });
+            });
+            f.values.forEach(function (v) {
+              var b = facetButtons[f.key][v];
+              var c = counts[v] || 0;
+              b.querySelector(".cnt").textContent = fmtNum(c);
+              b.setAttribute("aria-pressed", state[f.key][v] ? "true" : "false");
+              b.classList.toggle("zero", c === 0 && !state[f.key][v]);
+            });
+          });
+          // era strip sync
+          var chips = eraStrip.querySelectorAll(".era-chip");
+          chips.forEach(function (chip) {
+            chip.setAttribute("aria-pressed", state.era[chip.dataset.value] ? "true" : "false");
+          });
+        }
+
+        /* ---------- sorting ---------- */
+        function sortRecords(list) {
+          var s = state.sort;
+          var arr = list.slice();
+          function num(v, fallback) { return v === null || v === undefined ? fallback : v; }
+          arr.sort(function (a, b) {
+            switch (s) {
+              case "year-desc": return num(b.year, -1) - num(a.year, -1) || a.id.localeCompare(b.id);
+              case "year-asc": return num(a.year, 99999) - num(b.year, 99999) || a.id.localeCompare(b.id);
+              case "price-asc": return num(a.price, Infinity) - num(b.price, Infinity) || a.id.localeCompare(b.id);
+              case "price-desc": return num(b.price, -1) - num(a.price, -1) || a.id.localeCompare(b.id);
+              case "median-desc": return num(b.median, -1) - num(a.median, -1) || a.id.localeCompare(b.id);
+              case "median-asc": return num(a.median, Infinity) - num(b.median, Infinity) || a.id.localeCompare(b.id);
+              case "title": return (a.title || "").localeCompare(b.title || "", "ja") || a.id.localeCompare(b.id);
+              default: return a.id.localeCompare(b.id);
+            }
+          });
+          return arr;
+        }
+
+        /* ---------- card rendering ---------- */
+        var openDetails = {};
+        var coverageAreaLabels = { metadata: "基本情報", official_new_release: "公式新譜", used_listing: "中古出品", price: "価格", availability: "在庫", image: "画像権利", purchase_url: "購入URL" };
+        var coverageStatusLabels = { verified_current: "現在確認済み", verified_historical: "過去確認", candidate_needs_review: "候補・要確認", no_route: "取得経路なし", not_found: "対象ソースで一致なし", blocked: "取得遮断", stale: "情報が古い", source_unverified: "出典未確認", not_applicable: "対象外", error: "取得エラー" };
+        function cardHTML(r) {
+          var st = statusBadge(r);
+          var searchMatches = searchHitFields(r);
+          var price = fmtPrice(r.price);
+          var med = fmtPrice(r.median);
+          var priceDate = r.fieldAudit.priceDate;
+          var priceAsOf = r.fieldAudit.priceStatus || (price ? (priceDate && priceDate !== "根拠日不明" ? "確認日 " + esc(priceDate) : "確認日不明") : "価格未登録");
+          var deal = "";
+          if (r.price !== null && r.median !== null && r.price <= r.median * 0.99) {
+            deal = '<div class="deal">成約中央値を ' + Math.round((1 - r.price / r.median) * 100) + '% 下回る</div>';
+          }
+          var meta = [];
+          if (r.catalog) meta.push("<span>型番 <b>" + esc(r.catalog) + "</b></span>");
+          if (r.label) meta.push("<span>レーベル <b>" + esc(r.label) + "</b></span>");
+          if (r.maker) meta.push("<span>メーカー <b>" + esc(r.maker) + "</b></span>");
+          if (r.console && r.console !== "不明") meta.push("<span>機種 <b>" + esc(r.console) + "</b></span>");
+          var badges = "";
+          badges += '<span class="rarity ' + rarityClass(r) + '">希少度 ' + esc(r.rarity || "未評価") + "</span>";
+          badges += '<span class="badge ' + st.cls + '">' + st.txt + "</span>";
+          if (r.format) badges += '<span class="badge fmt">' + esc(r.format) + "</span>";
+          if (r.content) badges += '<span class="badge content">' + esc(r.content) + "</span>";
+          if (r.sales === "プロモ・非売品") badges += '<span class="badge sales-promo">プロモ・非売品</span>';
+          else if (r.sales && r.sales !== "一般販売") badges += '<span class="badge content">' + esc(r.sales) + "</span>";
+          if (isNeither(r)) badges += '<span class="badge audit-neither">混入疑い</span>';
+          if (r.mtype === "SAMPLING") badges += '<span class="badge mt-sampling">サンプリング</span>';
+          if (r.mtype === "INSPIRED") badges += '<span class="badge mt-inspired">Inspired</span>';
+          if (r.attrib === "MISMATCH") badges += '<span class="badge mt-mismatch">帰属ミスマッチ</span>';
+          if (r.mtype === "UNKNOWN") badges += '<span class="badge mt-unknown">判定保留</span>';
+          if (r.audit === "ANIME_IDENTIFIED") badges += '<span class="badge audit-anime">アニメ（アニソン）</span>';
+
+          var open = !!openDetails[r.id];
+          var auditLabels = { GAME_IDENTIFIED: "ゲームを同定", GAME_COMPILATION: "コンピレーションとして同定", ANIME_IDENTIFIED: "アニメ（アニソン）として同定", NEITHER_SUSPECT: "混入疑い（ゲームでもアニメでもない）" };
+          var rows = [
+            ["ID", r.id], ["タイトル", r.title], ["ゲーム", r.game], ["ゲームメーカー", r.maker], ["販売年", r.year],
+            ["型番", r.catalog], ["レーベル", r.label], ["アーティスト", r.artist],
+            ["形態", r.format], ["内容", r.content], ["流通", r.sales], ["対応機種", r.console],
+            ["希少度", r.rarity], ["調査時価格", price], ["成約中央値", med], ["最終成約", r.lastSold]
+          ];
+          var a = r.fieldAudit;
+          rows.push(["監査結果", a.summary], ["調査時価格の確認日", a.priceDate], ["最新の調査記録", a.surveyDate], ["外部目録検索", a.lookupNote], ["Botの価格確認", a.botPrice], ["店舗商品ページ候補", a.collectorOffers]);
+          (a.coverage || []).forEach(function (item) {
+            rows.push([coverageAreaLabels[item.area] || item.area, coverageStatusLabels[item.status] || item.status]);
+          });
+          if (a.gameAlternative) rows.push(["Muse目録のゲーム表記", a.gameAlternative]);
+          var links = a.links.map(function (link) {
+            return '<a href="' + esc(link.url) + '" target="_blank" rel="noopener noreferrer">' + esc(link.label) + '</a>';
+          }).join("");
+          if (r.audit) {
+            rows.push(["同定・監査", auditLabels[r.audit] || r.audit]);
+            if (r.auditNote) rows.push(["実態", r.auditNote]);
+            if (r.auditBasis) rows.push(["同定の根拠", r.auditBasis]);
+            if (r.auditConf) rows.push(["同定の確度", r.auditConf]);
+          }
+          if (r.mtype) {
+            rows.push(["音楽種別", MTYPE_LABELS[r.mtype] || r.mtype]);
+            if (r.mtypeConf) rows.push(["種別の確度", r.mtypeConf]);
+            if (r.mtypeBasis) rows.push(["判定根拠", r.mtypeBasis]);
+            if (r.attrib) rows.push(["ゲーム名の帰属", ATTRIB_LABELS[r.attrib] || r.attrib]);
+          }
+          rows = rows.filter(function (x) { return x[1] !== null && x[1] !== undefined && x[1] !== ""; })
+           .map(function (x) { return '<div class="row"><dt>' + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("");
+
+          return '<article class="card">' +
+            '<div class="year-block">' +
+              (r.year ? '<div class="year">' + r.year + '</div>' : '<div class="year unknown">年不明</div>') +
+              '<div class="era-lbl">' + esc(r.era || "") + "</div>" +
+              (a.image ? '<img class="audit-art" src="' + esc(a.image) + '" alt="' + esc(r.title) + ' のジャケット" loading="lazy" width="52" height="52">' : '<span class="audit-art-fallback" aria-label="ジャケット画像未確認">画像<br>未確認</span>') +
+            "</div>" +
+            "<div>" +
+              "<h3>" + esc(r.title) + "</h3>" +
+              (searchMatches.length ? '<div class="search-match">検索一致：' + esc(searchMatches.join("・")) + "</div>" : "") +
+              (r.game ? '<div class="game">' + esc(r.game) + (r.audit === "ANIME_IDENTIFIED" ? '<span class="id-tag anime">アニメ</span>' : r.audit === "GAME_COMPILATION" ? '<span class="id-tag">コンピレーション · 同定</span>' : r.identified ? '<span class="id-tag">同定</span>' : "") + "</div>" : "") +
+              (r.artist ? '<div class="artist">' + esc(r.artist) + "</div>" : "") +
+              (meta.length ? '<div class="meta">' + meta.join("") + "</div>" : "") +
+              '<div class="badges">' + badges + "</div>" +
+            "</div>" +
+            '<div class="price-block">' +
+              '<div class="cur-lbl">調査時価格</div>' +
+              (price ? '<div class="cur">' + price + "</div>" : '<div class="cur none">非表示</div>') +
+              '<div class="asof">' + priceAsOf + '</div>' +
+              (med ? '<div class="med"><span>成約中央値</span> ' + med + "</div>" : "") +
+              deal +
+            "</div>" +
+            '<button type="button" class="detail-btn" data-detail="' + r.id + '" aria-expanded="' + open + '">' + (open ? "詳細を閉じる ▲" : "詳細を見る ▼") + "</button>" +
+            '<div class="detail' + (open ? " open" : "") + '" id="detail-' + r.id + '"><dl>' + rows + '</dl><div class="audit-links">' + links + "</div></div>" +
+          "</article>";
+        }
+
+        var cardsEl = document.getElementById("cards");
+        cardsEl.addEventListener("click", function (ev) {
+          var btn = ev.target.closest("[data-detail]");
+          if (!btn) return;
+          var id = btn.getAttribute("data-detail");
+          openDetails[id] = !openDetails[id];
+          var det = document.getElementById("detail-" + id);
+          if (det) det.classList.toggle("open", !!openDetails[id]);
+          btn.setAttribute("aria-expanded", openDetails[id] ? "true" : "false");
+          btn.textContent = openDetails[id] ? "詳細を閉じる ▲" : "詳細を見る ▼";
+        });
+
+        /* ---------- active chips / clear ---------- */
+        function activeSelections() {
+          var out = [];
+          FACETS.forEach(function (f) {
+            f.values.forEach(function (v) {
+              if (state[f.key][v]) out.push({ facet: f, value: v, label: (f.labels ? f.labels[v] : v) });
+            });
+          });
+          return out;
+        }
+        function activeCount() {
+          var n = activeSelections().length;
+          if (state.priceMin !== null || state.priceMax !== null) n++;
+          if (state.q) n++;
+          return n;
+        }
+        function clearAll() {
+          state.q = "";
+          document.getElementById("search").value = "";
+          document.getElementById("search-clear").hidden = true;
+          FACETS.forEach(function (f) { state[f.key] = {}; });
+          state.priceMin = null; state.priceMax = null;
+          document.getElementById("price-min").value = "";
+          document.getElementById("price-max").value = "";
+          state.page = 1;
+          render();
+        }
+        document.getElementById("clear-all").addEventListener("click", clearAll);
+        document.getElementById("empty-clear").addEventListener("click", clearAll);
+
+        function renderChips() {
+          var wrap = document.getElementById("active-chips");
+          var sels = activeSelections();
+          var html = sels.map(function (s, i) {
+            return '<span class="chip">' + esc(s.facet.label) + "：" + esc(s.label) +
+              '<button type="button" data-chip="' + i + '" aria-label="この条件を解除">×</button></span>';
+          }).join("");
+          if (state.priceMin !== null || state.priceMax !== null) {
+            html += '<span class="chip">価格：' +
+              (state.priceMin !== null ? "$" + state.priceMin : "") + "〜" + (state.priceMax !== null ? "$" + state.priceMax : "") +
+              '<button type="button" data-chip="price" aria-label="価格条件を解除">×</button></span>';
+          }
+          wrap.innerHTML = html;
+          wrap.querySelectorAll("button").forEach(function (b) {
+            b.addEventListener("click", function () {
+              var k = b.getAttribute("data-chip");
+              if (k === "price") {
+                state.priceMin = null; state.priceMax = null;
+                document.getElementById("price-min").value = "";
+                document.getElementById("price-max").value = "";
+              } else {
+                var s = sels[parseInt(k, 10)];
+                if (s) state[s.facet.key][s.value] = false;
+              }
+              state.page = 1; render();
+            });
+          });
+          var n = activeCount();
+          var badge = document.getElementById("filters-badge");
+          badge.hidden = n === 0;
+          badge.textContent = n;
+          document.getElementById("clear-all").disabled = n === 0;
+        }
+
+        /* ---------- pagination ---------- */
+        function renderPagination(total, pages) {
+          var nav = document.getElementById("pagination");
+          var info = document.getElementById("page-info");
+          if (total === 0) { nav.innerHTML = ""; info.textContent = ""; return; }
+          var cur = state.page;
+          var start = (cur - 1) * state.perPage + 1;
+          var end = Math.min(total, cur * state.perPage);
+          info.textContent = "全 " + fmtNum(total) + " 件中 " + fmtNum(start) + "–" + fmtNum(end) + " 件を表示（" + cur + " / " + pages + " ページ）";
+          var nums = [];
+          var win = [1, pages, cur - 1, cur, cur + 1];
+          var set = {};
+          win.forEach(function (p) { if (p >= 1 && p <= pages) set[p] = true; });
+          if (cur <= 3) { for (var i = 2; i <= Math.min(4, pages); i++) set[i] = true; }
+          if (cur >= pages - 2) { for (var j = pages - 3; j < pages; j++) { if (j >= 1) set[j] = true; } }
+          nums = Object.keys(set).map(Number).sort(function (a, b) { return a - b; });
+          var html = '<button type="button" data-page="prev" ' + (cur === 1 ? "disabled" : "") + ">← 前へ</button>";
+          var last = 0;
+          nums.forEach(function (p) {
+            if (last && p - last > 1) html += '<span class="ellipsis">…</span>';
+            html += '<button type="button" data-page="' + p + '"' + (p === cur ? ' aria-current="page"' : "") + ">" + p + "</button>";
+            last = p;
+          });
+          html += '<button type="button" data-page="next" ' + (cur === pages ? "disabled" : "") + ">次へ →</button>";
+          nav.innerHTML = html;
+          nav.querySelectorAll("button").forEach(function (b) {
+            b.addEventListener("click", function () {
+              var v = b.getAttribute("data-page");
+              if (v === "prev") state.page = Math.max(1, state.page - 1);
+              else if (v === "next") state.page = Math.min(pages, state.page + 1);
+              else state.page = parseInt(v, 10);
+              render();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            });
+          });
+        }
+
+        /* ---------- main render ---------- */
+        function render() {
+          updateFacetCounts();
+          renderChips();
+          var list = sortRecords(filtered(null));
+          var total = list.length;
+          var pages = Math.max(1, Math.ceil(total / state.perPage));
+          if (state.page > pages) state.page = pages;
+          document.getElementById("result-count").innerHTML =
+            "該当 <strong>" + fmtNum(total) + "</strong> 件";
+          document.getElementById("empty").hidden = total !== 0;
+          var slice = list.slice((state.page - 1) * state.perPage, state.page * state.perPage);
+          cardsEl.innerHTML = slice.map(cardHTML).join("");
+          renderPagination(total, pages);
+        }
+
+        /* ---------- controls ---------- */
+        var searchTimer = null;
+        var searchEl = document.getElementById("search");
+        searchEl.addEventListener("input", function () {
+          document.getElementById("search-clear").hidden = !searchEl.value;
+          clearTimeout(searchTimer);
+          searchTimer = setTimeout(function () {
+            state.q = searchEl.value.trim();
+            state.page = 1; render();
+          }, 140);
+        });
+        document.getElementById("search-clear").addEventListener("click", function () {
+          searchEl.value = ""; state.q = ""; state.page = 1;
+          document.getElementById("search-clear").hidden = true;
+          render(); searchEl.focus();
+        });
+        document.getElementById("sort").addEventListener("change", function (ev) {
+          state.sort = ev.target.value; state.page = 1; render();
+        });
+        document.getElementById("perpage").addEventListener("change", function (ev) {
+          state.perPage = parseInt(ev.target.value, 10); state.page = 1; render();
+        });
+        function priceChanged() {
+          var mn = document.getElementById("price-min").value;
+          var mx = document.getElementById("price-max").value;
+          state.priceMin = mn === "" ? null : parseFloat(mn);
+          state.priceMax = mx === "" ? null : parseFloat(mx);
+          if (isNaN(state.priceMin)) state.priceMin = null;
+          if (isNaN(state.priceMax)) state.priceMax = null;
+          state.page = 1; render();
+        }
+        var priceTimer = null;
+        ["price-min", "price-max"].forEach(function (id) {
+          document.getElementById(id).addEventListener("input", function () {
+            clearTimeout(priceTimer); priceTimer = setTimeout(priceChanged, 250);
+          });
+        });
+        document.getElementById("price-presets").addEventListener("click", function (ev) {
+          var b = ev.target.closest("button"); if (!b) return;
+          document.getElementById("price-min").value = b.dataset.min;
+          document.getElementById("price-max").value = b.dataset.max;
+          priceChanged();
+        });
+        var filtersEl = document.getElementById("filters");
+        var toggleEl = document.getElementById("filters-toggle");
+        toggleEl.addEventListener("click", function () {
+          var open = filtersEl.classList.toggle("open");
+          toggleEl.setAttribute("aria-expanded", open ? "true" : "false");
+        });
+
+        render();
+      })();
+    </script>
+    <script>
+      /* Historical survey. */
+      (function () {
+        "use strict";
+        var DISCOVERY = JSON.parse(document.getElementById("discovery-data").textContent);
+        var PAGE = 60;
+
+        var tabDb = document.getElementById("tab-db");
+        var tabDeals = document.getElementById("tab-deals");
+        var tabDiscovery = document.getElementById("tab-discovery");
+        var viewTabs = [tabDb, tabDeals, tabDiscovery];
+        var dbBlocks = [document.getElementById("era-strip-wrap"), document.getElementById("db-layout")];
+        var dealsView = document.getElementById("deals-view");
+        var discoveryView = document.getElementById("discovery-view");
+        var cardsEl = document.getElementById("deal-cards");
+        var statusEl = document.getElementById("deals-status");
+        var countEl = document.getElementById("deals-count-line");
+        var moreBtn = document.getElementById("deals-more-btn");
+        var remainEl = document.getElementById("deals-remaining");
+
+        var DEAL_MTYPE_LABELS = {
+          ORIGINAL: "原曲・オリジナル音源", ARRANGE: "アレンジ", REMIX: "リミックス", ANIME: "アニソン",
+          SAMPLING: "サンプリング", INSPIRED: "Inspired", NEITHER: "混入疑い", UNKNOWN: "判定保留"
+        };
+
+        var data = null;
+        var st = { sort: "median", band: "all", type: "all", maker: "all", shown: PAGE };
+
+        function esc(s) {
+          return String(s === null || s === undefined ? "" : s).replace(/[&<>"']/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+          });
+        }
+        function money(v) {
+          return "$" + Number(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        function pctTxt(v) {
+          if (v === null || v === undefined) return "";
+          if (v === 0) return "±0%";
+          var a = Math.abs(v);
+          var t = (a % 1 === 0) ? String(a) : a.toFixed(1);
+          return (v < 0 ? "−" : "+") + t + "%";
+        }
+
+        function setView(which) {
+          var selected = which === "deals" ? tabDeals : (which === "discovery" ? tabDiscovery : tabDb);
+          var db = which === "db";
+          var deals = which === "deals";
+          viewTabs.forEach(function (tab) {
+            var active = tab === selected;
+            tab.setAttribute("aria-selected", active ? "true" : "false");
+            tab.tabIndex = active ? 0 : -1;
+          });
+          dbBlocks.forEach(function (el) { if (el) el.classList.toggle("is-hidden", !db); });
+          dealsView.classList.toggle("is-hidden", !deals);
+          discoveryView.classList.toggle("is-hidden", which !== "discovery");
+          window.scrollTo(0, 0);
+        }
+        viewTabs.forEach(function (tab) {
+          tab.addEventListener("click", function () {
+            setView(tab === tabDeals ? "deals" : (tab === tabDiscovery ? "discovery" : "db"));
+          });
+          tab.addEventListener("keydown", function (event) {
+            var index = viewTabs.indexOf(tab);
+            if (event.key === "ArrowRight") index = (index + 1) % viewTabs.length;
+            else if (event.key === "ArrowLeft") index = (index + viewTabs.length - 1) % viewTabs.length;
+            else if (event.key === "Home") index = 0;
+            else if (event.key === "End") index = viewTabs.length - 1;
+            else return;
+            event.preventDefault();
+            viewTabs[index].focus();
+            setView(viewTabs[index] === tabDeals ? "deals" : (viewTabs[index] === tabDiscovery ? "discovery" : "db"));
+          });
+        });
+
+        var discoverySearch = document.getElementById("discovery-search");
+        var discoveryList = document.getElementById("discovery-list");
+        var discoveryEmpty = document.getElementById("discovery-empty");
+        var discoveryCount = document.getElementById("discovery-count");
+        var discoveryTabCount = document.getElementById("discovery-tab-count");
+        var discoveryTotal = document.getElementById("discovery-total");
+        discoveryTotal.textContent = String(DISCOVERY.count || 0);
+        discoveryTabCount.textContent = String(DISCOVERY.count || 0) + "件";
+        discoveryTabCount.hidden = !DISCOVERY.count;
+        function renderDiscovery() {
+          var query = discoverySearch.value.trim().toLocaleLowerCase();
+          var items = (DISCOVERY.items || []).filter(function (item) {
+            return !query || (String(item.title || "") + " " + String(item.source || "")).toLocaleLowerCase().indexOf(query) !== -1;
+          });
+          discoveryList.replaceChildren();
+          discoveryEmpty.classList.toggle("is-hidden", items.length !== 0);
+          discoveryCount.textContent = query ? (items.length + "件 / " + DISCOVERY.count + "件") : (DISCOVERY.count + "件");
+          items.forEach(function (item) {
+            var row = document.createElement("li");
+            row.className = "discovery-row";
+            var body = document.createElement("div");
+            var title = document.createElement("h3");
+            title.className = "discovery-title";
+            title.textContent = item.title || "タイトル不明";
+            body.appendChild(title);
+            var meta = document.createElement("p");
+            meta.className = "discovery-meta";
+            meta.textContent = [item.source || "出典不明", item.kind || "種別不明", item.seen ? "初回検出 " + item.seen : "検出日時不明"].join(" · ");
+            body.appendChild(meta);
+            var state = document.createElement("span");
+            state.className = "discovery-state";
+            state.textContent = "版・媒体・在庫は未確認";
+            body.appendChild(state);
+            row.appendChild(body);
+            if (item.url) {
+              var link = document.createElement("a");
+              link.className = "discovery-link";
+              link.href = item.url;
+              link.target = "_blank";
+              link.rel = "noopener noreferrer";
+              link.textContent = "確認元を開く";
+              link.setAttribute("aria-label", "確認元を開く: " + (item.title || "タイトル不明"));
+              row.appendChild(link);
+            }
+            discoveryList.appendChild(row);
+          });
+        }
+        discoverySearch.addEventListener("input", renderDiscovery);
+        renderDiscovery();
+
+        function inBand(d) {
+          if (st.band === "u25") return d.price < 25;
+          if (st.band === "m25") return d.price >= 25 && d.price < 100;
+          if (st.band === "m100") return d.price >= 100 && d.price < 300;
+          if (st.band === "o300") return d.price >= 300;
+          return true;
+        }
+        function filtered() {
+          var list = data.deals.filter(function (d) {
+            var makerOk = st.maker === "all" || (st.maker === "__none" ? !d.maker : d.maker === st.maker);
+            return (st.type === "all" || d.type === st.type) && inBand(d) && makerOk;
+          });
+          list.sort(function (a, b) {
+            if (st.sort === "lowest") return a.vsLowest - b.vsLowest;
+            if (st.sort === "saving") return (b.histMedian - b.price) - (a.histMedian - a.price);
+            if (st.sort === "price-asc") return a.price - b.price;
+            if (st.sort === "price-desc") return b.price - a.price;
+            if (st.sort === "year-desc") return (b.year || 0) - (a.year || 0);
+            if (st.sort === "year-asc") return (a.year || 99999) - (b.year || 99999);
+            return a.vsMedian - b.vsMedian;
+          });
+          return list;
+        }
+
+        function dealGameLabel(d) {
+          if (!d.game) return null;
+          var g = String(d.game).trim();
+          if (!g) return null;
+          if (g.indexOf("不明") === 0) return "不明";
+          var parts = g.split(", ");
+          if (parts.length > 1) return parts[0] + " ほか";
+          return g;
+        }
+
+        function cardHTML(d) {
+          var badge = d.type === "below_lowest"
+            ? '<span class="deal-badge lowest">過去最安値以下</span>'
+            : '<span class="deal-badge median">成約中央値以下</span>';
+          var neither = d.music_type === "NEITHER" || d.audit === "NEITHER_SUSPECT";
+          if (neither) badge += '<span class="deal-badge audit-neither">混入疑い</span>';
+          if (d.music_type === "SAMPLING") badge += '<span class="deal-badge mt-sampling">サンプリング</span>';
+          if (d.music_type === "INSPIRED") badge += '<span class="deal-badge mt-inspired">Inspired</span>';
+          if (d.audit === "ANIME_IDENTIFIED") badge += '<span class="deal-badge audit-anime">アニメ（アニソン）</span>';
+          else if (d.audit === "GAME_COMPILATION") badge += '<span class="deal-badge audit-comp">コンピレーション · 同定</span>';
+          else if (d.audit === "GAME_IDENTIFIED") badge += '<span class="deal-badge audit-id">ゲーム同定済み</span>';
+          badge = '<div class="deal-badges">' + badge + "</div>";
+          var thumb = d.thumb
+            ? '<img src="' + esc(d.thumb) + '" alt="' + esc(d.title) + ' のジャケット画像" loading="lazy" />'
+            : '<div class="noimg" role="img" aria-label="ジャケット画像なし"><span>画像未確認</span></div>';
+          return '<article class="deal-card">' +
+            '<div class="deal-thumb">' + thumb + "</div>" +
+            '<div class="deal-body">' + badge +
+              "<h3>" + esc(d.title) + "</h3>" +
+              (function () {
+                var parts = [];
+                if (d.year) parts.push("<span><b>" + esc(d.year) + "年</b></span>");
+                var gl = dealGameLabel(d);
+                if (gl) parts.push("<span>ゲーム：" + esc(gl) + "</span>");
+                parts.push("<span>メーカー：" + (d.maker ? "<b>" + esc(d.maker) + "</b>" : "―") + "</span>");
+                if (d.music_type) parts.push("<span>音楽種別：" + esc(DEAL_MTYPE_LABELS[d.music_type] || d.music_type) + "</span>");
+                return '<p class="deal-meta">' + parts.join('<span class="sep">・</span>') + "</p>";
+              })() +
+              '<p class="deal-cat">型番：' + esc(d.catalog) + "</p>" +
+              '<div class="deal-price-row">' +
+                '<span class="deal-price"><small>調査時の最安（USD・送料別）</small>' + money(d.price) + "</span>" +
+                '<span class="deal-vs' + (d.vsMedian > 0 ? " above" : "") + '">中央値比 ' + pctTxt(d.vsMedian) + "</span>" +
+                '<span class="deal-vs' + (d.vsLowest > 0 ? " above" : "") + '">最安値比 ' + pctTxt(d.vsLowest) + "</span>" +
+              "</div>" +
+              '<p class="deal-hist"><span>過去最安値</span> ' + money(d.histLowest) + "　<span>過去中央値</span> " + money(d.histMedian) + "</p>" +
+              '<a class="deal-buy" href="' + esc(d.url) + '" target="_blank" rel="noopener">Discogsの盤別出品一覧</a>' +
+            "</div></article>";
+        }
+
+        function renderDeals() {
+          if (!data) return;
+          var list = filtered();
+          var show = list.slice(0, st.shown);
+          cardsEl.innerHTML = show.map(cardHTML).join("");
+          statusEl.hidden = list.length > 0 || data.deals.length === 0;
+          if (!list.length) statusEl.textContent = data.deals.length ? "条件に合う価格比較出品はありません。" : "価格表示を一時停止しています。出典・通貨・利用条件の確認後に再開します。";
+          countEl.innerHTML = "<strong>" + list.length + "</strong> 件";
+          var rest = list.length - show.length;
+          moreBtn.hidden = rest <= 0;
+          remainEl.textContent = rest > 0 ? "残り " + rest + " 件" : "";
+        }
+
+        document.querySelectorAll("[data-dtype]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            st.type = b.getAttribute("data-dtype"); st.shown = PAGE;
+            document.querySelectorAll("[data-dtype]").forEach(function (x) {
+              x.setAttribute("aria-pressed", x === b ? "true" : "false");
+            });
+            renderDeals();
+          });
+        });
+        document.querySelectorAll("[data-band]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            st.band = b.getAttribute("data-band"); st.shown = PAGE;
+            document.querySelectorAll("[data-band]").forEach(function (x) {
+              x.setAttribute("aria-pressed", x === b ? "true" : "false");
+            });
+            renderDeals();
+          });
+        });
+        document.getElementById("deals-sort").addEventListener("change", function (ev) {
+          st.sort = ev.target.value; st.shown = PAGE; renderDeals();
+        });
+        document.getElementById("deals-maker").addEventListener("change", function (ev) {
+          st.maker = ev.target.value; st.shown = PAGE; renderDeals();
+        });
+        moreBtn.addEventListener("click", function () { st.shown += PAGE; renderDeals(); });
+
+        data = { checked_date: null, deals: [] };
+        renderDeals();
+      })();
+    </script>
+  </body>
+</html>

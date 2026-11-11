@@ -1,0 +1,165 @@
+{
+  "interval_seconds": 21600,
+  "min_request_gap_seconds": 20,
+  "max_jobs_per_hour": 180,
+  "priority_slots_per_hour": 12,
+  "max_urls_per_source": 500,
+  "freshness_seconds": 86400,
+  "watches": [
+    {
+      "record_id": "AR-000001",
+      "title": "ピカチュウレコード 3周年記念",
+      "terms": [["R-0080509"], ["ピカチュウ", "3周年", "レコード"], ["ピカチュウ", "3周年", "LP"], ["ポケモン", "3周年", "レコード"], ["Pikachu Records", "3rd Anniversary"]],
+      "search": "ピカチュウ レコード",
+      "search_aliases": ["ポケモン レコード", "ピカチュウ 3周年"]
+    }
+  ],
+  "catalog_pages": {
+    "blackscreen": ["/collections/game-soundtracks"],
+    "iam8bit": ["/collections/music"],
+    "datadiscs": ["/collections/records"],
+    "laced": ["/collections/vinyl"],
+    "veryok": ["/collections/in-stock-records/record"],
+    "materia": ["/collections/vinyl"],
+    "manawave": ["/collections/vinyl"],
+    "gamechops": ["/collections/video-game-vinyl"],
+    "mondo": ["/collections/video-games"],
+    "cartridge": ["/collections/video-game-soundtracks"],
+    "serenity": ["/collections/music"],
+    "c64audio": ["/collections/vinyl-cassette"]
+  },
+  "sources": [
+    {
+      "id": "c64audio", "name": "C64Audio（英国）", "enabled": true, "method": "http",
+      "hosts": ["c64audio.com", "www.c64audio.com"], "seeds": ["https://c64audio.com/products/hubbard-80-double-vinyl"],
+      "kind": "product", "discover": true, "accept_article_links": true,
+      "include_path": "^/products/[^/]+/?$", "max_urls": 80,
+      "note": "英国の専門店。盤・カセット等が混在するため、媒体は商品ページで確認。"
+    },
+    {
+      "id": "hologram", "name": "Hologram Opera（海外専門店）", "enabled": true, "method": "http",
+      "hosts": ["hologramopera.com", "www.hologramopera.com"], "seeds": ["https://hologramopera.com/products/greatest-hits-from-planet-blip"],
+      "kind": "product", "discover": true, "accept_article_links": true,
+      "include_path": "^/products/[^/]+/?$", "max_urls": 80,
+      "note": "記事経由で見つかった専門店。USD価格を個別ページから取得。"
+    },
+    {
+      "id": "yahoo_watch",
+      "name": "Yahoo!オークション・重要盤",
+      "enabled": true,
+      "method": "http",
+      "hosts": ["auctions.yahoo.co.jp"],
+      "seeds": ["https://auctions.yahoo.co.jp/jp/auction/c1250831588"],
+      "discover": true,
+      "include_path": "^/jp/auction/[a-z0-9]+$",
+      "kind": "product",
+      "priority": true,
+      "max_urls": 500,
+      "min_request_gap_seconds": 60,
+      "interval_seconds": 600,
+      "note": "重要盤の検索語ごとに先頭ページを原則10分間隔で確認。条件に合う公開出品のみ個別確認。全出品・説明文検索は保証しません。"
+    },
+    {
+      "id": "blipblop",
+      "max_urls": 250,
+      "name": "Blip Blop 新着・ゲーム盤情報",
+      "enabled": true,
+      "method": "http",
+      "hosts": ["blipblop.net"],
+      "seeds": ["https://blipblop.net/feed/"],
+      "discover": true,
+      "include_path": "^/(?!wp-|feed|tag/|category/|platform/|page/|author/).+",
+      "kind": "discovery",
+      "note": "新着記事から候補抽出。掲載自体は盤の確定証拠にしない。robots拒否時は停止。"
+    },
+    {
+      "id": "blackscreen", "name": "Black Screen Records", "enabled": true, "method": "http",
+      "hosts": ["blackscreenrecords.com", "www.blackscreenrecords.com"], "seeds": [], "kind": "product",
+      "discover": true, "accept_article_links": true, "include_path": "^/products/[^/]+/?$", "note": "記事掲載商品から販売先を追跡。版別価格は分離。"
+    },
+    {
+      "id": "iam8bit", "name": "iam8bit", "enabled": true, "method": "http",
+      "hosts": ["iam8bit.com", "www.iam8bit.com", "store.iam8bit.com"], "seeds": [], "kind": "product",
+      "discover": true, "accept_article_links": true, "include_path": "^/products/[^/]+/?$", "note": "公式販売商品。再版と色違いは同一視しない。"
+    },
+    {
+      "id": "datadiscs", "name": "DATA DISCS", "enabled": true, "method": "http",
+      "hosts": ["data-discs.com", "www.data-discs.com"], "seeds": [], "kind": "product",
+      "discover": true, "accept_article_links": true, "include_path": "^/products/[^/]+/?$", "note": "公式販売商品。"
+    },
+    {
+      "id": "laced", "name": "Laced Records", "enabled": true, "method": "http",
+      "hosts": ["lacedrecords.co", "www.lacedrecords.co"], "seeds": [], "kind": "product",
+      "discover": true, "accept_article_links": true, "include_path": "^/products/[^/]+/?$", "note": "公式販売商品。通貨を保持。"
+    },
+    {
+      "id": "veryok", "name": "Very OK Vinyl", "enabled": true, "method": "http",
+      "hosts": ["veryokvinyl.com", "www.veryokvinyl.com"], "seeds": [], "kind": "product",
+      "discover": true, "accept_article_links": true, "include_path": "^/products/[^/]+/?$", "note": "販売店商品。"
+    },
+    {
+      "id": "materia", "name": "MATERIA Store", "enabled": true, "method": "http",
+      "hosts": ["materia.store", "www.materia.store"], "seeds": [], "kind": "product",
+      "discover": true, "accept_article_links": true, "include_path": "^/products/[^/]+/?$", "note": "CD等が混在。媒体の照合が必要。"
+    },
+    {
+      "id": "yetee", "name": "The Yetee", "enabled": true, "method": "http",
+      "hosts": ["theyetee.com", "www.theyetee.com"], "seeds": [], "kind": "product",
+      "discover": true, "accept_article_links": true, "include_path": "^/products/[^/]+/?$", "note": "レコード以外を購入候補として確定しない。"
+    },
+    {
+      "id": "manawave", "name": "Mana Wave", "enabled": true, "method": "http",
+      "hosts": ["manawave.co", "www.manawave.co"], "seeds": [], "kind": "product",
+      "discover": true, "accept_article_links": true, "include_path": "^/products/[^/]+/?$", "note": "公式販売商品。"
+    },
+    {
+      "id": "gamechops", "name": "GameChops", "enabled": true, "method": "http",
+      "hosts": ["gamechops.shop", "www.gamechops.shop"], "seeds": [], "kind": "product",
+      "discover": true, "accept_article_links": true, "include_path": "^/products/[^/]+/?$", "note": "アレンジ盤も対象。"
+    },
+    {
+      "id": "mondo", "name": "Mondo", "enabled": true, "method": "http",
+      "hosts": ["mondoshop.com", "www.mondoshop.com"], "seeds": [], "kind": "product",
+      "discover": true, "accept_article_links": true, "include_path": "^/products/[^/]+/?$", "note": "ゲーム以外の商品混在、照合待ち。"
+    },
+    {
+      "id": "cartridge", "name": "Cartridge Thunder", "enabled": true, "method": "http",
+      "hosts": ["cartridgethunder.com", "www.cartridgethunder.com"], "seeds": [], "kind": "product",
+      "discover": true, "accept_article_links": true, "include_path": "^/products/[^/]+/?$", "note": "公式販売商品。"
+    },
+    {
+      "id": "respawned", "name": "Respawned Records", "enabled": true, "method": "http",
+      "hosts": ["respawnedrecords.com", "www.respawnedrecords.com"], "seeds": [], "kind": "product",
+      "discover": true, "accept_article_links": true, "include_path": "^/products/[^/]+/?$", "note": "公式販売商品。"
+    },
+    {
+      "id": "serenity", "name": "Serenity Forge", "enabled": true, "method": "http",
+      "hosts": ["store.serenityforge.com"], "seeds": [], "kind": "product",
+      "discover": true, "accept_article_links": true, "include_path": "^/products/[^/]+/?$", "note": "ゲーム本体等は盤と同一視しない。"
+    },
+    {
+      "id": "allnightflight",
+      "name": "All Night Flight・Photek既知商品",
+      "enabled": true,
+      "method": "http",
+      "hosts": ["allnightflightrecords.com", "www.allnightflightrecords.com"],
+      "seeds": ["https://allnightflightrecords.com/products/photek-the-third-sequence-titan"],
+      "discover": false,
+      "kind": "product",
+      "selectors": {"price": "#ProductPrice-product-template", "currency": "GBP", "buy_button": "#AddToCart-product-template"},
+      "note": "単一商品監視。送料・版の同定は別確認。"
+    },
+    {
+      "id": "hardoff",
+      "name": "Hard Off・Xanadu既知商品",
+      "enabled": true,
+      "method": "playwright",
+      "hosts": ["netmall.hardoff.co.jp"],
+      "seeds": ["https://netmall.hardoff.co.jp/product/6402392/"],
+      "discover": false,
+      "kind": "product",
+      "selectors": {"price": ".product-detail-price__main", "currency": "JPY", "price_kind": "item_tax_included", "buy_button": ".cart-add-button", "model": ".product-detail-num", "catalog_pattern": "[A-Z0-9]+-[0-9]+"},
+      "note": "動的取得の試験対象。登録ホスト以外のリソースは読み込まない。価格を推測抽出しない。"
+    }
+  ]
+}

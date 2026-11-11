@@ -1,0 +1,4563 @@
+[
+  {
+    "id": "G001",
+    "category": "score_catalog_exact",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": "クロノ・トリガー オリジナル・サウンドトラック",
+      "description": "",
+      "catalog_raw": "KICA-1001",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "King Records",
+      "year": 1989,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 810001,
+      "price": 1980,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "diskunion"
+    },
+    "edition": {
+      "id": "AR-900001",
+      "title": "クロノ・トリガー オリジナル・サウンドトラック",
+      "catalog_norm": "KICA1001",
+      "label": "King Records",
+      "year": 1989,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 810001,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000014",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": 810001
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G002",
+    "category": "score_catalog_exact",
+    "listing": {
+      "source": "diskunion",
+      "route": "retail",
+      "raw_title": "ファイナルファンタジーVI オリジナルサウンドトラック",
+      "description": "",
+      "catalog_raw": "PCCG-1038",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Pony Canyon",
+      "year": 1991,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 3353,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-a"
+    },
+    "edition": {
+      "id": "AR-900002",
+      "title": "ファイナルファンタジーVI オリジナルサウンドトラック",
+      "catalog_norm": "PCCG1038",
+      "label": "Pony Canyon",
+      "year": 1991,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G003",
+    "category": "score_catalog_exact",
+    "listing": {
+      "source": "mercari",
+      "route": "retail",
+      "raw_title": "聖剣伝説2 サウンドトラック",
+      "description": "クリアレッド盤。帯付き。",
+      "catalog_raw": "SVWC-1075",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Aniplex",
+      "year": 1993,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 4726,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "record-city",
+      "variant_color": "clear red"
+    },
+    "edition": {
+      "id": "AR-900003",
+      "title": "聖剣伝説2 サウンドトラック",
+      "catalog_norm": "SVWC1075",
+      "label": "Aniplex",
+      "year": 1993,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000021",
+      "variant_color": "clear red",
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G004",
+    "category": "score_catalog_exact",
+    "listing": {
+      "source": "surugaya",
+      "route": "retail",
+      "raw_title": "ロマンシング サ・ガ3 オリジナル・サウンドトラック Vol.1",
+      "description": "Tower Records 限定盤。",
+      "catalog_raw": "LACA-1112",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Lantis",
+      "year": 1994,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 6099,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "tower-records",
+      "retailer_exclusive": "Tower Records"
+    },
+    "edition": {
+      "id": "AR-900004",
+      "title": "ロマンシング サ・ガ3 オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "LACA1112",
+      "label": "Lantis",
+      "year": 1994,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000038",
+      "variant_color": null,
+      "retailer_exclusive": "Tower Records",
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G005",
+    "category": "score_catalog_exact",
+    "listing": {
+      "source": "yahoo_auctions",
+      "route": "retail",
+      "raw_title": "ゼノギアス オリジナル・サウンドトラック",
+      "description": "",
+      "catalog_raw": "SQEX-1149",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Square Enix",
+      "year": 1995,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 7472,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "tower-records"
+    },
+    "edition": {
+      "id": "AR-900005",
+      "title": "ゼノギアス オリジナル・サウンドトラック",
+      "catalog_norm": "SQEX1149",
+      "label": "Square Enix",
+      "year": 1995,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000045",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G006",
+    "category": "score_catalog_exact",
+    "listing": {
+      "source": "record_shop",
+      "route": "retail",
+      "raw_title": "幻想水滸伝II オリジナルサウンドトラック",
+      "description": "",
+      "catalog_raw": "COCX-1186",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Nippon Columbia",
+      "year": 1996,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 8845,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "surugaya"
+    },
+    "edition": {
+      "id": "AR-900006",
+      "title": "幻想水滸伝II オリジナルサウンドトラック",
+      "catalog_norm": "COCX1186",
+      "label": "Nippon Columbia",
+      "year": 1996,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G007",
+    "category": "score_catalog_exact",
+    "listing": {
+      "source": "hmv",
+      "route": "retail",
+      "raw_title": "ヴァルキリープロファイル サウンドトラック",
+      "description": "",
+      "catalog_raw": "VICL-1223",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Victor Entertainment",
+      "year": 1997,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 10218,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-b"
+    },
+    "edition": {
+      "id": "AR-900007",
+      "title": "ヴァルキリープロファイル サウンドトラック",
+      "catalog_norm": "VICL1223",
+      "label": "Victor Entertainment",
+      "year": 1997,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "multiple"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G008",
+    "category": "score_catalog_exact",
+    "listing": {
+      "source": "tower_records",
+      "route": "retail",
+      "raw_title": "グランディア オリジナル・サウンドトラック Vol.1",
+      "description": "",
+      "catalog_raw": "KOLA-1260",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Konami",
+      "year": 1998,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 11591,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "face-records"
+    },
+    "edition": {
+      "id": "AR-900008",
+      "title": "グランディア オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "KOLA1260",
+      "label": "Konami",
+      "year": 1998,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G009",
+    "category": "score_catalog_exact",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": "サガ フロンティア オリジナル・サウンドトラック",
+      "description": "",
+      "catalog_raw": "APCG-1297",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Sega",
+      "year": 1999,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 12964,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "diskunion"
+    },
+    "edition": {
+      "id": "AR-900009",
+      "title": "サガ フロンティア オリジナル・サウンドトラック",
+      "catalog_norm": "APCG1297",
+      "label": "Sega",
+      "year": 1999,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000052",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G010",
+    "category": "score_catalog_exact",
+    "listing": {
+      "source": "diskunion",
+      "route": "retail",
+      "raw_title": "ライブ・ア・ライブ オリジナルサウンドトラック",
+      "description": "",
+      "catalog_raw": "MJCA-1334",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Nihon Falcom",
+      "year": 2000,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 14337,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-a"
+    },
+    "edition": {
+      "id": "AR-900010",
+      "title": "ライブ・ア・ライブ オリジナルサウンドトラック",
+      "catalog_norm": "MJCA1334",
+      "label": "Nihon Falcom",
+      "year": 2000,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "multiple"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G011",
+    "category": "score_catalog_exact",
+    "listing": {
+      "source": "mercari",
+      "route": "retail",
+      "raw_title": "エストポリス伝記II サウンドトラック",
+      "description": "",
+      "catalog_raw": "SRCL-1371",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Media Factory",
+      "year": 2001,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 15710,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "record-city"
+    },
+    "edition": {
+      "id": "AR-900011",
+      "title": "エストポリス伝記II サウンドトラック",
+      "catalog_norm": "SRCL1371",
+      "label": "Media Factory",
+      "year": 2001,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G012",
+    "category": "score_numeric_only",
+    "listing": {
+      "source": "surugaya",
+      "route": "retail",
+      "raw_title": "天外魔境II 卍MARU オリジナル・サウンドトラック Vol.1",
+      "description": "",
+      "catalog_raw": "PCCG-2001",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Geneon",
+      "year": 2002,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 17083,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "hmv-record"
+    },
+    "edition": {
+      "id": "AR-900012",
+      "title": "天外魔境II 卍MARU オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "LACA2001",
+      "label": "Geneon",
+      "year": 2001,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G013",
+    "category": "score_numeric_only",
+    "listing": {
+      "source": "yahoo_auctions",
+      "route": "retail",
+      "raw_title": "バーチャファイター2 オリジナル・サウンドトラツク",
+      "description": "",
+      "catalog_raw": "ABCD-2002",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Avex Trax",
+      "year": 2003,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 18456,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "tower-records"
+    },
+    "edition": {
+      "id": "AR-900013",
+      "title": "バーチャファイター2 オリジナル・サウンドトラック",
+      "catalog_norm": "XYZW2002",
+      "label": "Avex Trax",
+      "year": 2003,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G014",
+    "category": "score_numeric_only",
+    "listing": {
+      "source": "record_shop",
+      "route": "retail",
+      "raw_title": "MOTHER2 ギーグの逆襲 オリジナルサウンドトラック",
+      "description": "",
+      "catalog_raw": "KICA-2003",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Unknown Label",
+      "year": 2004,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 19829,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "surugaya"
+    },
+    "edition": {
+      "id": "AR-900014",
+      "title": "MOTHER2 ギーグの逆襲 オリジナルサウンドトラック",
+      "catalog_norm": "SVWC2003",
+      "label": "Scitron",
+      "year": 2004,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G015",
+    "category": "score_numeric_only",
+    "listing": {
+      "source": "hmv",
+      "route": "retail",
+      "raw_title": "デイトナUSA オリジナル・サウンドトラツク",
+      "description": "",
+      "catalog_raw": "GMCD-2004",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "King Records",
+      "year": 2005,
+      "format": null,
+      "country": "JP",
+      "discogs_id": null,
+      "price": 21202,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-b"
+    },
+    "edition": {
+      "id": "AR-900015",
+      "title": "デイトナUSA オリジナル・サウンドトラック",
+      "catalog_norm": "FSCA2004",
+      "label": "King Records",
+      "year": 2005,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G016",
+    "category": "score_numeric_only",
+    "listing": {
+      "source": "tower_records",
+      "route": "retail",
+      "raw_title": "ゼルダの伝説 神々のトライフォース オリジナル・サウンドトラック Vol.1",
+      "description": "",
+      "catalog_raw": "MJCA-2005",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Pony Canyon",
+      "year": 1990,
+      "format": null,
+      "country": "JP",
+      "discogs_id": null,
+      "price": 22575,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "face-records"
+    },
+    "edition": {
+      "id": "AR-900016",
+      "title": "ゼルダの伝説 神々のトライフォース オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "SRCL2005",
+      "label": "Pony Canyon",
+      "year": 1991,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G017",
+    "category": "score_title_similarity",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": "サクラ大戦 オリジナル・サウンドトラツク",
+      "description": "",
+      "catalog_raw": "PCCG-3001",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Aniplex",
+      "year": 2009,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 23948,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "diskunion"
+    },
+    "edition": {
+      "id": "AR-900017",
+      "title": "サクラ大戦 オリジナル・サウンドトラック",
+      "catalog_norm": "LACA3001",
+      "label": "Aniplex",
+      "year": 2009,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G018",
+    "category": "score_title_similarity",
+    "listing": {
+      "source": "diskunion",
+      "route": "retail",
+      "raw_title": "ナイツ オリジナル・サウンドトラツク",
+      "description": "",
+      "catalog_raw": "PCCG-3002",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Lantis",
+      "year": 1988,
+      "format": null,
+      "country": "JP",
+      "discogs_id": null,
+      "price": 25321,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-a"
+    },
+    "edition": {
+      "id": "AR-900018",
+      "title": "ナイツ オリジナル・サウンドトラック",
+      "catalog_norm": "LACA3002",
+      "label": "Lantis",
+      "year": 1989,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G019",
+    "category": "score_title_similarity",
+    "listing": {
+      "source": "mercari",
+      "route": "retail",
+      "raw_title": "パンツァードラグーン ツヴァイ オリジナル・サウンドトラツク",
+      "description": "",
+      "catalog_raw": "AAAA-3003",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Square Enix",
+      "year": 2013,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 26694,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "record-city"
+    },
+    "edition": {
+      "id": "AR-900019",
+      "title": "パンツァードラグーン ツヴァイ オリジナル・サウンドトラック",
+      "catalog_norm": "BBBB3987",
+      "label": "Square Enix",
+      "year": 2013,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "低",
+      "price": "低",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G020",
+    "category": "score_title_similarity",
+    "listing": {
+      "source": "surugaya",
+      "route": "retail",
+      "raw_title": "ガーディアンヒーローズ オリジナル・サウンドトラツク",
+      "description": "",
+      "catalog_raw": "AAAA-3004",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Nippon Columbia",
+      "year": 2016,
+      "format": null,
+      "country": "JP",
+      "discogs_id": null,
+      "price": 2067,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "hmv-record"
+    },
+    "edition": {
+      "id": "AR-900020",
+      "title": "ガーディアンヒーローズ オリジナル・サウンドトラック",
+      "catalog_norm": "BBBB4102",
+      "label": "Nippon Columbia",
+      "year": 2016,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "低",
+      "price": "低",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G021",
+    "category": "score_title_similarity",
+    "listing": {
+      "source": "yahoo_auctions",
+      "route": "retail",
+      "raw_title": "ときめきメモリアル オリジナル・サウンドトラツク",
+      "description": "",
+      "catalog_raw": "AAAA-3005",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Another Label",
+      "year": 1989,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 3440,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "tower-records"
+    },
+    "edition": {
+      "id": "AR-900021",
+      "title": "ときめきメモリアル オリジナル・サウンドトラック",
+      "catalog_norm": "BBBB4259",
+      "label": "Victor Entertainment",
+      "year": 1989,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "低",
+      "price": "低",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G022",
+    "category": "score_below_threshold",
+    "listing": {
+      "source": "record_shop",
+      "route": "retail",
+      "raw_title": null,
+      "description": "",
+      "catalog_raw": "PCCG-4001",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Other Label",
+      "year": 1980,
+      "format": null,
+      "country": "JP",
+      "discogs_id": null,
+      "price": 4813,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "surugaya"
+    },
+    "edition": {
+      "id": "AR-900022",
+      "title": "デイトナUSA オリジナルサウンドトラック",
+      "catalog_norm": "LACA4001",
+      "label": "Konami",
+      "year": 1981,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "低",
+      "price": "低",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G023",
+    "category": "score_below_threshold",
+    "listing": {
+      "source": "hmv",
+      "route": "retail",
+      "raw_title": "サクラ大戦 サウンドトラック",
+      "description": "",
+      "catalog_raw": "AAAA-4002",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Sega",
+      "year": 1980,
+      "format": null,
+      "country": "JP",
+      "discogs_id": null,
+      "price": 6186,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-b"
+    },
+    "edition": {
+      "id": "AR-900023",
+      "title": "サクラ大戦 サウンドトラック",
+      "catalog_norm": "BBBB4871",
+      "label": "Sega",
+      "year": 1981,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "低",
+      "price": "低",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G024",
+    "category": "score_below_threshold",
+    "listing": {
+      "source": "tower_records",
+      "route": "retail",
+      "raw_title": "テイルズ オブ ファンタジア オリジナル・サウンドトラツク",
+      "description": "",
+      "catalog_raw": "AAAA-4003",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Nihon Falcom",
+      "year": 1994,
+      "format": null,
+      "country": "JP",
+      "discogs_id": null,
+      "price": 7559,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "face-records"
+    },
+    "edition": {
+      "id": "AR-900024",
+      "title": "テイルズ オブ ファンタジア オリジナル・サウンドトラック",
+      "catalog_norm": "BBBB4760",
+      "label": "Nihon Falcom",
+      "year": 1994,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "低",
+      "price": "低",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G025",
+    "category": "score_below_threshold",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": null,
+      "description": "",
+      "catalog_raw": "AAAA-4004",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Media Factory",
+      "year": 1995,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 8932,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "diskunion"
+    },
+    "edition": {
+      "id": "AR-900025",
+      "title": "パンツァードラグーン ツヴァイ オリジナル・サウンドトラック",
+      "catalog_norm": "BBBB4655",
+      "label": "Media Factory",
+      "year": 1995,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "低",
+      "price": "低",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G026",
+    "category": "score_below_threshold",
+    "listing": {
+      "source": "diskunion",
+      "route": "retail",
+      "raw_title": "ガーディアンヒーローズ オリジナルサウンドトラック",
+      "description": "",
+      "catalog_raw": "AAAA-4005",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Other Label",
+      "year": 1980,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 10305,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-a"
+    },
+    "edition": {
+      "id": "AR-900026",
+      "title": "ガーディアンヒーローズ オリジナルサウンドトラック",
+      "catalog_norm": "BBBB4544",
+      "label": "Geneon",
+      "year": 1981,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "低",
+      "price": "低",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G027",
+    "category": "veto_media",
+    "listing": {
+      "source": "mercari",
+      "route": "retail",
+      "raw_title": "ときめきメモリアル サウンドトラック",
+      "description": "",
+      "catalog_raw": "FSCA-1963",
+      "barcode_raw": "4988000000069",
+      "barcode_tier": 2,
+      "label": "Avex Trax",
+      "year": 1997,
+      "format": "CD",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 11678,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "record-city",
+      "media": "CD"
+    },
+    "edition": {
+      "id": "AR-900027",
+      "title": "ときめきメモリアル サウンドトラック",
+      "catalog_norm": "FSCA1963",
+      "label": "Avex Trax",
+      "year": 1997,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed",
+      "media": "Vinyl"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000069",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G028",
+    "category": "veto_media",
+    "listing": {
+      "source": "surugaya",
+      "route": "retail",
+      "raw_title": "ポポロクロイス物語 オリジナル・サウンドトラック Vol.1",
+      "description": "",
+      "catalog_raw": "KDSD-2000",
+      "barcode_raw": "4988000000076",
+      "barcode_tier": 2,
+      "label": "Scitron",
+      "year": 1998,
+      "format": "CD",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 13051,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "hmv-record",
+      "media": "CD"
+    },
+    "edition": {
+      "id": "AR-900028",
+      "title": "ポポロクロイス物語 オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "KDSD2000",
+      "label": "Scitron",
+      "year": 1998,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed",
+      "media": "Vinyl"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000076",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G029",
+    "category": "veto_media",
+    "listing": {
+      "source": "yahoo_auctions",
+      "route": "retail",
+      "raw_title": "アークザラッドII オリジナル・サウンドトラック",
+      "description": "",
+      "catalog_raw": "KICA-2037",
+      "barcode_raw": "4988000000083",
+      "barcode_tier": 2,
+      "label": "King Records",
+      "year": 1999,
+      "format": "Cassette",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 14424,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "tower-records",
+      "media": "Cassette"
+    },
+    "edition": {
+      "id": "AR-900029",
+      "title": "アークザラッドII オリジナル・サウンドトラック",
+      "catalog_norm": "KICA2037",
+      "label": "King Records",
+      "year": 1999,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed",
+      "media": "Vinyl"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000083",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G030",
+    "category": "veto_country",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": "ワイルドアームズ オリジナルサウンドトラック",
+      "description": "",
+      "catalog_raw": "PCCG-2074",
+      "barcode_raw": "4988000000090",
+      "barcode_tier": 2,
+      "label": "Pony Canyon",
+      "year": 2000,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 820030,
+      "price": 15797,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "surugaya"
+    },
+    "edition": {
+      "id": "AR-900030",
+      "title": "ワイルドアームズ オリジナルサウンドトラック",
+      "catalog_norm": "PCCG2074",
+      "label": "Pony Canyon",
+      "year": 2000,
+      "format": "LP",
+      "country": "US",
+      "discogs_id": 820030,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000090",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": 820030
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G031",
+    "category": "veto_country",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": "テイルズ オブ ファンタジア サウンドトラック",
+      "description": "",
+      "catalog_raw": "SVWC-2111",
+      "barcode_raw": "4988000000106",
+      "barcode_tier": 2,
+      "label": "Aniplex",
+      "year": 2001,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 820031,
+      "price": 17170,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-b"
+    },
+    "edition": {
+      "id": "AR-900031",
+      "title": "テイルズ オブ ファンタジア サウンドトラック",
+      "catalog_norm": "SVWC2111",
+      "label": "Aniplex",
+      "year": 2001,
+      "format": "LP",
+      "country": "GB",
+      "discogs_id": 820031,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000106",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": 820031
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G032",
+    "category": "veto_country",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": "スターオーシャン オリジナル・サウンドトラック Vol.1",
+      "description": "",
+      "catalog_raw": "LACA-2148",
+      "barcode_raw": "4988000000113",
+      "barcode_tier": 2,
+      "label": "Lantis",
+      "year": 2002,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 820032,
+      "price": 18543,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "face-records"
+    },
+    "edition": {
+      "id": "AR-900032",
+      "title": "スターオーシャン オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "LACA2148",
+      "label": "Lantis",
+      "year": 2002,
+      "format": "LP",
+      "country": "DE",
+      "discogs_id": 820032,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000113",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": 820032
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G033",
+    "category": "veto_format",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": "ブレス オブ ファイアIII オリジナル・サウンドトラック",
+      "description": "",
+      "catalog_raw": "SQEX-2185",
+      "barcode_raw": "4988000000120",
+      "barcode_tier": 2,
+      "label": "Square Enix",
+      "year": 2003,
+      "format": "2xLP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 19916,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "diskunion",
+      "media": "Vinyl",
+      "format_detail": "2LP set"
+    },
+    "edition": {
+      "id": "AR-900033",
+      "title": "ブレス オブ ファイアIII オリジナル・サウンドトラック",
+      "catalog_norm": "SQEX2185",
+      "label": "Square Enix",
+      "year": 2003,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed",
+      "media": "Vinyl",
+      "format_detail": "1LP"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000120",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G034",
+    "category": "veto_format",
+    "listing": {
+      "source": "diskunion",
+      "route": "retail",
+      "raw_title": "ペルソナ2 罪 オリジナルサウンドトラック",
+      "description": "",
+      "catalog_raw": "COCX-2222",
+      "barcode_raw": "4988000000137",
+      "barcode_tier": 2,
+      "label": "Nippon Columbia",
+      "year": 2004,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 21289,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-a",
+      "media": "Vinyl",
+      "format_detail": "Mono"
+    },
+    "edition": {
+      "id": "AR-900034",
+      "title": "ペルソナ2 罪 オリジナルサウンドトラック",
+      "catalog_norm": "COCX2222",
+      "label": "Nippon Columbia",
+      "year": 2004,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed",
+      "media": "Vinyl",
+      "format_detail": "Stereo"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000137",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G035",
+    "category": "veto_promo",
+    "listing": {
+      "source": "mercari",
+      "route": "retail",
+      "raw_title": "女神異聞録ペルソナ サウンドトラック",
+      "description": "見本盤です。通常盤ではありません。",
+      "catalog_raw": "VICL-2259",
+      "barcode_raw": "4988000000144",
+      "barcode_tier": 2,
+      "label": "Victor Entertainment",
+      "year": 2005,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 22662,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "record-city"
+    },
+    "edition": {
+      "id": "AR-900035",
+      "title": "女神異聞録ペルソナ サウンドトラック",
+      "catalog_norm": "VICL2259",
+      "label": "Victor Entertainment",
+      "year": 2005,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000144",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G036",
+    "category": "veto_promo",
+    "listing": {
+      "source": "surugaya",
+      "route": "retail",
+      "raw_title": "真・女神転生III オリジナル・サウンドトラック Vol.1",
+      "description": "PROMO 白ラベル盤です。",
+      "catalog_raw": "KOLA-2296",
+      "barcode_raw": "4988000000151",
+      "barcode_tier": 2,
+      "label": "Konami",
+      "year": 2007,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 24035,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "hmv-record"
+    },
+    "edition": {
+      "id": "AR-900036",
+      "title": "真・女神転生III オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "KOLA2296",
+      "label": "Konami",
+      "year": 2007,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000151",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G037",
+    "category": "veto_promo",
+    "listing": {
+      "source": "yahoo_auctions",
+      "route": "retail",
+      "raw_title": "デジタル・デビル・サーガ オリジナル・サウンドトラック",
+      "description": "NOT FOR SALE 非売品プロモ盤。",
+      "catalog_raw": "APCG-2333",
+      "barcode_raw": "4988000000168",
+      "barcode_tier": 2,
+      "label": "Sega",
+      "year": 2009,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 25408,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "tower-records"
+    },
+    "edition": {
+      "id": "AR-900037",
+      "title": "デジタル・デビル・サーガ オリジナル・サウンドトラック",
+      "catalog_norm": "APCG2333",
+      "label": "Sega",
+      "year": 2009,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000168",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G038",
+    "category": "veto_promo",
+    "listing": {
+      "source": "record_shop",
+      "route": "retail",
+      "raw_title": "ICO オリジナルサウンドトラック",
+      "description": "帯付き、盤面良好な通常中古品です。",
+      "catalog_raw": "MJCA-2370",
+      "barcode_raw": "4988000000175",
+      "barcode_tier": 2,
+      "label": "Nihon Falcom",
+      "year": 2011,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 26781,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "surugaya"
+    },
+    "edition": {
+      "id": "AR-900038",
+      "title": "ICO オリジナルサウンドトラック",
+      "catalog_norm": "MJCA2370",
+      "label": "Nihon Falcom",
+      "year": 2011,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "promo_not_for_sale",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "promo_not_for_sale",
+      "barcode": "4988000000175",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G039",
+    "category": "veto_promo",
+    "listing": {
+      "source": "hmv",
+      "route": "retail",
+      "raw_title": "ワンダと巨像 サウンドトラック",
+      "description": "帯付き、盤面良好な通常中古品です。",
+      "catalog_raw": "SRCL-2407",
+      "barcode_raw": "4988000000182",
+      "barcode_tier": 2,
+      "label": "Media Factory",
+      "year": 2013,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 2154,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-b"
+    },
+    "edition": {
+      "id": "AR-900039",
+      "title": "ワンダと巨像 サウンドトラック",
+      "catalog_norm": "SRCL2407",
+      "label": "Media Factory",
+      "year": 2013,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "sample_mihon",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "promo_sample",
+      "barcode": "4988000000182",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G040",
+    "category": "veto_promo",
+    "listing": {
+      "source": "tower_records",
+      "route": "retail",
+      "raw_title": "塊魂 オリジナル・サウンドトラック Vol.1",
+      "description": "帯付き、盤面良好な通常中古品です。",
+      "catalog_raw": "GMCD-2444",
+      "barcode_raw": "4988000000199",
+      "barcode_tier": 2,
+      "label": "Geneon",
+      "year": 2016,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 3527,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "face-records"
+    },
+    "edition": {
+      "id": "AR-900040",
+      "title": "塊魂 オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "GMCD2444",
+      "label": "Geneon",
+      "year": 2016,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "promo_not_for_sale",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "promo_not_for_sale",
+      "barcode": "4988000000199",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G041",
+    "category": "veto_discogs_id",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": "パラッパラッパー オリジナル・サウンドトラック",
+      "description": "",
+      "catalog_raw": "FSCA-2481",
+      "barcode_raw": "4988000000205",
+      "barcode_tier": 2,
+      "label": "Avex Trax",
+      "year": 1989,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 830100,
+      "price": 4900,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "diskunion"
+    },
+    "edition": {
+      "id": "AR-900041",
+      "title": "パラッパラッパー オリジナル・サウンドトラック",
+      "catalog_norm": "FSCA2481",
+      "label": "Avex Trax",
+      "year": 1989,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 830101,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000205",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": 830101
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G042",
+    "category": "veto_discogs_id",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": "ビートマニア オリジナルサウンドトラック",
+      "description": "",
+      "catalog_raw": "KDSD-2518",
+      "barcode_raw": "4988000000212",
+      "barcode_tier": 2,
+      "label": "Scitron",
+      "year": 1991,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 830102,
+      "price": 6273,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-a"
+    },
+    "edition": {
+      "id": "AR-900042",
+      "title": "ビートマニア オリジナルサウンドトラック",
+      "catalog_norm": "KDSD2518",
+      "label": "Scitron",
+      "year": 1991,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 830103,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000212",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": 830103
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G043",
+    "category": "veto_discogs_id",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": "ダンスダンスレボリューション サウンドトラック",
+      "description": "",
+      "catalog_raw": "KICA-2555",
+      "barcode_raw": "4988000000229",
+      "barcode_tier": 2,
+      "label": "King Records",
+      "year": 1993,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 830104,
+      "price": 7646,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "record-city"
+    },
+    "edition": {
+      "id": "AR-900043",
+      "title": "ダンスダンスレボリューション サウンドトラック",
+      "catalog_norm": "KICA2555",
+      "label": "King Records",
+      "year": 1993,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 830105,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000229",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": 830105
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G044",
+    "category": "veto_title_mismatch",
+    "listing": {
+      "source": "surugaya",
+      "route": "retail",
+      "raw_title": "宇宙戦艦ヤマト完結編",
+      "description": "",
+      "catalog_raw": "PCCG-2592",
+      "barcode_raw": "4988000000236",
+      "barcode_tier": 2,
+      "label": "Pony Canyon",
+      "year": 1994,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 9019,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "hmv-record"
+    },
+    "edition": {
+      "id": "AR-900044",
+      "title": "太鼓の達人 オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "PCCG2592",
+      "label": "Pony Canyon",
+      "year": 1994,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000236",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G045",
+    "category": "veto_title_mismatch",
+    "listing": {
+      "source": "yahoo_auctions",
+      "route": "retail",
+      "raw_title": "銀河鉄道の夜朗読集",
+      "description": "",
+      "catalog_raw": "SVWC-2629",
+      "barcode_raw": "4988000000243",
+      "barcode_tier": 2,
+      "label": "Aniplex",
+      "year": 1995,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 10392,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "tower-records"
+    },
+    "edition": {
+      "id": "AR-900045",
+      "title": "ポップンミュージック オリジナル・サウンドトラック",
+      "catalog_norm": "SVWC2629",
+      "label": "Aniplex",
+      "year": 1995,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000243",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G046",
+    "category": "veto_parent_barcode",
+    "listing": {
+      "source": "record_shop",
+      "route": "retail",
+      "raw_title": "ギターフリークス オリジナルサウンドトラック",
+      "description": "ゲームソフト本体のバーコードで登録された出品（同梱サントラ盤と混同注意）。",
+      "catalog_raw": "LACA-2666",
+      "barcode_raw": "4988000000250",
+      "barcode_tier": 2,
+      "label": "Lantis",
+      "year": 1996,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 11765,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "surugaya",
+      "parent_barcode_match": true
+    },
+    "edition": {
+      "id": "AR-900046",
+      "title": "ギターフリークス オリジナルサウンドトラック",
+      "catalog_norm": "LACA2666",
+      "label": "Lantis",
+      "year": 1996,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000267",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G047",
+    "category": "veto_parent_barcode",
+    "listing": {
+      "source": "hmv",
+      "route": "retail",
+      "raw_title": "サイレントヒル2 サウンドトラック",
+      "description": "ゲームソフト本体のバーコードで登録された出品（同梱サントラ盤と混同注意）。",
+      "catalog_raw": "SQEX-2703",
+      "barcode_raw": "4988000000274",
+      "barcode_tier": 2,
+      "label": "Square Enix",
+      "year": 1997,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 13138,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-b",
+      "parent_barcode_match": true
+    },
+    "edition": {
+      "id": "AR-900047",
+      "title": "サイレントヒル2 サウンドトラック",
+      "catalog_norm": "SQEX2703",
+      "label": "Square Enix",
+      "year": 1997,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000281",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G048",
+    "category": "veto_parent_barcode",
+    "listing": {
+      "source": "tower_records",
+      "route": "retail",
+      "raw_title": "バイオハザード2 オリジナル・サウンドトラック Vol.1",
+      "description": "ゲームソフト本体のバーコードで登録された出品（同梱サントラ盤と混同注意）。",
+      "catalog_raw": "COCX-2740",
+      "barcode_raw": "4988000000298",
+      "barcode_tier": 2,
+      "label": "Nippon Columbia",
+      "year": 1998,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 14511,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "face-records",
+      "parent_barcode_match": true
+    },
+    "edition": {
+      "id": "AR-900048",
+      "title": "バイオハザード2 オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "COCX2740",
+      "label": "Nippon Columbia",
+      "year": 1998,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000304",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G049",
+    "category": "gate_p1",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": "メタルギアソリッド2 オリジナル・サウンドトラック",
+      "description": "",
+      "catalog_raw": "VICL-2777",
+      "barcode_raw": "4988000000311",
+      "barcode_tier": 1,
+      "label": "Victor Entertainment",
+      "year": 1999,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 840001,
+      "price": 15884,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "diskunion"
+    },
+    "edition": {
+      "id": "AR-900049",
+      "title": "メタルギアソリッド2 オリジナル・サウンドトラック",
+      "catalog_norm": "VICL2777",
+      "label": "Victor Entertainment",
+      "year": 1999,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 840001,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000311",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": 840001
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G050",
+    "category": "gate_p1",
+    "listing": {
+      "source": "diskunion",
+      "route": "retail",
+      "raw_title": "デビルメイクライ オリジナルサウンドトラック",
+      "description": "限定クリアブルー盤。",
+      "catalog_raw": "KOLA-2814",
+      "barcode_raw": "4988000000328",
+      "barcode_tier": 2,
+      "label": "Konami",
+      "year": 2000,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 17257,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-a",
+      "variant_color": "clear blue"
+    },
+    "edition": {
+      "id": "AR-900050",
+      "title": "デビルメイクライ オリジナルサウンドトラック",
+      "catalog_norm": "KOLA2814",
+      "label": "Konami",
+      "year": 2000,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000328",
+      "variant_color": "clear blue",
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G051",
+    "category": "gate_p1",
+    "listing": {
+      "source": "mercari",
+      "route": "retail",
+      "raw_title": "キングダムハーツ サウンドトラック",
+      "description": "",
+      "catalog_raw": "APCG-2851",
+      "barcode_raw": "4988000000335",
+      "barcode_tier": 2,
+      "label": "Sega",
+      "year": 2001,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 18630,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "hmv-record",
+      "retailer_exclusive": "HMV"
+    },
+    "edition": {
+      "id": "AR-900051",
+      "title": "キングダムハーツ サウンドトラック",
+      "catalog_norm": "APCG2851",
+      "label": "Sega",
+      "year": 2001,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000335",
+      "variant_color": null,
+      "retailer_exclusive": "HMV",
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G052",
+    "category": "gate_p1",
+    "listing": {
+      "source": "surugaya",
+      "route": "retail",
+      "raw_title": "ファイナルファンタジーX オリジナル・サウンドトラック Vol.1",
+      "description": "180g重量盤プレス。",
+      "catalog_raw": "MJCA-2888",
+      "barcode_raw": "4988000000342",
+      "barcode_tier": 2,
+      "label": "Nihon Falcom",
+      "year": 2002,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 20003,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "hmv-record",
+      "pressing_note": "180g重量盤"
+    },
+    "edition": {
+      "id": "AR-900052",
+      "title": "ファイナルファンタジーX オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "MJCA2888",
+      "label": "Nihon Falcom",
+      "year": 2002,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000342",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": "180g重量盤",
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G053",
+    "category": "gate_p1",
+    "listing": {
+      "source": "yahoo_auctions",
+      "route": "retail",
+      "raw_title": "ゼノサーガ エピソードI オリジナル・サウンドトラック",
+      "description": "",
+      "catalog_raw": "SRCL-2925",
+      "barcode_raw": "4988000000359",
+      "barcode_tier": 1,
+      "label": "Media Factory",
+      "year": 2003,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 21376,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "tower-records"
+    },
+    "edition": {
+      "id": "AR-900053",
+      "title": "ゼノサーガ エピソードI オリジナル・サウンドトラック",
+      "catalog_norm": "SRCL2925",
+      "label": "Media Factory",
+      "year": 2003,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000359",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G054",
+    "category": "gate_p1",
+    "listing": {
+      "source": "record_shop",
+      "route": "retail",
+      "raw_title": "テイルズ オブ デスティニー2 オリジナルサウンドトラック",
+      "description": "",
+      "catalog_raw": "GMCD-2962",
+      "barcode_raw": "4988000000366",
+      "barcode_tier": 2,
+      "label": "Geneon",
+      "year": 2004,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 22749,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "surugaya"
+    },
+    "edition": {
+      "id": "AR-900054",
+      "title": "テイルズ オブ デスティニー2 オリジナルサウンドトラック",
+      "catalog_norm": "GMCD2962",
+      "label": "Geneon",
+      "year": 2004,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000366",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G055",
+    "category": "gate_p2",
+    "listing": {
+      "source": "hmv",
+      "route": "retail",
+      "raw_title": null,
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": "4988000000373",
+      "barcode_tier": 1,
+      "label": "Avex Trax",
+      "year": 2005,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 24122,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-b"
+    },
+    "edition": {
+      "id": "AR-900055",
+      "title": "エースコンバット04 サウンドトラック",
+      "catalog_norm": "FSCA2999",
+      "label": "Avex Trax",
+      "year": 2005,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000373",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G056",
+    "category": "gate_p2",
+    "listing": {
+      "source": "tower_records",
+      "route": "retail",
+      "raw_title": "グランツーリスモ3 オリジナル・サウンドトラック Vol.1",
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": "4988000000380",
+      "barcode_tier": 1,
+      "label": "Scitron",
+      "year": 2007,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 25495,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "face-records"
+    },
+    "edition": {
+      "id": "AR-900056",
+      "title": "グランツーリスモ3 オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "KDSD3036",
+      "label": "Scitron",
+      "year": 2007,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000380",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G057",
+    "category": "gate_p2",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": null,
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": "4988000000397",
+      "barcode_tier": 1,
+      "label": "King Records",
+      "year": 2009,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 26868,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "diskunion"
+    },
+    "edition": {
+      "id": "AR-900057",
+      "title": "ピクミン オリジナル・サウンドトラック",
+      "catalog_norm": "KICA3073",
+      "label": "King Records",
+      "year": 2009,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000397",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G058",
+    "category": "gate_p2",
+    "listing": {
+      "source": "diskunion",
+      "route": "retail",
+      "raw_title": "大乱闘スマッシュブラザーズDX オリジナルサウンドトラック",
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": "4988000000403",
+      "barcode_tier": 1,
+      "label": "Pony Canyon",
+      "year": 2011,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 2241,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-a"
+    },
+    "edition": {
+      "id": "AR-900058",
+      "title": "大乱闘スマッシュブラザーズDX オリジナルサウンドトラック",
+      "catalog_norm": "PCCG3110",
+      "label": "Pony Canyon",
+      "year": 2011,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000403",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G059",
+    "category": "gate_e1",
+    "listing": {
+      "source": "mercari",
+      "route": "retail",
+      "raw_title": "ファイアーエムブレム 烈火の剣 サウンドトラック",
+      "description": "",
+      "catalog_raw": "SVWC-3147",
+      "barcode_raw": "4988000000410",
+      "barcode_tier": 2,
+      "label": "Aniplex",
+      "year": 2013,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 3614,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "record-city"
+    },
+    "edition": {
+      "id": "AR-900059",
+      "title": "ファイアーエムブレム 烈火の剣 サウンドトラック",
+      "catalog_norm": "SVWC3147",
+      "label": "Aniplex",
+      "year": 2013,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 850000,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000410",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": 850000
+    },
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G060",
+    "category": "gate_e1",
+    "listing": {
+      "source": "surugaya",
+      "route": "retail",
+      "raw_title": "黄金の太陽 オリジナル・サウンドトラック Vol.1",
+      "description": "",
+      "catalog_raw": "LACA-3184",
+      "barcode_raw": "4988000000427",
+      "barcode_tier": 1,
+      "label": "Lantis",
+      "year": 2016,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 4987,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "hmv-record"
+    },
+    "edition": {
+      "id": "AR-900060",
+      "title": "黄金の太陽 オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "LACA3184",
+      "label": "Lantis",
+      "year": 2016,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 850001,
+      "distribution_type": "retail",
+      "variant_completeness": "multiple"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000427",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": 850001
+    },
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G061",
+    "category": "gate_e1",
+    "listing": {
+      "source": "yahoo_auctions",
+      "route": "retail",
+      "raw_title": "マリオカート ダブルダッシュ オリジナル・サウンドトラック",
+      "description": "",
+      "catalog_raw": "SQEX-3221",
+      "barcode_raw": "4988000000434",
+      "barcode_tier": 2,
+      "label": "Square Enix",
+      "year": 1989,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 6360,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "tower-records"
+    },
+    "edition": {
+      "id": "AR-900061",
+      "title": "マリオカート ダブルダッシュ オリジナル・サウンドトラック",
+      "catalog_norm": "SQEX3221",
+      "label": "Square Enix",
+      "year": 1989,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 850002,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000434",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": 850002
+    },
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G062",
+    "category": "gate_e1",
+    "listing": {
+      "source": "record_shop",
+      "route": "retail",
+      "raw_title": "ルイージマンション オリジナルサウンドトラック",
+      "description": "",
+      "catalog_raw": "COCX-3258",
+      "barcode_raw": "4988000000441",
+      "barcode_tier": 1,
+      "label": "Nippon Columbia",
+      "year": 1991,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 7733,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "surugaya"
+    },
+    "edition": {
+      "id": "AR-900062",
+      "title": "ルイージマンション オリジナルサウンドトラック",
+      "catalog_norm": "COCX3258",
+      "label": "Nippon Columbia",
+      "year": 1991,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 850003,
+      "distribution_type": "retail",
+      "variant_completeness": "multiple"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000441",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": 850003
+    },
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G063",
+    "category": "gate_e1",
+    "listing": {
+      "source": "hmv",
+      "route": "retail",
+      "raw_title": "クロノ・トリガー サウンドトラック",
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": "4988000000458",
+      "barcode_tier": 2,
+      "label": "Victor Entertainment",
+      "year": 1993,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 9106,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-b"
+    },
+    "edition": {
+      "id": "AR-900063",
+      "title": "クロノ・トリガー サウンドトラック",
+      "catalog_norm": "VICL3295",
+      "label": "Victor Entertainment",
+      "year": 1993,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000458",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G064",
+    "category": "gate_e1",
+    "listing": {
+      "source": "tower_records",
+      "route": "retail",
+      "raw_title": "ファイナルファンタジーVI オリジナル・サウンドトラック Vol.1",
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": "4988000000465",
+      "barcode_tier": 2,
+      "label": "Konami",
+      "year": 1994,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 10479,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "face-records"
+    },
+    "edition": {
+      "id": "AR-900064",
+      "title": "ファイナルファンタジーVI オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "KOLA3332",
+      "label": "Konami",
+      "year": 1994,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000465",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G065",
+    "category": "gate_e2",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": null,
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": "4988000000472",
+      "barcode_tier": 2,
+      "label": "Sega",
+      "year": 1995,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 11852,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "diskunion"
+    },
+    "edition": {
+      "id": "AR-900065",
+      "title": "聖剣伝説2 オリジナル・サウンドトラック",
+      "catalog_norm": "APCG3369",
+      "label": "Sega",
+      "year": 1995,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000472",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "低",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G066",
+    "category": "gate_e2",
+    "listing": {
+      "source": "diskunion",
+      "route": "retail",
+      "raw_title": null,
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": "4988000000489",
+      "barcode_tier": 1,
+      "label": "Nihon Falcom",
+      "year": 1996,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 13225,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-a"
+    },
+    "edition": {
+      "id": "AR-900066",
+      "title": "ロマンシング サ・ガ3 オリジナルサウンドトラック",
+      "catalog_norm": "MJCA3406",
+      "label": "Nihon Falcom",
+      "year": 1996,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000489",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "低",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G067",
+    "category": "gate_e2",
+    "listing": {
+      "source": "mercari",
+      "route": "retail",
+      "raw_title": null,
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": "4988000000496",
+      "barcode_tier": 2,
+      "label": "Media Factory",
+      "year": 1997,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 14598,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "record-city"
+    },
+    "edition": {
+      "id": "AR-900067",
+      "title": "ゼノギアス サウンドトラック",
+      "catalog_norm": "SRCL3443",
+      "label": "Media Factory",
+      "year": 1997,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000496",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "低",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G068",
+    "category": "gate_e2",
+    "listing": {
+      "source": "surugaya",
+      "route": "retail",
+      "raw_title": null,
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": "4988000000502",
+      "barcode_tier": 1,
+      "label": "Geneon",
+      "year": 1998,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 15971,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "hmv-record"
+    },
+    "edition": {
+      "id": "AR-900068",
+      "title": "幻想水滸伝II オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "GMCD3480",
+      "label": "Geneon",
+      "year": 1998,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "multiple"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000502",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "低",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G069",
+    "category": "gate_e2",
+    "listing": {
+      "source": "yahoo_auctions",
+      "route": "retail",
+      "raw_title": null,
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": "4988000000519",
+      "barcode_tier": 2,
+      "label": "Avex Trax",
+      "year": 1999,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 17344,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "tower-records"
+    },
+    "edition": {
+      "id": "AR-900069",
+      "title": "ヴァルキリープロファイル オリジナル・サウンドトラック",
+      "catalog_norm": "FSCA3517",
+      "label": "Avex Trax",
+      "year": 1999,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "multiple"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000519",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "低",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G070",
+    "category": "gate_e2",
+    "listing": {
+      "source": "record_shop",
+      "route": "retail",
+      "raw_title": null,
+      "description": "",
+      "catalog_raw": "ZZZZ-9999",
+      "barcode_raw": "4988000000526",
+      "barcode_tier": 1,
+      "label": "Scitron",
+      "year": 2000,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 18717,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "surugaya"
+    },
+    "edition": {
+      "id": "AR-900070",
+      "title": "グランディア オリジナルサウンドトラック",
+      "catalog_norm": "KDSD3554",
+      "label": "Scitron",
+      "year": 2000,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000526",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "低",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G071",
+    "category": "gate_case5_nonretail",
+    "listing": {
+      "source": "hmv",
+      "route": "retail",
+      "raw_title": "サガ フロンティア サウンドトラック",
+      "description": "",
+      "catalog_raw": "KICA-3591",
+      "barcode_raw": "4988000000533",
+      "barcode_tier": 2,
+      "label": "King Records",
+      "year": 2001,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 20090,
+      "currency": "JPY",
+      "distribution_type": "bundle_bonus",
+      "shop": "shop-b"
+    },
+    "edition": {
+      "id": "AR-900071",
+      "title": "サガ フロンティア サウンドトラック",
+      "catalog_norm": "KICA3591",
+      "label": "King Records",
+      "year": 2001,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "bundle_bonus",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000533",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G072",
+    "category": "gate_case5_nonretail",
+    "listing": {
+      "source": "tower_records",
+      "route": "retail",
+      "raw_title": "ライブ・ア・ライブ オリジナル・サウンドトラック Vol.1",
+      "description": "",
+      "catalog_raw": "PCCG-3628",
+      "barcode_raw": "4988000000540",
+      "barcode_tier": 2,
+      "label": "Pony Canyon",
+      "year": 2002,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 21463,
+      "currency": "JPY",
+      "distribution_type": "prize_campaign",
+      "shop": "face-records"
+    },
+    "edition": {
+      "id": "AR-900072",
+      "title": "ライブ・ア・ライブ オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "PCCG3628",
+      "label": "Pony Canyon",
+      "year": 2002,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "prize_campaign",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000540",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G073",
+    "category": "gate_case5_nonretail",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": "エストポリス伝記II オリジナル・サウンドトラック",
+      "description": "",
+      "catalog_raw": "SVWC-3665",
+      "barcode_raw": "4988000000557",
+      "barcode_tier": 2,
+      "label": "Aniplex",
+      "year": 2003,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 22836,
+      "currency": "JPY",
+      "distribution_type": "promo_not_for_sale",
+      "shop": "diskunion"
+    },
+    "edition": {
+      "id": "AR-900073",
+      "title": "エストポリス伝記II オリジナル・サウンドトラック",
+      "catalog_norm": "SVWC3665",
+      "label": "Aniplex",
+      "year": 2003,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "promo_not_for_sale",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000557",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G074",
+    "category": "gate_case5_nonretail",
+    "listing": {
+      "source": "diskunion",
+      "route": "doujin",
+      "raw_title": "天外魔境II 卍MARU オリジナルサウンドトラック",
+      "description": "",
+      "catalog_raw": "LACA-3702",
+      "barcode_raw": "4988000000564",
+      "barcode_tier": 2,
+      "label": "Lantis",
+      "year": 2004,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 24209,
+      "currency": "JPY",
+      "distribution_type": "doujin",
+      "shop": "shop-a"
+    },
+    "edition": {
+      "id": "AR-900074",
+      "title": "天外魔境II 卍MARU オリジナルサウンドトラック",
+      "catalog_norm": "LACA3702",
+      "label": "Lantis",
+      "year": 2004,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "doujin",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000564",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G075",
+    "category": "gate_case5_nonretail",
+    "listing": {
+      "source": "mercari",
+      "route": "event",
+      "raw_title": "ドラゴンクエストV サウンドトラック",
+      "description": "",
+      "catalog_raw": "SQEX-3739",
+      "barcode_raw": "4988000000571",
+      "barcode_tier": 2,
+      "label": "Square Enix",
+      "year": 2005,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 25582,
+      "currency": "JPY",
+      "distribution_type": "event_only",
+      "shop": "record-city"
+    },
+    "edition": {
+      "id": "AR-900075",
+      "title": "ドラゴンクエストV サウンドトラック",
+      "catalog_norm": "SQEX3739",
+      "label": "Square Enix",
+      "year": 2005,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "event_only",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000571",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "candidate"
+    }
+  },
+  {
+    "id": "G076",
+    "category": "gate_case6_barcode_mismatch_ok",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": "MOTHER2 ギーグの逆襲 オリジナル・サウンドトラック Vol.1",
+      "description": "",
+      "catalog_raw": "COCX-3776",
+      "barcode_raw": "4988000000588",
+      "barcode_tier": 2,
+      "label": "Nippon Columbia",
+      "year": 2007,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 860001,
+      "price": 26955,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "hmv-record"
+    },
+    "edition": {
+      "id": "AR-900076",
+      "title": "MOTHER2 ギーグの逆襲 オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "COCX3776",
+      "label": "Nippon Columbia",
+      "year": 2007,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 860001,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000595",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": 860001
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G077",
+    "category": "gate_case6_barcode_mismatch_ok",
+    "listing": {
+      "source": "yahoo_auctions",
+      "route": "retail",
+      "raw_title": "星のカービィ スーパーデラックス オリジナル・サウンドトラック",
+      "description": "",
+      "catalog_raw": "VICL-3813",
+      "barcode_raw": "4988000000601",
+      "barcode_tier": 2,
+      "label": "Victor Entertainment",
+      "year": 2009,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 2328,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "tower-records"
+    },
+    "edition": {
+      "id": "AR-900077",
+      "title": "星のカービィ スーパーデラックス オリジナル・サウンドトラック",
+      "catalog_norm": "VICL3813",
+      "label": "Victor Entertainment",
+      "year": 2009,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000618",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G078",
+    "category": "gate_case6_barcode_mismatch_ok",
+    "listing": {
+      "source": "record_shop",
+      "route": "retail",
+      "raw_title": "ゼルダの伝説 神々のトライフォース オリジナルサウンドトラック",
+      "description": "",
+      "catalog_raw": "KOLA-3850",
+      "barcode_raw": "4988000000625",
+      "barcode_tier": 2,
+      "label": "Konami",
+      "year": 2011,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 3701,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "surugaya"
+    },
+    "edition": {
+      "id": "AR-900078",
+      "title": "ゼルダの伝説 神々のトライフォース オリジナルサウンドトラック",
+      "catalog_norm": "KOLA3850",
+      "label": "Konami",
+      "year": 2011,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000632",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G079",
+    "category": "cap_goods",
+    "listing": {
+      "source": "goods_shop",
+      "route": "goods",
+      "raw_title": "スーパーメトロイド サウンドトラック",
+      "description": "",
+      "catalog_raw": "APCG-3887",
+      "barcode_raw": "4988000000649",
+      "barcode_tier": 1,
+      "label": "Sega",
+      "year": 2013,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 5074,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-b"
+    },
+    "edition": {
+      "id": "AR-900079",
+      "title": "スーパーメトロイド サウンドトラック",
+      "catalog_norm": "APCG3887",
+      "label": "Sega",
+      "year": 2013,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000649",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G080",
+    "category": "cap_goods",
+    "listing": {
+      "source": "goods_shop",
+      "route": "goods",
+      "raw_title": "悪魔城ドラキュラX オリジナル・サウンドトラック Vol.1",
+      "description": "",
+      "catalog_raw": "MJCA-3924",
+      "barcode_raw": "4988000000656",
+      "barcode_tier": 1,
+      "label": "Nihon Falcom",
+      "year": 2016,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 6447,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "face-records"
+    },
+    "edition": {
+      "id": "AR-900080",
+      "title": "悪魔城ドラキュラX オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "MJCA3924",
+      "label": "Nihon Falcom",
+      "year": 2016,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000656",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G081",
+    "category": "cap_goods",
+    "listing": {
+      "source": "goods_shop",
+      "route": "goods",
+      "raw_title": "ロックマンX2 オリジナル・サウンドトラック",
+      "description": "",
+      "catalog_raw": "SRCL-3961",
+      "barcode_raw": "4988000000663",
+      "barcode_tier": 1,
+      "label": "Media Factory",
+      "year": 1989,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 7820,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "diskunion"
+    },
+    "edition": {
+      "id": "AR-900081",
+      "title": "ロックマンX2 オリジナル・サウンドトラック",
+      "catalog_norm": "SRCL3961",
+      "label": "Media Factory",
+      "year": 1989,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000663",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G082",
+    "category": "cap_goods",
+    "listing": {
+      "source": "goods_shop",
+      "route": "goods",
+      "raw_title": "ストリートファイターII オリジナルサウンドトラック",
+      "description": "",
+      "catalog_raw": "GMCD-3998",
+      "barcode_raw": "4988000000670",
+      "barcode_tier": 1,
+      "label": "Geneon",
+      "year": 1991,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 9193,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-a"
+    },
+    "edition": {
+      "id": "AR-900082",
+      "title": "ストリートファイターII オリジナルサウンドトラック",
+      "catalog_norm": "GMCD3998",
+      "label": "Geneon",
+      "year": 1991,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000670",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G083",
+    "category": "doujin_exist_high",
+    "listing": {
+      "source": "doujin_shop",
+      "route": "doujin",
+      "raw_title": "マリオカート ダブルダッシュ アレンジアルバム",
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Avex Trax",
+      "year": 1993,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 10566,
+      "currency": "JPY",
+      "distribution_type": "doujin",
+      "shop": "doujin-shop-a",
+      "circle": "音戯工房",
+      "event": "コミックマーケット105"
+    },
+    "edition": {
+      "id": "AR-900083",
+      "title": "マリオカート ダブルダッシュ アレンジアルバム",
+      "catalog_norm": null,
+      "label": "Avex Trax",
+      "year": 1993,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "doujin",
+      "variant_completeness": "unknown",
+      "circle": "音戯工房",
+      "event": "コミックマーケット105",
+      "price_shop": null
+    },
+    "variant": null,
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G084",
+    "category": "doujin_exist_high",
+    "listing": {
+      "source": "doujin_shop",
+      "route": "doujin",
+      "raw_title": "ファイナルファンタジーVI アレンジアルバム",
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Scitron",
+      "year": 1994,
+      "format": "12inch",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 11939,
+      "currency": "JPY",
+      "distribution_type": "doujin",
+      "shop": "doujin-shop-b",
+      "circle": "響サークル",
+      "event": "M3-2025秋"
+    },
+    "edition": {
+      "id": "AR-900084",
+      "title": "ファイナルファンタジーVI アレンジアルバム",
+      "catalog_norm": null,
+      "label": "Scitron",
+      "year": 1994,
+      "format": "12inch",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "doujin",
+      "variant_completeness": "unknown",
+      "circle": "響サークル",
+      "event": "M3-2025秋",
+      "price_shop": null
+    },
+    "variant": null,
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G085",
+    "category": "doujin_exist_high",
+    "listing": {
+      "source": "doujin_shop",
+      "route": "doujin",
+      "raw_title": "ゼノギアス アレンジアルバム",
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "King Records",
+      "year": 1995,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 13312,
+      "currency": "JPY",
+      "distribution_type": "doujin",
+      "shop": "doujin-shop-c",
+      "circle": "PixelTone",
+      "event": "コミックマーケット104"
+    },
+    "edition": {
+      "id": "AR-900085",
+      "title": "ゼノギアス アレンジアルバム",
+      "catalog_norm": null,
+      "label": "King Records",
+      "year": 1995,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "doujin",
+      "variant_completeness": "unknown",
+      "circle": "PixelTone",
+      "event": "コミックマーケット104",
+      "price_shop": null
+    },
+    "variant": null,
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G086",
+    "category": "doujin_price_sames_shop",
+    "listing": {
+      "source": "doujin_shop",
+      "route": "doujin",
+      "raw_title": "グランディア アレンジアルバム",
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Pony Canyon",
+      "year": 1996,
+      "format": "12inch",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 14685,
+      "currency": "JPY",
+      "distribution_type": "doujin",
+      "shop": "doujin-shop-a",
+      "circle": "同人音楽堂",
+      "event": "博麗神社例大祭22"
+    },
+    "edition": {
+      "id": "AR-900086",
+      "title": "グランディア アレンジアルバム",
+      "catalog_norm": null,
+      "label": "Pony Canyon",
+      "year": 1996,
+      "format": "12inch",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "doujin",
+      "variant_completeness": "unknown",
+      "circle": "同人音楽堂",
+      "event": "博麗神社例大祭22",
+      "price_shop": "doujin-shop-a"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G087",
+    "category": "doujin_price_sames_shop",
+    "listing": {
+      "source": "doujin_shop",
+      "route": "doujin",
+      "raw_title": "エストポリス伝記II アレンジアルバム",
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Aniplex",
+      "year": 1997,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 16058,
+      "currency": "JPY",
+      "distribution_type": "doujin",
+      "shop": "doujin-shop-b",
+      "circle": "音戯工房",
+      "event": "コミックマーケット105"
+    },
+    "edition": {
+      "id": "AR-900087",
+      "title": "エストポリス伝記II アレンジアルバム",
+      "catalog_norm": null,
+      "label": "Aniplex",
+      "year": 1997,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "doujin",
+      "variant_completeness": "unknown",
+      "circle": "音戯工房",
+      "event": "コミックマーケット105",
+      "price_shop": "doujin-shop-b"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G088",
+    "category": "doujin_price_cross_shop",
+    "listing": {
+      "source": "doujin_shop",
+      "route": "doujin",
+      "raw_title": "MOTHER2 ギーグの逆襲 アレンジアルバム",
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Lantis",
+      "year": 1998,
+      "format": "12inch",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 17431,
+      "currency": "JPY",
+      "distribution_type": "doujin",
+      "shop": "doujin-shop-z",
+      "circle": "響サークル",
+      "event": "M3-2025秋"
+    },
+    "edition": {
+      "id": "AR-900088",
+      "title": "MOTHER2 ギーグの逆襲 アレンジアルバム",
+      "catalog_norm": null,
+      "label": "Lantis",
+      "year": 1998,
+      "format": "12inch",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "doujin",
+      "variant_completeness": "unknown",
+      "circle": "響サークル",
+      "event": "M3-2025秋",
+      "price_shop": "doujin-shop-a"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G089",
+    "category": "doujin_price_cross_shop",
+    "listing": {
+      "source": "doujin_shop",
+      "route": "doujin",
+      "raw_title": "スーパーメトロイド アレンジアルバム",
+      "description": "",
+      "catalog_raw": null,
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Square Enix",
+      "year": 1999,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 18804,
+      "currency": "JPY",
+      "distribution_type": "doujin",
+      "shop": "doujin-shop-y",
+      "circle": "PixelTone",
+      "event": "コミックマーケット104"
+    },
+    "edition": {
+      "id": "AR-900089",
+      "title": "スーパーメトロイド アレンジアルバム",
+      "catalog_norm": null,
+      "label": "Square Enix",
+      "year": 1999,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "doujin",
+      "variant_completeness": "unknown",
+      "circle": "PixelTone",
+      "event": "コミックマーケット104",
+      "price_shop": "doujin-shop-b"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G090",
+    "category": "cap_unknown_distribution",
+    "listing": {
+      "source": "diskunion",
+      "route": "retail",
+      "raw_title": "ポポロクロイス物語 オリジナルサウンドトラック",
+      "description": "",
+      "catalog_raw": "COCX-4294",
+      "barcode_raw": "4988000000687",
+      "barcode_tier": 1,
+      "label": "Nippon Columbia",
+      "year": 2000,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 20177,
+      "currency": "JPY",
+      "distribution_type": "unknown",
+      "shop": "shop-a"
+    },
+    "edition": {
+      "id": "AR-900090",
+      "title": "ポポロクロイス物語 オリジナルサウンドトラック",
+      "catalog_norm": "COCX4294",
+      "label": "Nippon Columbia",
+      "year": 2000,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "unknown",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000687",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G091",
+    "category": "cap_unknown_distribution",
+    "listing": {
+      "source": "mercari",
+      "route": "retail",
+      "raw_title": "アークザラッドII サウンドトラック",
+      "description": "",
+      "catalog_raw": "VICL-4331",
+      "barcode_raw": "4988000000694",
+      "barcode_tier": 1,
+      "label": "Victor Entertainment",
+      "year": 2001,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 21550,
+      "currency": "JPY",
+      "distribution_type": "unknown",
+      "shop": "record-city"
+    },
+    "edition": {
+      "id": "AR-900091",
+      "title": "アークザラッドII サウンドトラック",
+      "catalog_norm": "VICL4331",
+      "label": "Victor Entertainment",
+      "year": 2001,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "unknown",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000694",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G092",
+    "category": "promo_clue_review",
+    "listing": {
+      "source": "surugaya",
+      "route": "retail",
+      "raw_title": "ワイルドアームズ オリジナル・サウンドトラック Vol.1",
+      "description": "見本と記載されたサンプル盤です。",
+      "catalog_raw": "KOLA-4368",
+      "barcode_raw": "4988000000700",
+      "barcode_tier": 2,
+      "label": "Konami",
+      "year": 2002,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 22923,
+      "currency": "JPY",
+      "distribution_type": "sample_mihon",
+      "shop": "hmv-record"
+    },
+    "edition": {
+      "id": "AR-900092",
+      "title": "ワイルドアームズ オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "KOLA4368",
+      "label": "Konami",
+      "year": 2002,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "sample_mihon",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "promo_sample",
+      "barcode": "4988000000700",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G093",
+    "category": "promo_clue_review",
+    "listing": {
+      "source": "yahoo_auctions",
+      "route": "retail",
+      "raw_title": "テイルズ オブ ファンタジア オリジナル・サウンドトラック",
+      "description": "白ラベル盤です。",
+      "catalog_raw": "APCG-4405",
+      "barcode_raw": "4988000000717",
+      "barcode_tier": 2,
+      "label": "Sega",
+      "year": 2003,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 24296,
+      "currency": "JPY",
+      "distribution_type": "promo_not_for_sale",
+      "shop": "tower-records"
+    },
+    "edition": {
+      "id": "AR-900093",
+      "title": "テイルズ オブ ファンタジア オリジナル・サウンドトラック",
+      "catalog_norm": "APCG4405",
+      "label": "Sega",
+      "year": 2003,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "promo_not_for_sale",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "promo_not_for_sale",
+      "barcode": "4988000000717",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G094",
+    "category": "promo_clue_review",
+    "listing": {
+      "source": "record_shop",
+      "route": "retail",
+      "raw_title": "スターオーシャン オリジナルサウンドトラック",
+      "description": "PROMO 刻印あり。",
+      "catalog_raw": "MJCA-4442",
+      "barcode_raw": "4988000000724",
+      "barcode_tier": 2,
+      "label": "Nihon Falcom",
+      "year": 2004,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 25669,
+      "currency": "JPY",
+      "distribution_type": "promo_not_for_sale",
+      "shop": "surugaya"
+    },
+    "edition": {
+      "id": "AR-900094",
+      "title": "スターオーシャン オリジナルサウンドトラック",
+      "catalog_norm": "MJCA4442",
+      "label": "Nihon Falcom",
+      "year": 2004,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "promo_not_for_sale",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "promo_not_for_sale",
+      "barcode": "4988000000724",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G095",
+    "category": "promo_clue_review",
+    "listing": {
+      "source": "hmv",
+      "route": "retail",
+      "raw_title": "ブレス オブ ファイアIII サウンドトラック",
+      "description": "NOT FOR SALE 表記あり。",
+      "catalog_raw": "SRCL-4479",
+      "barcode_raw": "4988000000731",
+      "barcode_tier": 2,
+      "label": "Media Factory",
+      "year": 2005,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 27042,
+      "currency": "JPY",
+      "distribution_type": "promo_not_for_sale",
+      "shop": "shop-b"
+    },
+    "edition": {
+      "id": "AR-900095",
+      "title": "ブレス オブ ファイアIII サウンドトラック",
+      "catalog_norm": "SRCL4479",
+      "label": "Media Factory",
+      "year": 2005,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "promo_not_for_sale",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "promo_not_for_sale",
+      "barcode": "4988000000731",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": null
+    },
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G096",
+    "category": "tie_multi_candidate",
+    "listing": {
+      "source": "diskunion",
+      "route": "retail",
+      "raw_title": "ビートマニア オリジナル・サウンドトラック",
+      "description": "",
+      "catalog_raw": "GMCD-8236",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Geneon",
+      "year": 2007,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 2415,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "face-records"
+    },
+    "editions": [
+      {
+        "id": "AR-900096",
+        "title": "ビートマニア オリジナル・サウンドトラック",
+        "catalog_norm": "GMCD8236",
+        "label": "Geneon",
+        "year": 2007,
+        "format": "LP",
+        "country": "JP",
+        "discogs_id": 870950,
+        "distribution_type": "retail",
+        "variant_completeness": "unknown"
+      },
+      {
+        "id": "AR-900097",
+        "title": "ビートマニア オリジナル・サウンドトラック",
+        "catalog_norm": "GMCD8236",
+        "label": "Geneon",
+        "year": 2007,
+        "format": "LP",
+        "country": "JP",
+        "discogs_id": 870951,
+        "distribution_type": "retail",
+        "variant_completeness": "multiple"
+      }
+    ],
+    "variant": null,
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G097",
+    "category": "tie_multi_candidate",
+    "listing": {
+      "source": "diskunion",
+      "route": "retail",
+      "raw_title": "サイレントヒル2 オリジナル・サウンドトラック",
+      "description": "",
+      "catalog_raw": "FSCA-8249",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Avex Trax",
+      "year": 2009,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 3788,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "diskunion"
+    },
+    "editions": [
+      {
+        "id": "AR-900098",
+        "title": "サイレントヒル2 オリジナル・サウンドトラック",
+        "catalog_norm": "FSCA8249",
+        "label": "Avex Trax",
+        "year": 2009,
+        "format": "LP",
+        "country": "JP",
+        "discogs_id": 870960,
+        "distribution_type": "retail",
+        "variant_completeness": "unknown"
+      },
+      {
+        "id": "AR-900099",
+        "title": "サイレントヒル2 オリジナル・サウンドトラック",
+        "catalog_norm": "FSCA8249",
+        "label": "Avex Trax",
+        "year": 2009,
+        "format": "LP",
+        "country": "JP",
+        "discogs_id": 870961,
+        "distribution_type": "retail",
+        "variant_completeness": "multiple"
+      }
+    ],
+    "variant": null,
+    "expected": {
+      "existence": "中",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G098",
+    "category": "normalize_edge",
+    "listing": {
+      "source": "diskunion",
+      "route": "retail",
+      "raw_title": "幻想水滸伝II オリジナル・サウンドトラック Ｖｏｌ．１",
+      "description": "",
+      "catalog_raw": "ＫＩＣＡ－９１９８",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Scitron",
+      "year": 2011,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 5161,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "shop-a"
+    },
+    "edition": {
+      "id": "AR-900100",
+      "title": "幻想水滸伝II オリジナル・サウンドトラック Vol.1",
+      "catalog_norm": "KICA9198",
+      "label": "Scitron",
+      "year": 2011,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "single_confirmed"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  },
+  {
+    "id": "G099",
+    "category": "normalize_edge",
+    "listing": {
+      "source": "mercari",
+      "route": "retail",
+      "raw_title": "グランディア オリジナル・サウンドトラック ～永遠の旋律～",
+      "description": "",
+      "catalog_raw": "KICA‐9300",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "King Records",
+      "year": 2013,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "price": 6534,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "record-city"
+    },
+    "edition": {
+      "id": "AR-900101",
+      "title": "グランディア オリジナル・サウンドトラック ~永遠の旋律~",
+      "catalog_norm": "KICA9300",
+      "label": "King Records",
+      "year": 2013,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": null,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": null,
+    "expected": {
+      "existence": "高",
+      "price": "中",
+      "disposition": "review"
+    }
+  },
+  {
+    "id": "G100",
+    "category": "normalize_edge",
+    "listing": {
+      "source": "discogs",
+      "route": "retail",
+      "raw_title": "ライブ・ア・ライブ オリジナル ・ サウンドトラック",
+      "description": "",
+      "catalog_raw": "KICA 9402",
+      "barcode_raw": null,
+      "barcode_tier": 2,
+      "label": "Pony Canyon",
+      "year": 2016,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 880001,
+      "price": 7907,
+      "currency": "JPY",
+      "distribution_type": "retail",
+      "shop": "hmv-record"
+    },
+    "edition": {
+      "id": "AR-900102",
+      "title": "ライブ・ア・ライブ オリジナル・サウンドトラック",
+      "catalog_norm": "KICA9402",
+      "label": "Pony Canyon",
+      "year": 2016,
+      "format": "LP",
+      "country": "JP",
+      "discogs_id": 880001,
+      "distribution_type": "retail",
+      "variant_completeness": "unknown"
+    },
+    "variant": {
+      "variant_kind": "retail",
+      "barcode": "4988000000748",
+      "variant_color": null,
+      "retailer_exclusive": null,
+      "pressing_note": null,
+      "discogs_id": 880001
+    },
+    "expected": {
+      "existence": "高",
+      "price": "高",
+      "disposition": "auto"
+    }
+  }
+]
