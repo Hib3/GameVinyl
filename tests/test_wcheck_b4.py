@@ -618,6 +618,21 @@ def test_coverage_counts_store_listing_evidence(db, monkeypatch):
     assert "価格証拠あり: 1件" in text
 
 
+def test_coverage_ignores_suspended_ebay_listing(db, monkeypatch):
+    _edition(db, "AR-1", "通常盤")
+    _edition(db, "AR-2", "eBayのみの盤")
+    db.execute(
+        "INSERT INTO listings(edition_id, source, url, price, total_jpy,"
+        " currency, status, last_seen) VALUES('AR-2', 'eBay Browse used',"
+        " 'https://ebay.example/item', 1000, 1000, 'JPY', 'active', ?)",
+        (clock.now_iso(db),))
+    db.commit()
+    bot, sent = _bot(db, monkeypatch)
+    _cmd(bot, "/coverage")
+    text = "\n".join(t for t, _m in sent)
+    assert "価格証拠あり: 0件" in text
+
+
 def test_health_digest_unconfirmed_headline_is_distinct_rows(db):
     deadlines_ops.set_schedule(
         db, edition_id="AR-1", channel="a", deadline_raw="x",

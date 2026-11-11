@@ -131,7 +131,8 @@ def bucket_best(db, edition_id: str, variant_id, cond_rank,
     rows = db.execute(
         "SELECT id, total_jpy, price, currency, last_seen"
         " FROM listings"
-        " WHERE edition_id=? AND variant_id IS ? AND cond_rank=?"
+        " WHERE edition_id=? AND source!='eBay Browse used'"
+        " AND variant_id IS ? AND cond_rank=?"
         " AND id!=? AND status NOT IN ('ended', 'sold_candidate')",
         (edition_id, variant_id, cond_rank, exclude_listing_id)
     ).fetchall()
@@ -171,6 +172,8 @@ def bucket_best(db, edition_id: str, variant_id, cond_rank,
 
 def on_listing_price(db, listing: dict) -> dict:
     """Evaluate one listing's current price against its bucket."""
+    if listing.get("source") == "eBay Browse used":
+        return {"notified": False, "reason": "source disabled"}
     # W-check B3: the candidate price itself must be a YEN value
     # (a foreign amount labelled 円 fabricated drops like
     # "8,000円 → 30円" for a $30 listing) and established price
@@ -237,6 +240,8 @@ def on_listing_price_update(db, listing: dict, old_price: float,
     Contract (R14): old_price / new_price are YEN values (the caller
     converts with scoring.yen_value; rows without a yen value are
     refused below before any comparison happens)."""
+    if listing.get("source") == "eBay Browse used":
+        return {"notified": False, "reason": "source disabled"}
     # R14 (adversarial 中-1): the amounts must be positive and
     # finite — this path used to pass a negative new price straight
     # into a "-500円" notification; the bucket path's price<=0 guard

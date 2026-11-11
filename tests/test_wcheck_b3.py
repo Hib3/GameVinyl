@@ -137,6 +137,29 @@ def test_price_cmd_bucket_yen_semantics(db, monkeypatch):
     assert "50円" not in text
 
 
+def test_price_command_ignores_suspended_ebay_rows(db, monkeypatch):
+    _edition(db)
+    _listing(db, "https://ebay.example/item", 1000, 3,
+             source="eBay Browse used")
+    text = _price_text(db, monkeypatch)
+    assert "1,000円" not in text
+    assert "状態ランク3" not in text
+
+
+def test_pricedrop_ignores_suspended_ebay_source(db):
+    _edition(db)
+    lid = _listing(db, "https://ebay.example/item", 5000, 3,
+                   source="eBay Browse used")
+    _decision(db, lid, "AR-1", "高")
+    row = dict(db.execute("SELECT * FROM listings WHERE id=?",
+                          (lid,)).fetchone())
+    assert pricedrop.on_listing_price(
+        db, row)["reason"] == "source disabled"
+    assert pricedrop.on_listing_price_update(
+        db, row, 10000, 5000)["reason"] == "source disabled"
+    assert pricedrop.bucket_best(db, "AR-1", None, 3) is None
+
+
 def test_register_missing_currency_stays_unknown(db):
     sid = _source(db)
     _edition(db)
