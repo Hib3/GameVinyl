@@ -80,6 +80,9 @@ def test_same_external_candidate_across_editions_is_flagged(site_fixture,tmp_pat
     note='同一外部候補が複数盤に共通・版の確認が必要'
     assert note in rows['AR-000001'] and note in rows['AR-000002']
     assert note not in rows['AR-000003']
+    html=(tmp_path/'index.html').read_text(encoding='utf-8')
+    assert f'https://coverartarchive.org/release/{shared}/front-250' in html
+    assert '版一致・利用権未確認' in html
 
 def test_field_evidence_is_visible_as_unconfirmed_and_urls_are_checked(site_fixture,tmp_path):
     audit,site,bot,template=site_fixture

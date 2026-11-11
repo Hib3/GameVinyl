@@ -312,6 +312,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                     uid=candidate.get('id','')
                     if re.fullmatch(r'[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}',uid):
                         links.append({'label':'MusicBrainzの盤候補（未確定）','url':'https://musicbrainz.org/release/'+uid})
+                        links.append({'label':'Cover Art Archiveの前面画像候補（版一致・利用権未確認）','url':'https://coverartarchive.org/release/'+uid+'/front-250'})
             lookup_labels={'pending':'未照会','candidates':'候補あり・版未確定','partial':'検索結果の一部のみ確認','no_exact_candidate':'一致候補なし・資料不足の可能性'}
             lookup_note=lookup_labels.get(query_state,'取得に失敗・再試行予定')
             if not fresh: checks.append('個別盤の在庫は未確認')
