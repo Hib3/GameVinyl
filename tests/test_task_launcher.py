@@ -1,5 +1,6 @@
 import importlib.util
 from pathlib import Path
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("task_launcher", ROOT / "task_launcher.py")
@@ -22,6 +23,22 @@ def test_launcher_sets_shared_data_dir_and_target(tmp_path, monkeypatch):
     assert task_launcher.os.environ["GRT_DATA_DIR"] == str(data.resolve())
     assert task_launcher.os.environ["PLAYWRIGHT_BROWSERS_PATH"] == str(tmp_path / "runtime" / "playwright")
     assert calls == [(str(install / "run.py"), "__main__")]
+
+
+def test_launcher_adds_nested_script_directory_for_local_imports(tmp_path, monkeypatch):
+    install = tmp_path / "release" / "game-record-tool"
+    for script in ("collector/server.py", "site/update_site.py"):
+        target = install / script
+        target.parent.mkdir(parents=True, exist_ok=True)
+        observed = []
+        monkeypatch.setattr(task_launcher, "ROOT", install)
+        monkeypatch.setattr(task_launcher.runpy, "run_path",
+                            lambda path, run_name: observed.append(sys.path[0]))
+        monkeypatch.chdir(tmp_path)
+
+        task_launcher.main(["--data-dir", str(tmp_path / "data"), "--script", script])
+
+        assert observed == [str(target.parent)]
 
 
 def test_launcher_rejects_non_absolute_data_dir(tmp_path, monkeypatch):

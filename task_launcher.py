@@ -33,7 +33,12 @@ def main(argv=None) -> None:
     target = ROOT / args.script
     import sys
     sys.argv = [str(target)]
-    runpy.run_path(str(target), run_name="__main__")
+    script_dir = str(target.parent)
+    sys.path.insert(0, script_dir)
+    try:
+        runpy.run_path(str(target), run_name="__main__")
+    finally:
+        sys.path.remove(script_dir)
 
 
 if __name__ == "__main__":
