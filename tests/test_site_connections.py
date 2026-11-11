@@ -26,7 +26,7 @@ def site_fixture(tmp_path, monkeypatch):
     c=sqlite3.connect(site)
     with c:
         c.executescript("""
-        create table editions(id text primary key,identity_status,tool_json,muse_json,html_json);
+        create table editions(id text primary key,identity_status,tool_json,muse_json,html_json,game_enrichment_json text default '{}');
         create table observations(matched_edition_id,checked_at,price_usd,source_url);
         create table site_thumbnail_eligible(edition_id,image_url);
         create table offer_candidates(matched_edition_id,listing_url);
@@ -35,7 +35,7 @@ def site_fixture(tmp_path, monkeypatch):
         create table catalog_lookup_queue(edition_id,field,search_value,label);
         create table catalog_lookup(field,search_value,label,result,checked_at,match_json);
         """)
-        c.executemany("insert into editions values(?, 'shared_catalog_identity', '{}','{}','{}')",
+        c.executemany("insert into editions(id,identity_status,tool_json,muse_json,html_json) values(?, 'shared_catalog_identity', '{}','{}','{}')",
                       ((f'AR-{i:06d}',) for i in range(1,3778)))
     c.close()
     template=tmp_path/'template.html'
@@ -387,6 +387,24 @@ def test_game_source_absence_is_distinguished_from_conflicting_values(site_fixtu
     assert 'Museゲーム名未転記（HTML記載は未検証）' in notes['AR-000005']
     assert 'ゲーム表記差あり' not in notes['AR-000005']
     assert '不明（BlipBlop個別ReleaseのGame(s)欄は表示確認済み、今回未転記）' not in text
+
+def test_muse_game_enrichment_provenance_reaches_site_details(site_fixture,tmp_path):
+    audit,site,bot,template=site_fixture
+    enrichment={'category':'GAME_IDENTIFIED','game_identified':'Example Game',
+                'confidence':'高','basis':'Muse source evidence'}
+    with sqlite3.connect(site) as db:
+        db.execute("update editions set game_enrichment_json=? where id='AR-000001'",
+                   (json.dumps(enrichment,ensure_ascii=False),))
+    target=tmp_path/'index.html'
+    audit.run(site,bot,template,target,tmp_path/'audit.csv')
+    text=target.read_text(encoding='utf-8')
+    records,_=json.JSONDecoder().raw_decode(text[text.index('[{'):])
+    record=next(row for row in records if row['id']=='AR-000001')
+    assert record['fieldAudit']['museGameEvidence']=={
+        'category':'GAME_IDENTIFIED','game':'Example Game',
+        'confidence':'高','basis':'Muse source evidence'}
+    template_source=(Path(__file__).resolve().parents[1]/'site'/'site_template.html').read_text(encoding='utf-8')
+    assert 'Muse調査のゲーム判定' in template_source
 
 def test_price_comparison_pauses_without_embedded_marketplace_observations():
     template=Path(__file__).resolve().parents[1]/"site"/"site_template.html"

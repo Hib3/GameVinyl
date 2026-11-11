@@ -174,13 +174,18 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
         yahoo_market=approved_yahoo_listings(bot,now)
     with closing(sqlite3.connect(db)) as c:
         c.execute('pragma foreign_keys=on')
-        rows=c.execute('select id,identity_status,tool_json,muse_json,html_json from editions order by id').fetchall()
+        columns={row[1] for row in c.execute('pragma table_info(editions)')}
+        enrichment_column='game_enrichment_json' if 'game_enrichment_json' in columns else 'NULL'
+        rows=c.execute(f'select id,identity_status,tool_json,muse_json,html_json,{enrichment_column} from editions order by id').fetchall()
         assert len(rows)==3777 and all(re.fullmatch(r'AR-\d{6}',r[0]) for r in rows)
-        parsed=[(rid,state,json.loads(a),json.loads(b),json.loads(h)) for rid,state,a,b,h in rows]
+        parsed=[]
+        for rid,state,a,b,h,enrichment in rows:
+            value=json.loads(enrichment) if enrichment else {}
+            parsed.append((rid,state,json.loads(a),json.loads(b),json.loads(h),value if isinstance(value,dict) else {}))
         collector_map,collector_state=collector_candidates(
             collector_db or Path(botdb).parent/'collector'/'collector.sqlite3',
-            {rid:(a or {}) for rid,_,a,_,_ in parsed},now.timestamp())
-        groups=Counter((norm(a.get('label')),norm(a.get('catalog'))) for _,_,a,_,_ in parsed if a and valid_catalog(a.get('catalog')))
+            {rid:(a or {}) for rid,_,a,_,_,_ in parsed},now.timestamp())
+        groups=Counter((norm(a.get('label')),norm(a.get('catalog'))) for _,_,a,_,_,_ in parsed if a and valid_catalog(a.get('catalog')))
         evidence=defaultdict(list)
         for rid,date,p,url in c.execute("select matched_edition_id,checked_at,price_usd,source_url from observations where matched_edition_id is not null"):
             d=parse_date(date)
@@ -224,7 +229,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                 if isinstance(uid,str) and re.fullmatch(r'[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}',uid):
                     candidate_editions[uid].add(edition_id)
         export=[]; audit=[]; coverage=[]
-        for rid,identity,a,b,h in parsed:
+        for rid,identity,a,b,h,enrichment in parsed:
             a,b,h=a or {},b or {},h or {}
             r=dict(h)
             r['id']=rid
@@ -258,6 +263,18 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                 checks.append('Museゲーム名未転記（HTML記載は未検証）' if muse_game_untranscribed else 'ゲーム情報はHTMLのみ収録（Muse未収録・要確認）')
             elif muse_game_key!=html_game_key: checks.append('Muse/HTMLのゲーム表記不一致（要確認）')
             if b.get('status')=='CURRENT_CONFIRMED' and not price_ok(b.get('price')): checks.append('出品記録に数値価格なし')
+            category=enrichment.get('category') if isinstance(enrichment.get('category'),str) else None
+            confidence=enrichment.get('confidence') if isinstance(enrichment.get('confidence'),str) else None
+            basis=enrichment.get('basis') if isinstance(enrichment.get('basis'),str) else None
+            identified=enrichment.get('game_identified') if isinstance(enrichment.get('game_identified'),str) else None
+            muse_game_evidence=None
+            if category or confidence or basis or identified:
+                game_candidate=(identified.strip()[:200] if identified and identified.strip()
+                                and category in ('GAME_IDENTIFIED','GAME_COMPILATION')
+                                and confidence in ('高','中') else None)
+                muse_game_evidence={
+                    'category':category,'game':game_candidate,'confidence':confidence,
+                    'basis':' '.join(basis.split())[:500] if basis and basis.strip() else None}
             obs=evidence[rid]
             survey=max((x[1] for x in obs),default=None)
             if not any(x[3] for x in obs): checks.append('監査台帳に確認用URLなし')
@@ -392,6 +409,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
             r['fieldAudit']={'summary':summary,'priceDate':None,
               'priceStatus':'価格表示停止中（出典・通貨・利用条件を再確認中）',
               'surveyDate':survey,'lookupNote':lookup_note,'botPrice':bot_note,'gameAlternative':alt,
+              'museGameEvidence':muse_game_evidence,
               'collectorOffers':offer_note,'collectorStatus':collector_state,'links':links,'image':thumb,
               'coverage':coverage_items,'marketListings':yahoo_market.get(rid,[])}
             export.append(r)

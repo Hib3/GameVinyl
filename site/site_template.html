@@ -1032,6 +1032,13 @@
             rows.push([coverageAreaLabels[item.area] || item.area, coverageStatusLabels[item.status] || item.status]);
           });
           if (a.gameAlternative) rows.push(["Muse目録のゲーム表記", a.gameAlternative]);
+          if (a.museGameEvidence) {
+            var me = a.museGameEvidence;
+            if (me.category) rows.push(["Muse調査のゲーム判定", auditLabels[me.category] || me.category]);
+            if (me.game) rows.push(["Museゲーム候補", me.game]);
+            if (me.confidence) rows.push(["Muse確度", me.confidence]);
+            if (me.basis) rows.push(["Muse根拠", me.basis]);
+          }
           var links = a.links.map(function (link) {
             return '<a href="' + esc(link.url) + '" target="_blank" rel="noopener noreferrer">' + esc(link.label) + '</a>';
           }).join("");
