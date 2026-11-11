@@ -110,9 +110,12 @@ class YahooShoppingFetcher(BaseFetcher):
                 continue
             title = entry.get("name") or ""
             price = api_price(entry.get("price"))
+            image = entry.get("image")
+            image_url = image.get("medium") if isinstance(image, dict) else None
             items.append({
                 "title": title,
                 "url": entry.get("url") or "",
+                "image_url": image_url or "",
                 "price": price,
                 "currency": "JPY",
                 "raw_title": title,
@@ -136,7 +139,7 @@ class YahooShoppingFetcher(BaseFetcher):
             from urllib.parse import parse_qs, urlparse
             qs = parse_qs(urlparse(url).query)
             catalog = (qs.get("query") or [url])[0]
-        return self._search(catalog)
+        return self._search(catalog, condition="used", in_stock=True)
 
     def run(self, url: str) -> dict:
         if not self.enabled:

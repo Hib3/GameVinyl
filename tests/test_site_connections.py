@@ -80,6 +80,9 @@ def test_same_external_candidate_across_editions_is_flagged(site_fixture,tmp_pat
     note='同一外部候補が複数盤に共通・版の確認が必要'
     assert note in rows['AR-000001'] and note in rows['AR-000002']
     assert note not in rows['AR-000003']
+    html=(tmp_path/'index.html').read_text(encoding='utf-8')
+    assert f'https://coverartarchive.org/release/{shared}/front-250' in html
+    assert '版一致・利用権未確認' in html
 
 def test_field_evidence_is_visible_as_unconfirmed_and_urls_are_checked(site_fixture,tmp_path):
     audit,site,bot,template=site_fixture
@@ -196,6 +199,40 @@ def test_unverified_survey_marketplace_prices_are_not_published(site_fixture,tmp
     assert '共有カタログIDによる結合は、盤の独立照合を意味しません。' in text
     template_source=(Path(__file__).resolve().parents[1]/'site'/'site_template.html').read_text(encoding='utf-8')
     assert '価格は出典・通貨・利用条件の再確認まで非表示です。' in template_source
+
+def test_each_record_gets_manual_marketplace_search_links_labeled_unverified(site_fixture,tmp_path):
+    audit,site,bot,template=site_fixture
+    with sqlite3.connect(site) as db:
+        db.execute("update editions set html_json=? where id='AR-000001'",
+                   (json.dumps({'title':'Example soundtrack','catalog':'VG-123'}),))
+    target=tmp_path/'index.html'
+    audit.run(site,bot,template,target,tmp_path/'audit.csv')
+    text=target.read_text(encoding='utf-8')
+    records,_=json.JSONDecoder().raw_decode(text[text.index('[{'):])
+    record=next(row for row in records if row['id']=='AR-000001')
+    links=record['fieldAudit']['links']
+    expected={
+        'ブックオフで探す（在庫未確認）':'https://shopping.bookoff.co.jp/search/keyword/',
+        'オフモールで探す（在庫未確認）':'https://netmall.hardoff.co.jp/cate/000100150001/?q=',
+        'Yahoo!ショッピングで探す（在庫未確認）':'https://shopping.yahoo.co.jp/search?p=',
+        'Yahoo!オークションで探す（在庫未確認）':'https://auctions.yahoo.co.jp/search/search?p=',
+        'メルカリで探す（在庫未確認）':'https://jp.mercari.com/search?keyword=',
+        '楽天市場で探す（在庫未確認）':'https://search.rakuten.co.jp/search/mall/?sitem=',
+        '駿河屋で探す（在庫未確認）':'https://www.suruga-ya.jp/search?search_word=',
+        'eBayで探す（在庫未確認）':'https://www.ebay.com/sch/i.html?_nkw=',
+    }
+    for label,prefix in expected.items():
+        link=next(item for item in links if item['label']==label)
+        assert link['url'].startswith(prefix)
+        assert 'Example' in link['url']
+    bookoff=next(item for item in links if item['label']=='ブックオフで探す（在庫未確認）')
+    assert 'Example%20soundtrack' in bookoff['url']
+    assert 'VG-123' in bookoff['url']
+    offmall=next(item for item in links if item['label']=='オフモールで探す（在庫未確認）')
+    assert 'Example%20soundtrack' in offmall['url']
+    assert 'VG-123' in offmall['url']
+    empty=next(row for row in records if row['id']=='AR-000002')
+    assert not any(item['label'] in expected for item in empty['fieldAudit']['links'])
 
 def test_discogs_observation_display_expires_after_six_hours(site_fixture,tmp_path):
     audit,site,bot,template=site_fixture
@@ -403,6 +440,81 @@ def test_audit_snapshot_time_is_rendered_visibly(site_fixture,tmp_path):
         r'<p class="audit-as-of" id="audit-as-of">監査データ更新：'
         r'\d{4}-\d{2}-\d{2} \d{2}:\d{2} JST</p>', text)
     assert '@@AUDIT_AS_OF@@' not in text
+
+
+def test_only_human_approved_yahoo_listing_is_exported_with_attribution(site_fixture,tmp_path):
+    audit,site,bot,template=site_fixture
+    seen=datetime.now(timezone.utc).isoformat()
+    c=sqlite3.connect(bot)
+    with c:
+        c.executescript("""
+          create table listings(id integer,edition_id text,source text,url text,
+            image_url text,raw_title text,last_seen text,price real,currency text);
+          create table match_decisions(id integer,listing_id integer,
+            edition_id text,matcher_version text,price_confidence text);
+        """)
+        c.execute("insert into listings values(1,'AR-000001',?,?,?, ?,?,?,?)",
+                  ('Yahoo Shopping used',
+                   'https://store.shopping.yahoo.co.jp/shop/record.html',
+                   'https://item-shopping.c.yimg.jp/i/g/record',
+                   'Vintage record',seen,4200,'JPY'))
+        c.execute("insert into match_decisions values(1,1,'AR-000001',"
+                  "'human-review-1','高')")
+        c.execute("insert into listings values(6,'AR-000001',?,?,?, ?,?,?,?)",
+                  ('Yahoo Shopping used',
+                   'https://store.shopping.yahoo.co.jp/shop/record-2.html',
+                   'https://item-shopping.c.yimg.jp/i/g/record-2',
+                   'Second vintage record',seen,4300,'JPY'))
+        c.execute("insert into match_decisions values(6,6,'AR-000001',"
+                  "'human-review-1','高')")
+        c.execute("insert into listings values(2,'AR-000002',?,?,?, ?,?,?,?)",
+                  ('Yahoo Shopping used',
+                   'https://store.shopping.yahoo.co.jp/shop/unreviewed.html',
+                   'https://item-shopping.c.yimg.jp/i/g/unreviewed',
+                   'Unreviewed',seen,4000,'JPY'))
+        c.execute("insert into match_decisions values(2,2,'AR-000002',"
+                  "'matcher-1','高')")
+        c.execute("insert into listings values(3,'AR-000003',?,?,?, ?,?,?,?)",
+                  ('eBay Browse used','https://www.ebay.com/itm/123',
+                   'https://i.ebayimg.com/image.jpg','eBay vintage',seen,18,'USD'))
+        c.execute("insert into match_decisions values(3,3,'AR-000003',"
+                  "'human-review-1','高')")
+        c.execute("insert into listings values(4,'AR-000004',?,?,?, ?,?,?,?)",
+                  ('Rakuten Ichiba','https://item.rakuten.co.jp/shop/abc/',
+                   'https://thumbnail.image.rakuten.co.jp/a.jpg',
+                   'Rakuten item',seen,3000,'JPY'))
+        c.execute("insert into match_decisions values(4,4,'AR-000004',"
+                  "'human-review-1','高')")
+        stale=(datetime.now(timezone.utc)-timedelta(days=3)).isoformat()
+        c.execute("insert into listings values(5,'AR-000005',?,?,?, ?,?,?,?)",
+                  ('eBay Browse used','https://www.ebay.com/itm/stale',None,
+                   'Stale eBay item',stale,20,'USD'))
+        c.execute("insert into match_decisions values(5,5,'AR-000005',"
+                  "'human-review-1','高')")
+    c.close()
+
+    target=tmp_path/'index.html'
+    audit.run(site,bot,template,target,tmp_path/'audit.csv')
+    html=target.read_text(encoding='utf-8')
+    records,_=json.JSONDecoder().raw_decode(html[html.index('[{'):])
+    exported={row['id']:row for row in records}
+    assert 'https://store.shopping.yahoo.co.jp/shop/record.html' in html
+    assert 'https://store.shopping.yahoo.co.jp/shop/record-2.html' in html
+    assert 'https://item-shopping.c.yimg.jp/i/g/record' in html
+    assert 'unreviewed.html' not in html
+    assert 'https://www.ebay.com/itm/123' not in html
+    assert 'eBay vintage' not in html
+    assert exported['AR-000003']['fieldAudit']['marketListings']==[]
+    assert 'https://item.rakuten.co.jp/shop/abc/' not in html
+    assert 'Rakuten item' not in html
+    assert exported['AR-000004']['fieldAudit']['marketListings']==[]
+    assert exported['AR-000005']['fieldAudit']['marketListings']==[]
+    assert 'image.jpg' not in html and '/stale' not in html
+    assert len(exported['AR-000001']['fieldAudit']['marketListings'])==2
+    assert 'marketListings' in html
+    production_template=(Path(__file__).resolve().parents[1]/'site'/'site_template.html').read_text(encoding='utf-8')
+    assert '<!-- Begin Yahoo! JAPAN Web Services Attribution Snippet -->' in production_template
+    assert '<span style="margin:15px 15px 15px 15px"><a href="https://developer.yahoo.co.jp/sitemap/">Webサービス by Yahoo! JAPAN</a></span>' in production_template
 
 
 

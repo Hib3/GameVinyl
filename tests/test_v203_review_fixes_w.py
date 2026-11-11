@@ -131,6 +131,17 @@ def test_arrival_check_recheck_cycle(db):
     assert deadlines_ops.arrival_check(db) == []  # only ONE recheck
 
 
+def test_arrival_check_ignores_suspended_ebay_row(db):
+    _mk(db, deadline_jst=_jst(hours=-2))
+    db.execute(
+        "INSERT INTO listings(edition_id, source, url, first_seen)"
+        " VALUES('AR-1','eBay Browse used','https://ebay.example/item',?)",
+        (_jst(),))
+    db.commit()
+    out = deadlines_ops.arrival_check(db)
+    assert out and out[0]["outcome"] == "not_found"
+
+
 def test_arrival_check_candidate_only_is_unknown(db):
     deadlines_ops.set_schedule(
         db, candidate_id=7, deadline_raw="raw",

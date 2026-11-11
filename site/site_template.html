@@ -495,6 +495,10 @@
       .audit-art-fallback {display: inline-grid; width: 52px; height: 52px; margin-top: .35rem; place-content: center; text-align: center; border: 1px solid currentColor; border-radius: 4px; font-size: .62rem; line-height: 1.2; background: radial-gradient(circle, transparent 31%, rgba(127,127,127,.17) 32%, transparent 35%, rgba(127,127,127,.17) 42%, transparent 45%);}
       .audit-links {display: flex; gap: .4rem 1rem; flex-wrap: wrap; margin-top: .7rem;}
       .audit-links a {text-decoration: underline;}
+      .market-listings {display:flex; flex-wrap:wrap; gap:.65rem; margin-top:.75rem;}
+      .market-listing {display:flex; align-items:center; gap:.6rem; max-width:100%; text-decoration:none;}
+      .market-listing img {width:64px; height:64px; object-fit:contain; border-radius:6px; background:var(--surface-2);}
+      .market-listing small {display:block; color:var(--muted);}
     </style>
   </head>
   <body>
@@ -676,6 +680,10 @@
         <p>添付HTMLの説明文では、ゲーム名が空欄だった863件のうち855件をゲーム／コンピレーション／アニメとして再同定し、ゲームでもアニメでもない8件と Yellow Magic Orchestra の各国プレス23件を「混入疑い」に分類したとされています（同説明文の日付は2026-10-29）。これは提供元の説明で、盤ごとの一次資料URLや監査ログが注釈に紐付いていないため、当サイトで独立確認済みの結果とは扱いません。各盤の詳細では提供元の注釈・確度・根拠文を確認できます。</p>
         <p>添付HTMLの説明文では、音楽種別とゲーム名帰属を2026-10-30時点で監査したとされています。種別（全3,777件）・帰属（全3,777件）の注釈は保持していますが、注釈自体に各判断を裏付ける一次資料URLや監査ログの紐付けはありません。このサイトで独立に再検証した事実としては扱いません。種別内訳は絞り込み欄に表示されます。「同定・監査」欄の注釈は886件分です。各盤の詳細では提供元の注釈・確度・根拠文を確認できます。</p>
         <p>価格データの根拠が確認できた範囲から再掲載します。</p>
+        <p>Yahoo!ショッピングの画像は出品商品写真です。最終観測日時を表示し、現在の在庫や販売継続を保証しません。</p>
+        <!-- Begin Yahoo! JAPAN Web Services Attribution Snippet -->
+        <span style="margin:15px 15px 15px 15px"><a href="https://developer.yahoo.co.jp/sitemap/">Webサービス by Yahoo! JAPAN</a></span>
+        <!-- End Yahoo! JAPAN Web Services Attribution Snippet -->
       </div>
     </footer>
 
@@ -1027,6 +1035,12 @@
           var links = a.links.map(function (link) {
             return '<a href="' + esc(link.url) + '" target="_blank" rel="noopener noreferrer">' + esc(link.label) + '</a>';
           }).join("");
+          var marketListings = (a.marketListings || []).map(function (item) {
+            var label = item.sourceLabel || 'マーケット出品';
+            var photo = item.image ? '<img src="' + esc(item.image) + '" alt="' + esc(label) + 'の商品写真" loading="lazy" width="64" height="64">' : '';
+            var price = item.price && item.currency ? '・観測価格 ' + esc(item.price) + ' ' + esc(item.currency) : '';
+            return '<a class="market-listing" href="' + esc(item.url) + '" target="_blank" rel="noopener noreferrer"><span>' + esc(item.title || label) + '<small>' + esc(label) + '・最終観測 ' + esc(item.lastSeen) + price + '・現在在庫は未保証</small></span>' + photo + '</a>';
+          }).join("");
           if (r.audit) {
             rows.push(["同定・監査", auditLabels[r.audit] || r.audit]);
             if (r.auditNote) rows.push(["実態", r.auditNote]);
@@ -1064,7 +1078,7 @@
               deal +
             "</div>" +
             '<button type="button" class="detail-btn" data-detail="' + r.id + '" aria-expanded="' + open + '">' + (open ? "詳細を閉じる ▲" : "詳細を見る ▼") + "</button>" +
-            '<div class="detail' + (open ? " open" : "") + '" id="detail-' + r.id + '"><dl>' + rows + '</dl><div class="audit-links">' + links + "</div></div>" +
+            '<div class="detail' + (open ? " open" : "") + '" id="detail-' + r.id + '"><dl>' + rows + '</dl><div class="audit-links">' + links + "</div>" + (marketListings ? '<div class="market-listings" aria-label="盤一致を人が確認した商品ページ">' + marketListings + '</div>' : '') + '</div>' +
           "</article>";
         }
 

@@ -119,6 +119,30 @@ def test_duplicate_normal_match_stacks_nothing(db):
     assert _suspects(db) == []
 
 
+def test_source_can_force_human_review_without_auto_linking(db):
+    _edition(db, "AR-HUMAN")
+    db.execute(
+        "INSERT INTO listings(id, source, url, raw_title)"
+        " VALUES(123, 'Yahoo Shopping used',"
+        " 'https://store.shopping.yahoo.co.jp/shop/item', 'テスト盤')")
+    db.commit()
+    listing = _listing(source="Yahoo Shopping used",
+                       url="https://store.shopping.yahoo.co.jp/shop/item")
+
+    results = matcher.match_listing(
+        db, listing, listing_id=123, require_human_review=True)
+
+    assert results and all(r["disposition"] == "review" for r in results)
+    assert db.execute(
+        "SELECT edition_id FROM listings WHERE id=123").fetchone()[0] is None
+    queue = db.execute(
+        "SELECT payload_json FROM review_queue WHERE kind='match_review'"
+        " AND resolved_at IS NULL").fetchall()
+    assert queue
+    assert any(json.loads(row[0])["result"]["breakdown"].get(
+        "source_requires_human_review") for row in queue)
+
+
 def test_duplicate_discogs_conflict_stacked(db):
     _edition(db, "AR-G1", discogs_id=111)
     matcher.match_listing(db, _listing(discogs_id=222), listing_id=3)

@@ -10,7 +10,7 @@ def main():
     root=code.parent
     site=Path(os.environ.get('GRT_DATA_DIR') or root/'data')/'site'
     db=site/'vgm_site.sqlite3'
-    shops_ok=refresh_site_data.run(db,1,True)
+    refresh_site_data.run(db,1,True)
     try:
         contact=(site/'musicbrainz_contact.txt').read_text(encoding='utf-8').strip()
     except (OSError, UnicodeError):
@@ -19,7 +19,7 @@ def main():
     audit_site.run(db,Path(os.environ.get('GRT_DATA_DIR') or root/'data')/'grt.db',
                    code/'site_template.html',site/'index.html',site/'edition_audit.csv',
                    catalog_result=result)
-    return 0 if shops_ok and result['status'] in ('ok','skipped','cooldown') else 1
+    return 0 if result['status'] in ('ok','skipped','cooldown') else 1
 
 if __name__=='__main__':
     sys.exit(main())

@@ -65,7 +65,8 @@ class EbayFetcher(BaseFetcher):
         try:
             resp = httpx.get(
                 API,
-                params={"q": catalog, "limit": "50"},
+                params={"q": catalog, "limit": "50",
+                        "filter": "conditions:{USED},deliveryCountry:JP"},
                 headers={
                     "Authorization": "Bearer " + str(self.token),
                     "Accept": "application/json",
@@ -98,6 +99,9 @@ class EbayFetcher(BaseFetcher):
             items.append({
                 "title": title,
                 "url": entry.get("itemWebUrl") or "",
+                "image_url": ((entry.get("image") or {}).get("imageUrl")
+                              if isinstance(entry.get("image"), dict)
+                              else ""),
                 "price": price,
                 "currency": (price_obj.get("currency")
                              if isinstance(price_obj, dict) else None),

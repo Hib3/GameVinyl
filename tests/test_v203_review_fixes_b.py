@@ -143,16 +143,30 @@ def test_price_median_and_null_latest(db, monkeypatch):
 # B5: /coverage ignores snapshots of nonexistent editions.
 def test_coverage_ignores_ghost_snapshots(db, monkeypatch):
     db.execute("INSERT INTO editions(id, title) VALUES('AR-1','T')")
-    for eid in ("AR-1", "GHOST-404"):
+    for eid, taken_at in (("AR-1", clock.now_iso(db)),
+                          ("GHOST-404", "2026-11-08")):
         db.execute(
             "INSERT INTO price_snapshots(edition_id, source, taken_at,"
-            " num_for_sale, lowest_price) VALUES(?, 'discogs',"
-            " '2026-11-08', 1, 100.0)", (eid,))
+            " num_for_sale, lowest_price) VALUES(?, 'discogs', ?, 1, 100.0)",
+            (eid, taken_at))
     db.commit()
     bot, sent = _bot(db, monkeypatch)
     _cmd(bot, "/coverage")
     joined = "\n".join(t for t, _ in sent)
     assert "価格証拠あり: 1件" in joined and "100.0%" in joined
+
+
+def test_coverage_excludes_expired_discogs_snapshot(db, monkeypatch):
+    db.execute("INSERT INTO editions(id, title) VALUES('AR-1','T')")
+    db.execute(
+        "INSERT INTO price_snapshots(edition_id, source, taken_at,"
+        " num_for_sale, lowest_price) VALUES('AR-1', 'discogs',"
+        " '2026-11-08', 1, 100.0)")
+    db.commit()
+    bot, sent = _bot(db, monkeypatch)
+    _cmd(bot, "/coverage")
+    joined = "\n".join(t for t, _ in sent)
+    assert "価格証拠あり: 0件" in joined and "0.0%" in joined
 
 
 # B6: reversed rarity range is an error, not a 0-item success.
@@ -329,11 +343,11 @@ def test_api_clients_contract_and_prices(db, monkeypatch):
              {"title": "X", "itemWebUrl": "https://e/1",
               "price": {"value": "nan", "currency": "USD"}}]}),
         (rakuten_mod, "RakutenFetcher", "RAKUTEN_APP_ID",
-         {"Items": 123}, {"Items": [
-             {"Item": {"itemName": "X", "itemUrl": "https://r/1",
-                       "itemPrice": True}},
-             {"Item": {"itemName": "Y", "itemUrl": "https://r/2",
-                       "itemPrice": 4200.9}}]}),
+         {"items": 123}, {"items": [
+             {"itemName": "X", "itemUrl": "https://r/1",
+              "itemPrice": True},
+             {"itemName": "Y", "itemUrl": "https://r/2",
+              "itemPrice": 4200.9}]}),
         (yahoo_mod, "YahooShoppingFetcher", "YAHOO_APP_ID",
          {"hits": 123}, {"hits": [
              {"name": "X", "url": "https://y/1", "price": True},
@@ -341,6 +355,8 @@ def test_api_clients_contract_and_prices(db, monkeypatch):
     ]
     for mod, cls_name, key, bad, good in cases:
         monkeypatch.setenv(key, "dummy")
+        if mod is rakuten_mod:
+            monkeypatch.setenv("RAKUTEN_ACCESS_KEY", "dummy")
         fetcher_cls = getattr(mod, cls_name)
         cur = db.execute(
             "INSERT INTO sources(name, kind, status) VALUES(?, 'API',"

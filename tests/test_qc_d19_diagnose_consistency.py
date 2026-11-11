@@ -151,12 +151,23 @@ def _run_check_tasks(monkeypatch, xml_by_name):
 def test_check_tasks_ok_when_targets_match(monkeypatch):
     python_path, _, _ = diagnose.expected_task_targets()
     root = python_path.parent.parent.parent
-    xml = _task_xml(str(python_path), f'"{root / "run.py"}"')
-    xmlw = _task_xml(str(python_path), f'"{root / "watchdog.py"}"')
-    text = _run_check_tasks(monkeypatch, {
-        "GameRecordTool": _Proc(0, xml),
-        "GameRecordToolWatchdog": _Proc(0, xmlw)})
-    assert text.count("[OK]") == 2
+    data_dir = root / "data"
+    monkeypatch.setattr(diagnose.config, "data_dir", lambda: data_dir)
+    tasks = {
+        "GameRecordTool": "run.py",
+        "GameRecordToolWatchdog": "watchdog.py",
+        "GameRecordToolCollector": "collector/server.py",
+        "GameRecordToolSiteFreshness": "site/update_site.py",
+    }
+    xml_by_name = {
+        name: _Proc(0, _task_xml(
+            str(python_path),
+            f'"{root / "task_launcher.py"}" --data-dir "{data_dir}" '
+            f'--script "{script}"'))
+        for name, script in tasks.items()
+    }
+    text = _run_check_tasks(monkeypatch, xml_by_name)
+    assert text.count("[OK]") == 4
     assert "[NG]" not in text
 
 

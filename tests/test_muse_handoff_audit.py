@@ -4,7 +4,9 @@ import sqlite3
 import zipfile
 from pathlib import Path
 
-from tools.audit_muse_handoff import audit_handoff, main
+from tools.audit_muse_handoff import (
+    _discogs_release_candidate, _discogs_release_references, audit_handoff, main,
+)
 
 
 def _fixture_inputs(tmp_path: Path):
@@ -21,13 +23,18 @@ def _fixture_inputs(tmp_path: Path):
     ledger = {
         "evidence": [
             {"record_id": "AR-1", "status": "CURRENT_CONFIRMED",
-             "checked_at": "2026-10-27", "route": "discogs", "notes": "old claim"},
+             "checked_at": "2026-10-27", "route": "discogs",
+             "notes": "old claim cites Discogs release 555"},
             {"record_id": "AR-2", "status": "CURRENT_CONFIRMED",
              "checked_at": "2026-10-28", "route": "discogs",
              "source_url": "https://example.test/release/2"},
         ],
         "expansion_evidence": [
             {"record_id": "AR-1", "source_url": None, "what_established": None},
+            {"record_id": "AR-1", "source_url": "https://www.discogs.com/release/12345-known",
+             "checked_at": "2026-10-28", "what_established": "candidate only", "notes": "candidate"},
+            {"record_id": "AR-2", "source_url": "https://www.discogs.com/release/12345-known",
+             "checked_at": "2026-10-28", "what_established": "candidate only", "notes": "candidate"},
         ],
     }
     deals = {"checked_date": "2026-11-02", "deals": [{"record_id": "AR-1", "attribution": "OK"}]}
@@ -69,10 +76,14 @@ def test_read_only_audit_reports_lineage_and_status_drift(tmp_path):
     assert summary["muse_status_missing_with_price"] == 1
     assert summary["muse_status_missing_with_expansion"] == 1
     assert summary["ledger_rows_without_item_source_url"] == 1
+    assert summary["ledger_discogs_locator_candidate_rows"] == 1
     assert summary["expansion_rows_without_source_url"] == 1
     assert summary["expansion_rows_without_what_established"] == 1
     assert summary["expansion_rows_without_notes"] == 1
     assert summary["expansion_rows_without_any_explanation"] == 1
+    assert summary["discogs_release_id_candidate_rows"] == 2
+    assert summary["discogs_release_id_candidate_unique"] == 1
+    assert summary["discogs_release_id_candidate_ambiguous"] == 1
     assert summary["deals_candidate_count"] == 1
     assert summary["deals_unique_record_ids"] == 1
     assert summary["deals_attribution_counts"] == {"OK": 1}
@@ -81,11 +92,76 @@ def test_read_only_audit_reports_lineage_and_status_drift(tmp_path):
                for row in issues)
     assert any(row["issue"] == "muse_status_missing" and row["record_id"] == "AR-1"
                for row in issues)
+    assert any(row["issue"] == "ledger_item_source_url_missing"
+               and row["record_id"] == "AR-1" and row["field"] == "price_source_url"
+               for row in issues)
+    assert any(row["issue"] == "ledger_discogs_locator_candidate_needs_review"
+               and row["record_id"] == "AR-1" and row["candidate_value"] == "555"
+               and row["source_url"] == "https://www.discogs.com/release/555"
+               for row in issues)
     assert any(row["issue"] == "expansion_source_url_missing" and row["record_id"] == "AR-1"
                for row in issues)
     assert any(row["issue"] == "expansion_what_established_missing"
                and row["candidate_id"] is None for row in issues)
+    assert any(row["issue"] == "discogs_release_id_candidate_needs_review"
+               and row["record_id"] == "AR-1" and row["candidate_value"] == "12345"
+               for row in issues)
+    assert any(row["issue"] == "discogs_release_id_candidate_ambiguous"
+               and row["record_id"] == "AR-2" and row["candidate_value"] == "12345"
+               for row in issues)
     assert hashlib.sha256(db.read_bytes()).digest() == before
+
+
+def test_discogs_candidate_parser_rejects_untrusted_routes():
+    assert _discogs_release_candidate("https://www.discogs.com/release/12345-title") == "12345"
+    for url in (
+        "http://www.discogs.com/release/12345-title",
+        "https://www.discogs.com.attacker.test/release/12345-title",
+        "https://www.discogs.com:444/release/12345-title",
+        "https://user@www.discogs.com/release/12345-title",
+        "https://www.discogs.com/master/12345-title",
+        "https://api.discogs.com/releases/12345",
+    ):
+        assert _discogs_release_candidate(url) is None
+
+
+def test_discogs_release_references_only_accept_explicit_release_locators():
+    assert _discogs_release_references(
+        "Discogs release #123 and https://www.discogs.com/release/456-title. "
+        "Also https://discogs.com/release/789:"
+    ) == {"123", "456", "789"}
+    assert _discogs_release_references(
+        "https://www.discogs.com.attacker.test/release/123"
+    ) == set()
+
+
+def test_optional_bot_db_cross_check_is_read_only_and_marks_candidate_gaps(tmp_path):
+    archive, site_db = _fixture_inputs(tmp_path)
+    bot_db = tmp_path / "bot.sqlite3"
+    conn = sqlite3.connect(bot_db)
+    conn.execute("""CREATE TABLE editions (
+        id TEXT PRIMARY KEY,title TEXT,catalog TEXT,label TEXT,year TEXT,
+        format TEXT,game TEXT,rarity TEXT,discogs_id TEXT)""")
+    conn.executemany("INSERT INTO editions VALUES (?,?,?,?,?,?,?,?,?)", [
+        ("AR-1", "Known", None, None, None, None, None, None, None),
+        ("AR-2", "Source title", None, None, None, None, None, None, "777"),
+        ("AR-3", "Extra", None, None, None, None, None, None, None),
+    ])
+    conn.commit(); conn.close()
+    before = hashlib.sha256(bot_db.read_bytes()).digest()
+
+    summary, issues = audit_handoff(archive, site_db, bot_db)
+
+    assert summary["bot_db_record_count"] == 3
+    assert summary["bot_records_missing_from_db"] == 0
+    assert summary["bot_records_not_in_muse_archive"] == 1
+    assert summary["bot_discogs_candidate_unmapped"] == 1
+    assert summary["bot_discogs_candidate_exact"] == 0
+    assert summary["bot_discogs_candidate_conflicts"] == 1
+    assert any(row["issue"] == "discogs_release_id_candidate_needs_review"
+               and row["record_id"] == "AR-2" and row["existing_value"] == "777"
+               for row in issues)
+    assert hashlib.sha256(bot_db.read_bytes()).digest() == before
 
 
 def test_ambiguous_archive_members_fail_closed(tmp_path):
@@ -129,5 +205,6 @@ def test_cli_writes_only_requested_review_csv(tmp_path, capsys):
     assert '"assessment": "review_required"' in capsys.readouterr().out
     csv_text = output.read_text(encoding="utf-8-sig")
     assert "muse_field_conflict" in csv_text
+    assert "candidate_value" in csv_text
     assert "source_url" in csv_text
     assert ",12," not in csv_text

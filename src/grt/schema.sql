@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS listings(
   status TEXT,
   absent_streak INTEGER DEFAULT 0,
   oos_declared INTEGER DEFAULT 0,
-  first_seen TEXT, last_seen TEXT, raw_title TEXT
+  first_seen TEXT, last_seen TEXT, raw_title TEXT, image_url TEXT
 );
 
 CREATE TABLE IF NOT EXISTS listing_copy_groups(
@@ -222,6 +222,27 @@ CREATE TABLE IF NOT EXISTS sources(
   expected_cadence_days REAL, status TEXT, discovered_via TEXT,
   found_at TEXT, last_checked TEXT,
   yield_listings INTEGER, yield_candidates INTEGER, yield_prices INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS used_market_search_state(
+  edition_id TEXT NOT NULL PRIMARY KEY,
+  last_checked TEXT,
+  last_result TEXT,
+  error_code TEXT,
+  attempts INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS market_api_search_state(
+  provider TEXT NOT NULL, edition_id TEXT NOT NULL,
+  last_checked TEXT, last_result TEXT, error_code TEXT,
+  last_success TEXT, last_blocked TEXT, last_error TEXT, last_no_query TEXT,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY(provider, edition_id)
+);
+
+CREATE TABLE IF NOT EXISTS market_api_source_state(
+  provider TEXT NOT NULL PRIMARY KEY,
+  blocked_until TEXT, last_error TEXT
 );
 
 -- Supplementary dictionary tables (section 5 notes).

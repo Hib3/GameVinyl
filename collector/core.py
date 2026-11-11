@@ -20,7 +20,7 @@ from urllib.parse import urljoin, urlsplit, urlunsplit, parse_qs, quote
 from urllib.robotparser import RobotFileParser
 import xml.etree.ElementTree as ET
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, FeatureNotFound
 
 ROOT = Path(__file__).resolve().parent.parent
 ARCHIVE = ROOT / 'outputs/game-record-audit-2026-08-25/records-dashboard'
@@ -185,7 +185,13 @@ def auction_links(html, config):
 
 def extract(html, url, kind, selectors=None):
     is_feed = '<rss' in html[:1000] or '<feed' in html[:1000]
-    soup = BeautifulSoup(html, 'xml' if is_feed else 'html.parser')
+    if is_feed:
+        try:
+            soup = BeautifulSoup(html, 'xml')
+        except FeatureNotFound:
+            soup = BeautifulSoup(html, 'html.parser')
+    else:
+        soup = BeautifulSoup(html, 'html.parser')
     nodes = []
     for script in soup.select('script[type="application/ld+json"]'):
         try:
@@ -457,9 +463,9 @@ class Store:
             finally:
                 backup.close()
         self.meta('daily_backup',day)
-        # Retain only seven application-owned daily snapshots; manual backups stay.
+        # Keep two daily restore points; manual backups stay outside this rotation.
         backups = sorted(p for p in folder.glob('daily-*.sqlite3') if re.fullmatch(r'daily-\d{8}\.sqlite3',p.name))
-        for old in backups[:-7]:
+        for old in backups[:-2]:
             if old.resolve().parent == folder.resolve():
                 old.unlink()
 

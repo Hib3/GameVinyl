@@ -7,6 +7,7 @@
 # register_tasks.ps1 header for why).
 param(
     [Parameter(Mandatory = $true)][string]$Root,
+    [Parameter(Mandatory = $true)][string]$DataDir,
     [Parameter(Mandatory = $true)][ValidateSet('create', 'remove')][string]$Mode
 )
 $ErrorActionPreference = 'Stop'
@@ -30,7 +31,8 @@ try {
 
     $lnk = $shell.CreateShortcut((Join-Path $startup 'GameRecordTool.lnk'))
     $lnk.TargetPath = $pythonw
-    $lnk.Arguments = '"' + $Root + '\run.py"'
+    $launcher = '"' + $Root + '\task_launcher.py" --data-dir "' + $DataDir + '" --script "run.py"'
+    $lnk.Arguments = $launcher
     $lnk.WorkingDirectory = $Root
     $lnk.WindowStyle = 7
     $lnk.Description = 'Game Record Tool - main process'
@@ -39,7 +41,7 @@ try {
 
     $lnk2 = $shell.CreateShortcut((Join-Path $startup 'GameRecordToolWatchdog.lnk'))
     $lnk2.TargetPath = $pythonw
-    $lnk2.Arguments = '"' + $Root + '\watchdog_loop.py"'
+    $lnk2.Arguments = '"' + $Root + '\task_launcher.py" --data-dir "' + $DataDir + '" --script "watchdog_loop.py"'
     $lnk2.WorkingDirectory = $Root
     $lnk2.WindowStyle = 7
     $lnk2.Description = 'Game Record Tool - watchdog loop'
@@ -48,7 +50,7 @@ try {
 
     $lnk3 = $shell.CreateShortcut((Join-Path $startup 'GameRecordToolCollector.lnk'))
     $lnk3.TargetPath = $pythonw
-    $lnk3.Arguments = '"' + $Root + '\collector\server.py"'
+    $lnk3.Arguments = '"' + $Root + '\task_launcher.py" --data-dir "' + $DataDir + '" --script "collector/server.py"'
     $lnk3.WorkingDirectory = $Root
     $lnk3.WindowStyle = 7
     $lnk3.Description = 'Game Record Tool - catalog monitor'
@@ -57,7 +59,7 @@ try {
 
     $lnk4 = $shell.CreateShortcut((Join-Path $startup 'GameRecordToolSiteFreshness.lnk'))
     $lnk4.TargetPath = $pythonw
-    $lnk4.Arguments = '"' + $Root + '\site\freshness_loop.py"'
+    $lnk4.Arguments = '"' + $Root + '\task_launcher.py" --data-dir "' + $DataDir + '" --script "site/freshness_loop.py"'
     $lnk4.WorkingDirectory = $Root
     $lnk4.WindowStyle = 7
     $lnk4.Description = 'Game Record Tool - hourly site freshness'
