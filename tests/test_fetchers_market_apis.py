@@ -118,16 +118,18 @@ def test_ebay_env_token_enables(db, monkeypatch):
 
 RAKUTEN_PAYLOAD = {
     "count": 1, "page": 1, "hits": 1,
-    "Items": [
-        {"Item": {"itemName": "ゲーム サントラ TGCS-123",
-                   "itemUrl": "https://item.rakuten.co.jp/shop/abc/",
-                   "itemPrice": 3980}},
+    "items": [
+        {"itemName": "ゲーム サントラ TGCS-123",
+         "itemUrl": "https://item.rakuten.co.jp/shop/abc/",
+         "itemPrice": 3980,
+         "mediumImageUrls": ["https://thumbnail.image.rakuten.co.jp/@0_mall/shop/cabinet/a.jpg"]},
     ],
 }
 
 
 def test_rakuten_disabled_without_app_id(db, monkeypatch):
     monkeypatch.delenv("RAKUTEN_APP_ID", raising=False)
+    monkeypatch.delenv("RAKUTEN_ACCESS_KEY", raising=False)
     _no_network(monkeypatch)
     f = RakutenFetcher(db, _source_id(db, "rakuten"))
     assert f.enabled is False
@@ -137,22 +139,35 @@ def test_rakuten_disabled_without_app_id(db, monkeypatch):
     assert result["result"] == "DISABLED"
 
 
+def test_rakuten_disabled_without_access_key(db, monkeypatch):
+    monkeypatch.setenv("RAKUTEN_APP_ID", "test-app-id")
+    monkeypatch.delenv("RAKUTEN_ACCESS_KEY", raising=False)
+    _no_network(monkeypatch)
+    f = RakutenFetcher(db, _source_id(db, "rakuten"))
+    assert f.enabled is False
+    assert f.search_catalog(CATALOG) == []
+
+
 def test_rakuten_item_mapping(db, monkeypatch):
     calls = {}
 
     def fake_get(url, params=None, headers=None, timeout=None):
-        calls.update(url=url, params=params)
+        calls.update(url=url, params=params, headers=headers)
         return FakeResp(200, RAKUTEN_PAYLOAD)
 
     monkeypatch.setattr(httpx, "get", fake_get)
-    f = RakutenFetcher(db, _source_id(db, "rakuten"), app_id="test-app-id")
+    f = RakutenFetcher(db, _source_id(db, "rakuten"), app_id="test-app-id",
+                       access_key="test-access-key")
     assert f.enabled is True
     items = f.search_catalog(CATALOG)
     assert calls["params"]["applicationId"] == "test-app-id"
+    assert calls["headers"]["accessKey"] == "test-access-key"
     assert calls["params"]["keyword"] == CATALOG
+    assert calls["params"]["formatVersion"] == "2"
     assert items == [{
         "title": "ゲーム サントラ TGCS-123",
         "url": "https://item.rakuten.co.jp/shop/abc/",
+        "image_url": "https://thumbnail.image.rakuten.co.jp/@0_mall/shop/cabinet/a.jpg",
         "price": 3980,
         "currency": "JPY",
         "raw_title": "ゲーム サントラ TGCS-123",
@@ -162,7 +177,8 @@ def test_rakuten_item_mapping(db, monkeypatch):
 def test_rakuten_403_is_blocked(db, monkeypatch):
     monkeypatch.setattr(httpx, "get",
                         lambda *a, **kw: FakeResp(403, {"errors": []}))
-    f = RakutenFetcher(db, _source_id(db, "rakuten"), app_id="test-app-id")
+    f = RakutenFetcher(db, _source_id(db, "rakuten"), app_id="test-app-id",
+                       access_key="test-access-key")
     with pytest.raises(FetchError) as ei:
         f.search_catalog(CATALOG)
     assert ei.value.result == "BLOCKED"
@@ -286,12 +302,16 @@ def test_market_api_keys_load_from_data_env(tmp_path, monkeypatch):
     (tmp_path / ".env").write_text(
         "EBAY_OAUTH_TOKEN=ebay-from-env-file\n"
         "RAKUTEN_APP_ID=rakuten-from-env-file\n"
+        "RAKUTEN_ACCESS_KEY=rakuten-access-from-env-file\n"
         "YAHOO_APP_ID=yahoo-from-env-file\n",
         encoding="utf-8")
     monkeypatch.setenv("GRT_DATA_DIR", str(tmp_path))
-    for key in ("EBAY_OAUTH_TOKEN", "RAKUTEN_APP_ID", "YAHOO_APP_ID"):
+    for key in ("EBAY_OAUTH_TOKEN", "RAKUTEN_APP_ID",
+                "RAKUTEN_ACCESS_KEY", "YAHOO_APP_ID"):
         monkeypatch.delenv(key, raising=False)
 
     assert ebay_oauth_token() == "ebay-from-env-file"
     assert rakuten_app_id() == "rakuten-from-env-file"
+    from grt.fetchers.rakuten import rakuten_access_key
+    assert rakuten_access_key() == "rakuten-access-from-env-file"
     assert yahoo_app_id() == "yahoo-from-env-file"

@@ -329,11 +329,11 @@ def test_api_clients_contract_and_prices(db, monkeypatch):
              {"title": "X", "itemWebUrl": "https://e/1",
               "price": {"value": "nan", "currency": "USD"}}]}),
         (rakuten_mod, "RakutenFetcher", "RAKUTEN_APP_ID",
-         {"Items": 123}, {"Items": [
-             {"Item": {"itemName": "X", "itemUrl": "https://r/1",
-                       "itemPrice": True}},
-             {"Item": {"itemName": "Y", "itemUrl": "https://r/2",
-                       "itemPrice": 4200.9}}]}),
+         {"items": 123}, {"items": [
+             {"itemName": "X", "itemUrl": "https://r/1",
+              "itemPrice": True},
+             {"itemName": "Y", "itemUrl": "https://r/2",
+              "itemPrice": 4200.9}]}),
         (yahoo_mod, "YahooShoppingFetcher", "YAHOO_APP_ID",
          {"hits": 123}, {"hits": [
              {"name": "X", "url": "https://y/1", "price": True},
@@ -341,6 +341,8 @@ def test_api_clients_contract_and_prices(db, monkeypatch):
     ]
     for mod, cls_name, key, bad, good in cases:
         monkeypatch.setenv(key, "dummy")
+        if mod is rakuten_mod:
+            monkeypatch.setenv("RAKUTEN_ACCESS_KEY", "dummy")
         fetcher_cls = getattr(mod, cls_name)
         cur = db.execute(
             "INSERT INTO sources(name, kind, status) VALUES(?, 'API',"
