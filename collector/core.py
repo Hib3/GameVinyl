@@ -545,7 +545,6 @@ class Store:
                             db.execute("INSERT INTO market_search_coverage VALUES(?,'no_route',NULL,'title/catalog missing') ON CONFLICT(edition_id) DO UPDATE SET status='no_route',last_error='title/catalog missing'",(record_id,))
                             continue
                         query=' '.join(x for x in (title,catalog) if x)[:220]
-                        db.execute("INSERT INTO market_search_coverage VALUES(?,'queued',NULL,NULL) ON CONFLICT(edition_id) DO UPDATE SET status=CASE WHEN market_search_coverage.status='no_route' THEN 'queued' ELSE market_search_coverage.status END,last_error=NULL",(record_id,))
                         if record_id not in manual_ids:
                             url='https://auctions.yahoo.co.jp/search/search?p='+quote(query)
                             is_watched=record_id in watched_ids
@@ -554,7 +553,7 @@ class Store:
                             else: normal_index+=1
                             db.execute('INSERT OR IGNORE INTO jobs(url,source,due) VALUES(?,?,?)',(url,source['id'],now+offset))
                             db.execute("INSERT INTO market_search_targets(search_url,edition_id,query,mode,priority) VALUES(?,?,?,'catalog',?) ON CONFLICT(search_url,edition_id) DO UPDATE SET query=excluded.query,mode=excluded.mode,priority=excluded.priority",(url,record_id,query,int(is_watched)))
-                        db.execute("INSERT INTO market_search_coverage VALUES(?,'queued',NULL,NULL) ON CONFLICT(edition_id) DO UPDATE SET status=CASE WHEN market_search_coverage.status='no_route' THEN 'queued' ELSE market_search_coverage.status END,last_error=NULL",(record_id,))
+                        db.execute("INSERT INTO market_search_coverage VALUES(?,'queued',NULL,NULL) ON CONFLICT(edition_id) DO UPDATE SET status=CASE WHEN market_search_coverage.status='no_route' THEN 'queued' ELSE market_search_coverage.status END,last_error=CASE WHEN market_search_coverage.status='no_route' THEN NULL ELSE market_search_coverage.last_error END",(record_id,))
                 for path in config.get('catalog_pages',{}).get(source['id'],[]):
                     db.execute('INSERT OR IGNORE INTO jobs(url,source,due) VALUES(?,?,?)', ('https://'+source['hosts'][0]+path,source['id'],time.time()))
             for path in ARCHIVE.glob('discovery-*.json') if ARCHIVE.is_dir() else ():

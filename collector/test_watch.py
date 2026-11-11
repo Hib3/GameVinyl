@@ -13,6 +13,22 @@ from server import query_api
 
 
 class WatchTest(unittest.TestCase):
+    def test_initialize_preserves_block_reason_across_restart(self):
+        with TemporaryDirectory() as folder:
+            root=Path(folder)/'package'
+            (root/'seed').mkdir(parents=True)
+            (root/'seed'/'records.json').write_text(json.dumps([{'id':'AR-000001','title':'Game Vinyl','catalog':'GAME-1'}]),encoding='utf-8')
+            store=Store(Path(folder)/'collector.sqlite3')
+            config={'sources':[{'id':'yahoo_watch','seeds':[],'min_request_gap_seconds':0}], 'watches':[], 'interval_seconds':600,'min_request_gap_seconds':0,'catalog_priority_slots_per_hour':12}
+            with patch.object(core,'ROOT',root):
+                store.initialize(config)
+                with store.db() as db:
+                    db.execute("UPDATE market_search_coverage SET status='blocked',last_error='redirect diagnostics' WHERE edition_id='AR-000001'")
+                store.initialize(config)
+            with store.db() as db:
+                row=db.execute("SELECT status,last_error FROM market_search_coverage WHERE edition_id='AR-000001'").fetchone()
+        self.assertEqual(tuple(row),('blocked','redirect diagnostics'))
+
     def test_status_reports_live_disk_reserve(self):
         with TemporaryDirectory() as folder:
             store=Store(Path(folder)/'collector.sqlite3')
