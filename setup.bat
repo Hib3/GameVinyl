@@ -17,6 +17,7 @@ if not defined GRT_HOME_FOUND (
 )
 if not defined GRT_DATA_DIR set "GRT_DATA_DIR=%GRT_HOME%\data"
 for %%I in ("%GRT_DATA_DIR%") do set "GRT_DATA_DIR=%%~fI"
+set "PLAYWRIGHT_BROWSERS_PATH=%GRT_HOME%\runtime\playwright"
 for %%I in ("%~dp0.") do set "APP_DRIVE=%%~dI"
 for %%I in ("%GRT_DATA_DIR%") do set "DATA_DRIVE=%%~dI"
 if /i not "%APP_DRIVE%"=="%DATA_DRIVE%" (
@@ -231,6 +232,11 @@ if errorlevel 1 (
 )
 echo        Installing the free collector browser runtime ...
 echo Playwright Chromium setup started>> "%SETUP_LOG%"
+if not exist "%PLAYWRIGHT_BROWSERS_PATH%\." mkdir "%PLAYWRIGHT_BROWSERS_PATH%"
+if errorlevel 1 (
+  echo [ERROR] Could not create shared Playwright runtime folder: %PLAYWRIGHT_BROWSERS_PATH%
+  exit /b 1
+)
 ".venv\Scripts\python.exe" -m playwright install chromium >> "%SETUP_LOG%" 2>&1
 if errorlevel 1 (
   echo [ERROR] Playwright Chromium setup failed>> "%SETUP_LOG%"

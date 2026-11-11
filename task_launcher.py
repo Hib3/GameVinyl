@@ -26,7 +26,9 @@ def main(argv=None) -> None:
         parser.error("--data-dir must be an absolute path")
     if os.name == "nt" and args.data_dir.drive.casefold() != ROOT.drive.casefold():
         parser.error("--data-dir must be on the install drive")
-    os.environ["GRT_DATA_DIR"] = str(args.data_dir.resolve())
+    data_dir = args.data_dir.resolve()
+    os.environ["GRT_DATA_DIR"] = str(data_dir)
+    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(data_dir.parent / "runtime" / "playwright")
     os.chdir(ROOT)
     target = ROOT / args.script
     import sys

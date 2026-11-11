@@ -20,6 +20,7 @@ def test_launcher_sets_shared_data_dir_and_target(tmp_path, monkeypatch):
     task_launcher.main(["--data-dir", str(data), "--script", "run.py"])
 
     assert task_launcher.os.environ["GRT_DATA_DIR"] == str(data.resolve())
+    assert task_launcher.os.environ["PLAYWRIGHT_BROWSERS_PATH"] == str(tmp_path / "runtime" / "playwright")
     assert calls == [(str(install / "run.py"), "__main__")]
 
 

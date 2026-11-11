@@ -104,6 +104,8 @@ def test_setup_bat_delegates_and_stays_ascii_crlf():
     assert "wait_start.py" in text
     assert "%GRT_HOME%\\app\\data" in text
     assert "GRT_DATA_DIR_CAN_MIGRATE" in text
+    assert 'set "PLAYWRIGHT_BROWSERS_PATH=%GRT_HOME%\\runtime\\playwright"' in text
+    assert 'mkdir "%PLAYWRIGHT_BROWSERS_PATH%"' in text
     assert 'if /i not "%%I"=="logs"' in text
     assert "Shared data exists but has no .env" in text
     assert 'robocopy "%DATA_SOURCE%" "%GRT_DATA_DIR%"' in text
