@@ -548,7 +548,7 @@ def _lnk_target_hint(path: Path) -> str | None:
         except Exception:
             pass
     for text in texts:
-        for script in ("run.py", "watchdog_loop.py", "watchdog.py"):
+        for script in ("task_launcher.py", "run.py", "watchdog_loop.py", "watchdog.py"):
             idx = text.lower().find(script)
             while idx >= 0:
                 start = idx
@@ -573,10 +573,14 @@ def _check_startup_shortcuts() -> bool:
     folder = (Path(appdata) / "Microsoft" / "Windows" / "Start Menu"
               / "Programs" / "Startup")
     root = Path(__file__).resolve().parent
-    expected = {"GameRecordTool": root / "run.py",
-                "GameRecordToolWatchdog": root / "watchdog_loop.py"}
+    expected = {
+        "GameRecordTool": ("run.py", root / "task_launcher.py"),
+        "GameRecordToolWatchdog": ("watchdog_loop.py", root / "task_launcher.py"),
+        "GameRecordToolCollector": ("collector/server.py", root / "task_launcher.py"),
+        "GameRecordToolSiteFreshness": ("site/freshness_loop.py", root / "task_launcher.py"),
+    }
     ok = True
-    for name, script_path in expected.items():
+    for name, (script, launcher_path) in expected.items():
         path = folder / f"{name}.lnk"
         if not path.exists():
             out(f"[NG] スタートアップ フォルダに {name}.lnk がありません。")
@@ -589,14 +593,22 @@ def _check_startup_shortcuts() -> bool:
                 "（存在のみ確認）。")
             out("     旧フォルダを指している可能性を排除できません。")
             continue
-        if _norm_path(target) == _norm_path(str(script_path)):
+        try:
+            raw = path.read_bytes()
+            embedded = raw.decode("utf-16le", errors="ignore").lower()
+        except Exception:
+            embedded = ""
+        data_arg_ok = _norm_path(str(config.data_dir())) in _norm_path(embedded)
+        script_arg_ok = f'--script "{script}"' in embedded
+        if (_norm_path(target) == _norm_path(str(launcher_path))
+                and data_arg_ok and script_arg_ok):
             out(f"[OK] スタートアップ フォルダに {name}.lnk があり、"
-                "このフォルダの本体を指しています。")
+                "このフォルダと共有データを指しています。")
         else:
             out(f"[NG] {name}.lnk はありますが、このフォルダの本体を"
                 "指していません。")
             out(f"     リンク先: {target}")
-            out(f"     本来の向く先: {script_path}")
+            out(f"     本来の向く先: {launcher_path} --data-dir {config.data_dir()} --script {script}")
             out("     setup.bat を再実行してください。")
             ok = False
     return ok
@@ -614,9 +626,13 @@ def check_tasks() -> None:
         out("     二重起動が疑われる場合は setup.bat を再実行してください"
             "（登録し直しで整理されます）。")
         return
-    python_path, main_script, watchdog_script = expected_task_targets()
-    for name, script in (("GameRecordTool", main_script),
-                         ("GameRecordToolWatchdog", watchdog_script)):
+    python_path, _, _ = expected_task_targets()
+    root = Path(__file__).resolve().parent
+    expected = (("GameRecordTool", "run.py"),
+                ("GameRecordToolWatchdog", "watchdog.py"),
+                ("GameRecordToolCollector", "collector/server.py"),
+                ("GameRecordToolSiteFreshness", "site/update_site.py"))
+    for name, script in expected:
         try:
             proc = subprocess.run(
                 ["schtasks", "/Query", "/TN", name, "/XML"],
@@ -637,11 +653,10 @@ def check_tasks() -> None:
             out("     タスク スケジューラで右クリック →「有効化」してください。")
             continue
         cmd_ok = _norm_path(info["command"]) == _norm_path(str(python_path))
-        # Full path, not the bare name: a task running this folder's
-        # python against an OLD folder's script must read as [NG].
-        expected_script = python_path.parent.parent.parent / script
-        arg_ok = _norm_path(str(expected_script)) in _norm_path(
-            info["arguments"])
+        args_norm = _norm_path(info["arguments"])
+        arg_ok = (_norm_path(str(root / "task_launcher.py")) in args_norm
+                  and _norm_path(str(config.data_dir())) in args_norm
+                  and f'--script "{script}"' in args_norm)
         problems = task_settings_problems(info)
         if problems:
             out(f"[NG] タスク {name} の設定が常駐用になっていません:")

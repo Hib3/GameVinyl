@@ -12,7 +12,8 @@
 # user. ASCII only on purpose: Windows PowerShell 5.1 reads .ps1
 # files without a BOM as ANSI, so non-ASCII text would corrupt.
 param(
-    [Parameter(Mandatory = $true)][string]$Root
+    [Parameter(Mandatory = $true)][string]$Root,
+    [Parameter(Mandatory = $true)][string]$DataDir
 )
 $ErrorActionPreference = 'Stop'
 
@@ -39,18 +40,22 @@ try {
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
     $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Limited
 
-    $mainAction = New-ScheduledTaskAction -Execute $python -Argument ('"' + $Root + '\run.py"') -WorkingDirectory $Root
+    $launcher = Join-Path $Root 'task_launcher.py'
+    function Task-Arguments([string]$Entry) {
+        return ('"' + $launcher + '" --data-dir "' + $DataDir + '" --script "' + $Entry + '"')
+    }
+    $mainAction = New-ScheduledTaskAction -Execute $python -Argument (Task-Arguments 'run.py') -WorkingDirectory $Root
     $mainTrigger = New-ScheduledTaskTrigger -AtLogOn -User $user
     Register-GrtTask -Name 'GameRecordTool' -Action $mainAction -Trigger $mainTrigger -Settings $settings -Principal $principal
 
-    $collectorAction = New-ScheduledTaskAction -Execute $python -Argument ('"' + $Root + '\collector\server.py"') -WorkingDirectory $Root
+    $collectorAction = New-ScheduledTaskAction -Execute $python -Argument (Task-Arguments 'collector/server.py') -WorkingDirectory $Root
     Register-GrtTask -Name 'GameRecordToolCollector' -Action $collectorAction -Trigger $mainTrigger -Settings $settings -Principal $principal
 
-    $wdAction = New-ScheduledTaskAction -Execute $python -Argument ('"' + $Root + '\watchdog.py"') -WorkingDirectory $Root
+    $wdAction = New-ScheduledTaskAction -Execute $python -Argument (Task-Arguments 'watchdog.py') -WorkingDirectory $Root
     $wdTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 15) -RepetitionDuration (New-TimeSpan -Days 36500)
     Register-GrtTask -Name 'GameRecordToolWatchdog' -Action $wdAction -Trigger $wdTrigger -Settings $settings -Principal $principal
 
-    $siteAction = New-ScheduledTaskAction -Execute $python -Argument ('"' + $Root + '\site\update_site.py"') -WorkingDirectory $Root
+    $siteAction = New-ScheduledTaskAction -Execute $python -Argument (Task-Arguments 'site/update_site.py') -WorkingDirectory $Root
     $siteTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddHours(1) -RepetitionInterval (New-TimeSpan -Hours 1) -RepetitionDuration (New-TimeSpan -Days 36500)
     Register-GrtTask -Name 'GameRecordToolSiteFreshness' -Action $siteAction -Trigger $siteTrigger -Settings $settings -Principal $principal
     exit 0

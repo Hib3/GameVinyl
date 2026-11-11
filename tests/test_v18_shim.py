@@ -101,7 +101,7 @@ def test_route2_powershell_when_schtasks_fails(tmp_path):
     assert "Route 2" in proc.stdout
 
 
-def test_route3_startup_folder_when_scheduler_unavailable(tmp_path):
+def test_route3_startup_folder_when_scheduler_unavailable(tmp_path, monkeypatch):
     install, env = _stage(tmp_path)
     env["FAKEWIN_SCHTASKS_FAIL"] = "1"
     env["FAKEWIN_PS_REGISTER_FAIL"] = "1"
@@ -114,6 +114,11 @@ def test_route3_startup_folder_when_scheduler_unavailable(tmp_path):
     assert (startup / "GameRecordToolWatchdog.lnk").exists()
     assert (startup / "GameRecordToolCollector.lnk").exists()
     assert (startup / "GameRecordToolSiteFreshness.lnk").exists()
+    monkeypatch.setenv("APPDATA", str(tmp_path / "appdata"))
+    monkeypatch.setenv("GRT_DATA_DIR", str(install / "data"))
+    import diagnose
+    monkeypatch.setattr(diagnose, "__file__", str(install / "diagnose.py"))
+    assert diagnose._check_startup_shortcuts()
 
 
 def test_wrong_folder_task_is_not_accepted(tmp_path):

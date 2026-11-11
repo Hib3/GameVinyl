@@ -230,6 +230,9 @@ def powershell(argv: list[str]) -> int:
     root = ""
     if "-Root" in argv:
         root = argv[argv.index("-Root") + 1]
+    data_dir = ""
+    if "-DataDir" in argv:
+        data_dir = argv[argv.index("-DataDir") + 1]
     mode = "create"
     if "-Mode" in argv:
         mode = argv[argv.index("-Mode") + 1]
@@ -264,7 +267,8 @@ def powershell(argv: list[str]) -> int:
                         "GameRecordToolSiteFreshness": "PT1H"}.get(task_name)
             tasks[task_name] = {
                 "command": py,
-                "arguments": f'"{root}\\{script_name}"',
+                "arguments": (f'"{root}\\task_launcher.py" --data-dir '
+                              f'"{data_dir}" --script "{script_name}"'),
                 "settings": dict(PS_SETTINGS, trigger_interval=interval)}
         _save(tasks)
         print("MAIN_TASK_REGISTERED")
@@ -279,14 +283,18 @@ def powershell(argv: list[str]) -> int:
             # A real .lnk carries its target; write it readably so
             # diagnose's target verification has real input.
             (folder / "GameRecordTool.lnk").write_text(
-                f"lnk-target:{root}\\run.py", encoding="utf-16")
+                f'lnk-target:"{root}\\task_launcher.py" --data-dir "{data_dir}" '
+                '--script "run.py"', encoding="utf-16")
             (folder / "GameRecordToolWatchdog.lnk").write_text(
-                f"lnk-target:{root}\\watchdog_loop.py",
+                f'lnk-target:"{root}\\task_launcher.py" --data-dir "{data_dir}" '
+                '--script "watchdog_loop.py"',
                 encoding="utf-16")
             (folder / "GameRecordToolCollector.lnk").write_text(
-                f"lnk-target:{root}\\collector\\server.py", encoding="utf-16")
+                f'lnk-target:"{root}\\task_launcher.py" --data-dir "{data_dir}" '
+                '--script "collector/server.py"', encoding="utf-16")
             (folder / "GameRecordToolSiteFreshness.lnk").write_text(
-                f"lnk-target:{root}\\site\\freshness_loop.py", encoding="utf-16")
+                f'lnk-target:"{root}\\task_launcher.py" --data-dir "{data_dir}" '
+                '--script "site/freshness_loop.py"', encoding="utf-16")
             print("MAIN_SHORTCUT_CREATED")
             print("WATCHDOG_SHORTCUT_CREATED")
         else:

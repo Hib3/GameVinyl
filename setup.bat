@@ -4,15 +4,46 @@ setlocal EnableDelayedExpansion
 cd /d "%~dp0"
 
 REM ------------------------------------------------------------
-REM setup.bat keeps its OWN log (data\logs\setup_bat.log): one
+REM setup.bat keeps its OWN log in the shared data root: one
 REM line per step, written as the step happens. Through v1.7 the
 REM diagnose tool could not tell whether setup.bat had even been
 REM run in a folder, or how far it got. Now it can - check.bat
 REM includes this log in its report.
 REM ------------------------------------------------------------
-if not exist "data\logs" mkdir "data\logs"
-set "SETUP_LOG=%~dp0data\logs\setup_bat.log"
+if not defined GRT_DATA_DIR call :set_shared_data_dir
+if not defined GRT_DATA_DIR (
+  echo [ERROR] Could not locate the shared GameRecordTool data folder.
+  exit /b 1
+)
+for %%I in ("%GRT_DATA_DIR%") do set "GRT_DATA_DIR=%%~fI"
+for %%I in ("%~dp0.") do set "APP_DRIVE=%%~dI"
+for %%I in ("%GRT_DATA_DIR%") do set "DATA_DRIVE=%%~dI"
+if /i not "%APP_DRIVE%"=="%DATA_DRIVE%" (
+  echo [ERROR] Code and data must be on the same drive.
+  echo [ERROR] GRT_DATA_DIR must be on the same drive as this install.
+  exit /b 1
+)
+set "GRT_DATA_DIR_WAS_PRESENT="
+if exist "%GRT_DATA_DIR%\." set "GRT_DATA_DIR_WAS_PRESENT=1"
+if not exist "%GRT_DATA_DIR%\." mkdir "%GRT_DATA_DIR%"
+if errorlevel 1 (
+  echo [ERROR] Could not create the shared data folder: %GRT_DATA_DIR%
+  exit /b 1
+)
+if not exist "%GRT_DATA_DIR%\logs" mkdir "%GRT_DATA_DIR%\logs"
+set "SETUP_LOG=%GRT_DATA_DIR%\logs\setup_bat.log"
 echo ==== setup.bat started %DATE% %TIME% ====>> "%SETUP_LOG%"
+
+if not defined GRT_DATA_DIR_WAS_PRESENT if exist "%~dp0data\." (
+  echo [DATA] Copying the package data folder to the shared D-drive location ...
+  robocopy "%~dp0data" "%GRT_DATA_DIR%" /E /COPY:DAT /R:1 /W:1 /NP /NFL /NDL >> "%SETUP_LOG%" 2>&1
+  if errorlevel 8 (
+    echo [ERROR] Data copy failed. Existing source data was left in place.>> "%SETUP_LOG%"
+    echo [ERROR] Data copy failed; source data remains untouched. See "%SETUP_LOG%".
+    exit /b 1
+  )
+  echo [DATA] Shared data folder copy completed.>> "%SETUP_LOG%"
+)
 
 echo ============================================================
 echo  Game Record Tool - Setup
@@ -126,7 +157,7 @@ REM     registration no longer depends on pip succeeding first.
 REM     It tries, in order: schtasks, PowerShell
 REM     Register-ScheduledTask, then Startup-folder shortcuts -
 REM     verifying each route, and logging every command output
-REM     to data\logs\setup_tasks.log.
+REM     to the shared data folder's logs\setup_tasks.log.
 REM ------------------------------------------------------------
 echo [3/7] Registering automatic start ...
 echo [3/7] Registering automatic start ...>> "%SETUP_LOG%"
@@ -138,7 +169,7 @@ if errorlevel 1 (
   echo [ERROR] Automatic-start registration failed on ALL routes.
   echo         Setup is NOT complete: the tool will NOT start
   echo         automatically. The exact errors from each route are
-  echo         logged in data\logs\setup_tasks.log - run check.bat
+  echo         logged in "%GRT_DATA_DIR%\logs\setup_tasks.log" - run check.bat
   echo         and send the output to the distributor.
   echo.
   pause
@@ -193,14 +224,14 @@ echo        Packages installed.
 echo        packages installed>> "%SETUP_LOG%"
 
 REM ------------------------------------------------------------
-REM (5) Create data folder and copy .env.template to data\.env
+REM (5) Use the shared data folder and copy .env.template only for fresh installs
 REM     NEVER overwrite an existing data\.env
 REM ------------------------------------------------------------
 echo [5/7] Checking data folder and .env ...
 echo [5/7] Checking data folder and .env ...>> "%SETUP_LOG%"
 
-if not exist "data" mkdir "data"
-if not exist "data" (
+if not exist "%GRT_DATA_DIR%\." mkdir "%GRT_DATA_DIR%"
+if not exist "%GRT_DATA_DIR%\." (
   echo [ERROR] step 5: could not create the data folder>> "%SETUP_LOG%"
   echo.
   echo [ERROR] The data folder could not be created.
@@ -210,12 +241,17 @@ if not exist "data" (
   exit /b 1
 )
 
-if exist "data\.env" (
+if exist "%GRT_DATA_DIR%\.env" (
   echo        data\.env already exists. It was NOT overwritten.
 ) else (
+  if defined GRT_DATA_DIR_WAS_PRESENT (
+    echo [ERROR] Existing shared data folder has no .env; setup will not create a replacement.>> "%SETUP_LOG%"
+    echo [ERROR] Existing data folder has no .env. Restore its data folder or inspect it before setup.
+    exit /b 1
+  )
   if exist ".env.template" (
-    copy /Y ".env.template" "data\.env" >nul
-    if not exist "data\.env" (
+    copy /Y ".env.template" "%GRT_DATA_DIR%\.env" >nul
+    if not exist "%GRT_DATA_DIR%\.env" (
       echo [ERROR] step 5: copying .env.template to data/.env failed>> "%SETUP_LOG%"
       echo.
       echo [ERROR] data\.env could not be created.
@@ -225,7 +261,7 @@ if exist "data\.env" (
       exit /b 1
     )
     echo        data\.env created from .env.template.
-    echo        Next, open data\.env and paste your tokens.
+      echo        Next, open "%GRT_DATA_DIR%\.env" and paste your tokens.
     echo        See SETUP_GUIDE.md sections 4 and 5.
   ) else (
     echo [ERROR] step 5: .env.template not found>> "%SETUP_LOG%"
@@ -237,7 +273,7 @@ if exist "data\.env" (
     exit /b 1
   )
 )
-if exist "data\.env" (
+if exist "%GRT_DATA_DIR%\.env" (
   echo        data/.env OK>> "%SETUP_LOG%"
 ) else (
   echo [ERROR] step 5: data/.env missing after the copy step>> "%SETUP_LOG%"
@@ -250,14 +286,13 @@ echo [6/7] Initializing database and importing seed data ...
 echo [6/7] Initializing database ...>> "%SETUP_LOG%"
 
 set "PYTHONPATH=%~dp0src;%PYTHONPATH%"
-if not defined GRT_DATA_DIR set "GRT_DATA_DIR=%~dp0data"
 
 ".venv\Scripts\python.exe" -m grt.migrate
 if errorlevel 1 (
   echo [ERROR] step 6: database init failed>> "%SETUP_LOG%"
   echo.
   echo [ERROR] Database initialization failed in grt.migrate.
-  echo         Check that data\.env is correct and that the data folder
+  echo         Check that "%GRT_DATA_DIR%\.env" is correct and that the data folder
   echo         is writable, then run setup.bat again.
   echo         See SETUP_GUIDE.md section 11 for troubleshooting.
   echo.
@@ -281,7 +316,7 @@ echo [7/7] Starting the bot ...>> "%SETUP_LOG%"
 if errorlevel 1 (
   echo        tokens not set yet - start check deferred>> "%SETUP_LOG%"
   echo.
-  echo        NOTE: your tokens are not in data\.env yet, so the
+  echo        NOTE: your tokens are not in "%GRT_DATA_DIR%\.env" yet, so the
   echo        bot cannot start. That is the only remaining step:
   echo          1. Paste TELEGRAM_BOT_TOKEN and DISCOGS_TOKEN into
   echo             data\.env. See SETUP_GUIDE.md sections 4 and 5.
@@ -297,7 +332,7 @@ if errorlevel 1 (
   echo.
   echo [ERROR] Immediate startup is incomplete. The bot or
   echo         watchdog may already be running. Check:
-  echo         data\logs\setup_tasks.log
+  echo         "%GRT_DATA_DIR%\logs\setup_tasks.log"
   echo.
   pause
   exit /b 1
@@ -309,8 +344,8 @@ if errorlevel 1 (
   echo.
   echo !!! SETUP IS NOT COMPLETE: the bot did not start. !!!
   echo         Run check.bat and send the output to the
-  echo         distributor. Logs: data\logs\startup.log and
-  echo         data\logs\setup_tasks.log
+  echo         distributor. Logs: "%GRT_DATA_DIR%\logs\startup.log" and
+  echo         "%GRT_DATA_DIR%\logs\setup_tasks.log"
   echo.
   pause
   exit /b 1
@@ -335,3 +370,16 @@ echo.
 pause
 endlocal
 exit /b 0
+
+:set_shared_data_dir
+set "GRT_HOME=%~dp0."
+:find_shared_data_home
+for %%I in ("%GRT_HOME%") do set "GRT_HOME=%%~fI"
+if exist "%GRT_HOME%\backups\." if exist "%GRT_HOME%\releases\." (
+  set "GRT_DATA_DIR=%GRT_HOME%\data"
+  exit /b 0
+)
+for %%I in ("%GRT_HOME%\..") do set "GRT_PARENT=%%~fI"
+if /i "%GRT_HOME%"=="%GRT_PARENT%" exit /b 1
+set "GRT_HOME=%GRT_PARENT%"
+goto :find_shared_data_home

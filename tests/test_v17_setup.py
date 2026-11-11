@@ -34,8 +34,19 @@ wait_start = _load("wait_start")
 def test_build_tr_quotes_python_and_script():
     tr = setup_tasks.build_tr("run.py")
     assert tr.startswith('"') and tr.endswith('"')
-    assert "pythonw.exe" in tr and "run.py" in tr
+    assert "pythonw.exe" in tr and "task_launcher.py" in tr
+    assert '--data-dir' in tr and '--script "run.py"' in tr
     assert '" "' in tr  # two separately quoted parts
+
+
+def test_default_data_dir_uses_shared_project_home(tmp_path, monkeypatch):
+    home = tmp_path / "GameRecordTool"
+    release = home / "releases" / "2.0.70" / "game-record-tool"
+    release.mkdir(parents=True)
+    (home / "backups").mkdir()
+    (home / "releases").mkdir(exist_ok=True)
+    monkeypatch.setattr(setup_tasks, "ROOT", release)
+    assert setup_tasks._default_data_dir() == home / "data"
 
 
 TASK_XML = """<?xml version="1.0" encoding="UTF-16"?>
@@ -76,7 +87,7 @@ def test_tokens_ready_shape_gate(tmp_path, monkeypatch):
 
 
 def test_new_setup_files_ship_and_ps1_is_ascii():
-    for name in ("setup_tasks.py", "register_tasks.ps1",
+    for name in ("task_launcher.py", "setup_tasks.py", "register_tasks.ps1",
                  "make_startup_shortcuts.ps1", "watchdog_loop.py",
                  "wait_start.py"):
         assert (ROOT / name).exists(), name

@@ -1,6 +1,12 @@
 @echo off
 chcp 65001 >nul
 cd /d "%~dp0"
+if not defined GRT_DATA_DIR call :set_shared_data_dir
+if not defined GRT_DATA_DIR (
+  echo [ERROR] Could not locate the shared GameRecordTool data folder.
+  exit /b 1
+)
+for %%I in ("%GRT_DATA_DIR%") do set "GRT_DATA_DIR=%%~fI"
 
 echo ============================================================
 echo  Game Record Tool - Check (diagnose)
@@ -20,3 +26,17 @@ if not exist ".venv\Scripts\python.exe" (
 echo.
 pause
 endlocal
+exit /b
+
+:set_shared_data_dir
+set "GRT_HOME=%~dp0."
+:find_shared_data_home
+for %%I in ("%GRT_HOME%") do set "GRT_HOME=%%~fI"
+if exist "%GRT_HOME%\backups\." if exist "%GRT_HOME%\releases\." (
+  set "GRT_DATA_DIR=%GRT_HOME%\data"
+  exit /b 0
+)
+for %%I in ("%GRT_HOME%\..") do set "GRT_PARENT=%%~fI"
+if /i "%GRT_HOME%"=="%GRT_PARENT%" exit /b 1
+set "GRT_HOME=%GRT_PARENT%"
+goto :find_shared_data_home

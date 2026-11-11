@@ -49,7 +49,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 VENV_PYW = ROOT / ".venv" / "Scripts" / "pythonw.exe"
-DATA_DIR = Path(os.environ.get("GRT_DATA_DIR") or (ROOT / "data"))
+
+
+def _default_data_dir() -> Path:
+    # Releases and the active app share the project root's single data folder.
+    for parent in (ROOT, *ROOT.parents):
+        if (parent / "backups").is_dir() and (parent / "releases").is_dir():
+            return parent / "data"
+    return ROOT.parent / "data"
+
+
+DATA_DIR = Path(os.environ.get("GRT_DATA_DIR") or _default_data_dir())
 LOG_FILE = DATA_DIR / "logs" / "setup_tasks.log"
 MODE_FILE = DATA_DIR / "logs" / "autostart_mode.txt"
 START_REQUEST_FILE = DATA_DIR / "logs" / "start_requested_at.txt"
@@ -111,8 +121,19 @@ def run_cmd(argv: list[str], timeout: int = 60) -> tuple[int, str]:
 # ---------------------------------------------------------------- schtasks
 
 def build_tr(script_name: str) -> str:
-    """The /TR task-action string: "<venv python>" "<abs script path>"."""
-    return f'"{VENV_PYW}" "{ROOT / script_name}"'
+    """Build a pythonw action that pins the shared data path."""
+    return (f'"{VENV_PYW}" "{ROOT / "task_launcher.py"}" '
+            f'--data-dir "{DATA_DIR}" --script "{script_name}"')
+
+
+def task_arguments(script_name: str) -> str:
+    return (f'"{ROOT / "task_launcher.py"}" '
+            f'--data-dir "{DATA_DIR}" --script "{script_name}"')
+
+
+def build_argv(script_name: str) -> list[str]:
+    return [str(VENV_PYW), str(ROOT / "task_launcher.py"),
+            "--data-dir", str(DATA_DIR), "--script", script_name]
 
 
 def _xml_escape(text: str) -> str:
@@ -175,7 +196,7 @@ def task_xml(name: str, script: str) -> str:
         "</Settings>"
         '<Actions Context="Author"><Exec>'
         f"<Command>{_xml_escape(str(VENV_PYW))}</Command>"
-        f"<Arguments>&quot;{_xml_escape(str(ROOT / script))}&quot;"
+         f"<Arguments>{_xml_escape(task_arguments(script))}"
         "</Arguments>"
         f"<WorkingDirectory>{_xml_escape(str(ROOT))}"
         "</WorkingDirectory>"
@@ -333,11 +354,9 @@ def verify_tasks() -> bool:
             all_ok = False
             continue
         cmd_ok = _norm(info["command"]) == _norm(str(VENV_PYW))
-        # The FULL script path must match this folder — checking the
-        # bare script name would wave through a task that runs this
-        # folder's python against an OLD folder's run.py (the exact
-        # stale-target failure seen after the user's folder move).
-        arg_ok = _norm(str(ROOT / script)) in _norm(info["arguments"])
+        arg_ok = (_norm(str(ROOT / "task_launcher.py")) in _norm(info["arguments"])
+                  and _norm(str(DATA_DIR)) in _norm(info["arguments"])
+                  and f'--script "{script}"' in info["arguments"])
         problems = settings_problems(info)
         if name == SITE_TASK and "PT1H" not in info.get("trigger_intervals", []):
             problems.append("site freshness trigger must repeat every PT1H")
@@ -367,7 +386,8 @@ def _run_ps_script(script_name: str, extra_args: list[str]) -> int:
 
 def try_powershell() -> bool:
     log("== Route 2: PowerShell Register-ScheduledTask ==")
-    return _run_ps_script("register_tasks.ps1", ["-Root", str(ROOT)]) == 0
+    return _run_ps_script("register_tasks.ps1",
+                          ["-Root", str(ROOT), "-DataDir", str(DATA_DIR)]) == 0
 
 
 # -------------------------------------------------------- startup fallback
@@ -386,7 +406,8 @@ def shortcut_paths() -> list[Path]:
 def try_startup_fallback() -> bool:
     log("== Route 3: Startup-folder shortcuts ==")
     rc = _run_ps_script("make_startup_shortcuts.ps1",
-                        ["-Root", str(ROOT), "-Mode", "create"])
+                        ["-Root", str(ROOT), "-DataDir", str(DATA_DIR),
+                         "-Mode", "create"])
     if rc != 0:
         return False
     ok = True
@@ -399,7 +420,8 @@ def try_startup_fallback() -> bool:
 
 def remove_startup_shortcuts() -> None:
     _run_ps_script("make_startup_shortcuts.ps1",
-                   ["-Root", str(ROOT), "-Mode", "remove"])
+                   ["-Root", str(ROOT), "-DataDir", str(DATA_DIR),
+                    "-Mode", "remove"])
     for path in shortcut_paths():
         try:
             if path.exists():
@@ -512,29 +534,29 @@ def start_now() -> int:
             flags = (subprocess.DETACHED_PROCESS
                      | subprocess.CREATE_NEW_PROCESS_GROUP)
         if mode != "task-scheduler" or main_rc != 0:
-            subprocess.Popen([str(python), str(ROOT / "run.py")], cwd=str(ROOT),
+            subprocess.Popen(build_argv("run.py"), cwd=str(ROOT),
                              stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                              stderr=subprocess.DEVNULL, creationflags=flags,
                              close_fds=True)
-            log(f"launched: {python} run.py (detached)")
+            log(f"launched: {python} task_launcher.py run.py (detached)")
         if mode != "task-scheduler" or collector_rc != 0:
-            subprocess.Popen([str(python), str(ROOT / "collector" / "server.py")],
+            subprocess.Popen(build_argv("collector/server.py"),
                              cwd=str(ROOT), stdin=subprocess.DEVNULL,
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                              creationflags=flags, close_fds=True)
-            log(f"launched: {python} collector/server.py (detached)")
+            log(f"launched: {python} task_launcher.py collector/server.py (detached)")
         if mode != "task-scheduler" or site_rc != 0:
-            subprocess.Popen([str(python), str(ROOT / "site" / "freshness_loop.py")],
+            subprocess.Popen(build_argv("site/freshness_loop.py"),
                              cwd=str(ROOT), stdin=subprocess.DEVNULL,
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                              creationflags=flags, close_fds=True)
-            log(f"launched: {python} site/freshness_loop.py (detached)")
+            log(f"launched: {python} task_launcher.py site/freshness_loop.py (detached)")
         if mode == "startup-folder":
-            subprocess.Popen([str(python), str(ROOT / "watchdog_loop.py")],
+            subprocess.Popen(build_argv("watchdog_loop.py"),
                              cwd=str(ROOT), stdin=subprocess.DEVNULL,
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                              creationflags=flags, close_fds=True)
-            log(f"launched: {python} watchdog_loop.py (detached)")
+            log(f"launched: {python} task_launcher.py watchdog_loop.py (detached)")
         flush_log()
         return 0
     except Exception as exc:
