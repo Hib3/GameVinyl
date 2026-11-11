@@ -295,6 +295,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                     ('Yahoo!オークションで探す（在庫未確認）','https://auctions.yahoo.co.jp/search/search','p'),
                     ('メルカリで探す（在庫未確認）','https://jp.mercari.com/search','keyword'),
                     ('楽天市場で探す（在庫未確認）','https://search.rakuten.co.jp/search/mall/','sitem'),
+                    ('駿河屋で探す（在庫未確認）','https://www.suruga-ya.jp/search','search_word'),
                     ('eBayで探す（在庫未確認）','https://www.ebay.com/sch/i.html','_nkw'),
                 ):
                     links.append({'label':label,'url':base+'?'+urlencode({param:q})})
