@@ -58,13 +58,29 @@ class YahooShoppingFetcher(BaseFetcher):
         items, _ev = self._search(catalog)
         return items
 
-    def _search(self, catalog: str) -> tuple[list[dict], dict]:
+    def search_used_catalog(self, catalog: str) -> list[dict]:
+        """Search only currently in-stock used listings.
+
+        Yahoo's official itemSearch API supports both filters. When the
+        application ID is absent this returns [] without a network call.
+        """
+        if not self.enabled:
+            return []
+        items, _ev = self._search(catalog, condition="used", in_stock=True)
+        return items
+
+    def _search(self, catalog: str, condition=None,
+                in_stock=None) -> tuple[list[dict], dict]:
         self._polite()
+        params = {"appid": self.app_id, "query": catalog, "results": "30"}
+        if condition is not None:
+            params["condition"] = condition
+        if in_stock is not None:
+            params["in_stock"] = str(in_stock).lower()
         try:
             resp = httpx.get(
                 API,
-                params={"appid": self.app_id, "query": catalog,
-                        "results": "30"},
+                params=params,
                 headers={"User-Agent": "GameRecordTool/1.0"},
                 timeout=30)
         except httpx.TimeoutException as exc:
