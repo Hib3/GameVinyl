@@ -2,7 +2,7 @@
 
 ゲーム音楽レコードのアーカイブ／通知システムを、あなたの Windows PC で動かすための手順書です。プログラミングの知識は不要です。上から順に進めてください。
 
-> コードの配置例は `D:\GameRecordTool\releases\2.0.70\game-record-tool` です。C: と D: にコード・データを分けず、どちらも D: に置いてください。
+> コードの配置例は `D:\GameRecordTool\releases\2.0.71\game-record-tool` です。C: と D: にコード・データを分けず、どちらも D: に置いてください。
 
 > **複数バージョンを使う場合:** コードは `D:\GameRecordTool\releases\<version>\game-record-tool` のように版ごとに置き、データは共通の `D:\GameRecordTool\data` だけを使います。`setup.bat` は親の `GameRecordTool` フォルダを基準に共通場所を決め、別ドライブを指定した場合は停止します。版フォルダへ `data` を複製して使い続けないでください。
 
@@ -26,7 +26,7 @@
 1. 配布された ZIP ファイルをダウンロードします。
 2. ZIP ファイルを右クリックし、「すべて展開」を選びます。
 3. 解凍先を決めます。おすすめは、短くて分かりやすい場所です。
-   - 例: `D:\GameRecordTool\releases\2.0.70\game-record-tool`
+   - 例: `D:\GameRecordTool\releases\2.0.71\game-record-tool`
 4. 解凍が終わったら、フォルダを開いて次のファイルがあることを確認します。
    - `setup.bat`
    - `SETUP_GUIDE.md`（このファイル）

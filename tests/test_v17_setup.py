@@ -41,7 +41,7 @@ def test_build_tr_quotes_python_and_script():
 
 def test_default_data_dir_uses_shared_project_home(tmp_path, monkeypatch):
     home = tmp_path / "GameRecordTool"
-    release = home / "releases" / "2.0.70" / "game-record-tool"
+    release = home / "releases" / "2.0.71" / "game-record-tool"
     release.mkdir(parents=True)
     monkeypatch.setattr(setup_tasks, "ROOT", release)
     assert setup_tasks._default_data_dir() == home / "data"
@@ -103,6 +103,9 @@ def test_setup_bat_delegates_and_stays_ascii_crlf():
     assert "setup_tasks.py" in text
     assert "wait_start.py" in text
     assert "%GRT_HOME%\\app\\data" in text
+    assert "GRT_DATA_DIR_CAN_MIGRATE" in text
+    assert 'if /i not "%%I"=="logs"' in text
+    assert "Shared data exists but has no .env" in text
     assert 'robocopy "%DATA_SOURCE%" "%GRT_DATA_DIR%"' in text
     code_lines = [ln for ln in text.splitlines()
                   if not ln.lstrip().upper().startswith("REM")]

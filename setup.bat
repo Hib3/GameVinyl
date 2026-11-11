@@ -35,11 +35,24 @@ if not exist "%GRT_DATA_DIR%\logs" mkdir "%GRT_DATA_DIR%\logs"
 set "SETUP_LOG=%GRT_DATA_DIR%\logs\setup_bat.log"
 echo ==== setup.bat started %DATE% %TIME% ====>> "%SETUP_LOG%"
 
+set "GRT_DATA_DIR_CAN_MIGRATE="
+if not defined GRT_DATA_DIR_WAS_PRESENT set "GRT_DATA_DIR_CAN_MIGRATE=1"
+if not exist "%GRT_DATA_DIR%\.env" (
+  set "GRT_DATA_DIR_HAS_NON_LOG_ENTRY="
+  for /f "delims=" %%I in ('dir /b /a "%GRT_DATA_DIR%" 2^>nul') do if /i not "%%I"=="logs" if not "%%I"=="." if not "%%I"==".." set "GRT_DATA_DIR_HAS_NON_LOG_ENTRY=1"
+  if not defined GRT_DATA_DIR_HAS_NON_LOG_ENTRY set "GRT_DATA_DIR_CAN_MIGRATE=1"
+)
+if defined GRT_DATA_DIR_WAS_PRESENT if not defined GRT_DATA_DIR_CAN_MIGRATE if not exist "%GRT_DATA_DIR%\.env" (
+  echo [ERROR] Shared data exists but has no .env; setup will not copy into it.>> "%SETUP_LOG%"
+  echo [ERROR] Existing shared data is incomplete. Inspect or restore it before setup.
+  exit /b 1
+)
+
 set "DATA_SOURCE="
-if not defined GRT_DATA_DIR_WAS_PRESENT if exist "%GRT_HOME%\app\data\." (
+if defined GRT_DATA_DIR_CAN_MIGRATE if exist "%GRT_HOME%\app\data\." (
   set "DATA_SOURCE=%GRT_HOME%\app\data"
 )
-if not defined DATA_SOURCE if not defined GRT_DATA_DIR_WAS_PRESENT if exist "%~dp0data\." (
+if not defined DATA_SOURCE if defined GRT_DATA_DIR_CAN_MIGRATE if exist "%~dp0data\." (
   set "DATA_SOURCE=%~dp0data"
 )
 if defined DATA_SOURCE (
@@ -253,7 +266,7 @@ if not exist "%GRT_DATA_DIR%\." (
 if exist "%GRT_DATA_DIR%\.env" (
   echo        data\.env already exists. It was NOT overwritten.
 ) else (
-  if defined GRT_DATA_DIR_WAS_PRESENT (
+  if defined GRT_DATA_DIR_WAS_PRESENT if not defined GRT_DATA_DIR_CAN_MIGRATE (
     echo [ERROR] Existing shared data folder has no .env; setup will not create a replacement.>> "%SETUP_LOG%"
     echo [ERROR] Existing data folder has no .env. Restore its data folder or inspect it before setup.
     exit /b 1
