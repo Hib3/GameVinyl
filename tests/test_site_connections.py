@@ -59,6 +59,23 @@ def test_audit_closes_database_connections(site_fixture,tmp_path,monkeypatch):
     audit.run(site,bot,template,tmp_path/'index.html',tmp_path/'audit.csv')
     assert len(opened)==2
 
+def test_collector_candidates_exposes_market_search_coverage(site_fixture,tmp_path):
+    audit,_,_,_=site_fixture
+    collector=tmp_path/'collector.sqlite3'
+    c=sqlite3.connect(collector)
+    with c:
+        c.executescript("""
+        create table observations(id integer primary key,url,source,observed,expires,facts);
+        create table jobs(url,last_error);
+        create table market_search_coverage(edition_id,status,checked_at,last_error);
+        """)
+        c.execute("insert into market_search_coverage values('AR-000001','searched',1790000000,null)")
+    c.close()
+    _,coverage,state=audit.collector_candidates(collector,{'AR-000001':{'title':'Game Vinyl'}},1800000000)
+    assert state=='healthy'
+    assert coverage['AR-000001']['status']=='searched'
+    assert coverage['AR-000001']['error'] is None
+
 def test_same_external_candidate_across_editions_is_flagged(site_fixture,tmp_path):
     audit,site,bot,template=site_fixture
     shared='00000000-0000-0000-0000-000000000001'

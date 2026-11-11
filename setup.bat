@@ -16,6 +16,14 @@ if not defined GRT_HOME_FOUND (
   exit /b 1
 )
 if not defined GRT_DATA_DIR set "GRT_DATA_DIR=%GRT_HOME%\data"
+for %%I in ("%GRT_HOME%\app") do set "GRT_APP_DIR=%%~fI"
+for %%I in ("%~dp0.") do set "GRT_INSTALL_DIR=%%~fI"
+if /i "%GRT_INSTALL_DIR%"=="%GRT_APP_DIR%" if not exist "%GRT_DATA_DIR%\." if exist "%GRT_INSTALL_DIR%\data\collector\collector.sqlite3" (
+  echo [ERROR] The Git checkout contains an old local Collector database.
+  echo [ERROR] It will not be copied automatically into the shared data folder.
+  echo [ERROR] Restore or compare it manually before setup. No local data was changed.
+  exit /b 1
+)
 for %%I in ("%GRT_DATA_DIR%") do set "GRT_DATA_DIR=%%~fI"
 set "PLAYWRIGHT_BROWSERS_PATH=%GRT_HOME%\runtime\playwright"
 for %%I in ("%~dp0.") do set "APP_DRIVE=%%~dI"

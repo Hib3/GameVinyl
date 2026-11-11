@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from collections import Counter
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
@@ -170,7 +170,7 @@ def watch_matches(config, title, catalog=None):
             if any(all(norm(t) and norm(t) in key for t in group) for group in w['terms'])]
 
 
-def auction_links(html, config):
+def auction_links(html, config, *, filter_watches=True):
     soup = BeautifulSoup(html, 'html.parser')
     script = soup.select_one('#__NEXT_DATA__')
     props = json.loads(script.string)['props'] if script and script.string else {}
@@ -180,7 +180,8 @@ def auction_links(html, config):
         raise ValueError('Yahoo search listing data unavailable')
     return [('https://auctions.yahoo.co.jp/jp/auction/'+r['auctionId'], r['title'])
             for r in rows if isinstance(r,dict) and not r.get('isFleamarketItem') and not r.get('isShoppingItem')
-            and re.fullmatch(r'[a-z0-9]+',str(r.get('auctionId',''))) and watch_matches(config,r.get('title',''))]
+            and re.fullmatch(r'[a-z0-9]+',str(r.get('auctionId','')))
+            and (not filter_watches or watch_matches(config,r.get('title','')))]
 
 
 def extract(html, url, kind, selectors=None):
@@ -431,6 +432,11 @@ class Store:
             CREATE INDEX IF NOT EXISTS watch_event_url ON events(url) WHERE kind='watch_new';
             CREATE TABLE IF NOT EXISTS source_state(id TEXT PRIMARY KEY,next_allowed REAL DEFAULT 0);
             CREATE TABLE IF NOT EXISTS history_imports(name TEXT PRIMARY KEY,data TEXT);
+            CREATE TABLE IF NOT EXISTS market_search_targets(search_url TEXT NOT NULL,edition_id TEXT NOT NULL,query TEXT NOT NULL,mode TEXT NOT NULL,priority INTEGER NOT NULL DEFAULT 0,status TEXT NOT NULL DEFAULT 'queued',last_checked REAL,last_error TEXT,PRIMARY KEY(search_url,edition_id));
+            CREATE INDEX IF NOT EXISTS market_search_target_url ON market_search_targets(search_url);
+            CREATE TABLE IF NOT EXISTS market_search_coverage(edition_id TEXT PRIMARY KEY,status TEXT NOT NULL,checked_at REAL,last_error TEXT);
+            CREATE TABLE IF NOT EXISTS market_search_matches(search_url TEXT NOT NULL,listing_url TEXT NOT NULL,edition_id TEXT NOT NULL,checked_at REAL NOT NULL,PRIMARY KEY(search_url,listing_url,edition_id));
+            CREATE INDEX IF NOT EXISTS market_search_match_listing ON market_search_matches(listing_url,checked_at);
             ''')
 
     @contextmanager
@@ -492,21 +498,60 @@ class Store:
                 old.unlink()
         return target
 
-    def initialize(self, config):
+    def initialize(self, config, bot_db_path=None):
+        seed_records = json.loads((ROOT / 'seed' / 'records.json').read_text(encoding='utf-8'))
+        watched_ids = set()
+        if bot_db_path and Path(bot_db_path).is_file():
+            try:
+                uri=Path(bot_db_path).resolve().as_uri()+'?mode=ro'
+                with closing(sqlite3.connect(uri,uri=True,timeout=5)) as bot:
+                    watched_ids={row[0] for row in bot.execute('SELECT id FROM editions WHERE watch_level>0')}
+            except sqlite3.Error:
+                watched_ids=set()
+        now=time.time()
         with self.db() as db:
             if not db.execute('SELECT 1 FROM records LIMIT 1').fetchone():
-                records = json.loads((ROOT / 'seed' / 'records.json').read_text(encoding='utf-8'))
-                db.executemany('INSERT INTO records VALUES(?,?,?,?,?,?)', [(r['id'],r.get('title'),r.get('catalog'),norm(r.get('title')),norm(r.get('catalog')),json.dumps(r,ensure_ascii=False)) for r in records])
+                db.executemany('INSERT INTO records VALUES(?,?,?,?,?,?)', [(r['id'],r.get('title'),r.get('catalog'),norm(r.get('title')),norm(r.get('catalog')),json.dumps(r,ensure_ascii=False)) for r in seed_records])
                 db.execute('INSERT OR REPLACE INTO meta VALUES(?,?)', ('import_hash', json.dumps(hashlib.sha256((ROOT / 'seed' / 'records.json').read_bytes()).hexdigest())))
             for source in config['sources']:
                 db.execute('INSERT OR IGNORE INTO source_state(id) VALUES(?)', (source['id'],))
                 for url in source['seeds']:
                     db.execute('INSERT OR IGNORE INTO jobs(url,source,due) VALUES(?,?,?)', (canonical(url),source['id'],time.time()))
                 if source['id']=='yahoo_watch':
+                    manual_ids=set()
                     for watch in config.get('watches',[]):
+                        record_id=watch.get('record_id')
+                        if isinstance(record_id,str) and re.fullmatch(r'AR-\d{6}',record_id):
+                            manual_ids.add(record_id)
                         for term in [watch['search'],*watch.get('search_aliases',[])]:
                             url='https://auctions.yahoo.co.jp/search/search?p='+quote(term)
                             db.execute('INSERT OR IGNORE INTO jobs(url,source,due) VALUES(?,?,?)',(url,source['id'],time.time()))
+                            if isinstance(record_id,str) and re.fullmatch(r'AR-\d{6}',record_id):
+                                db.execute("INSERT INTO market_search_targets(search_url,edition_id,query,mode,priority) VALUES(?,?,?,'watch',1) ON CONFLICT(search_url,edition_id) DO UPDATE SET query=excluded.query,mode=excluded.mode,priority=excluded.priority",(url,record_id,term))
+                    normal_index=0
+                    watched_index=0
+                    normal_gap=max(int(source.get('min_request_gap_seconds',config['min_request_gap_seconds'])),1)
+                    watched_gap=max(int(3600/max(config.get('catalog_priority_slots_per_hour',12),1)),normal_gap)
+                    for record in seed_records:
+                        record_id=record.get('id')
+                        if not isinstance(record_id,str) or not re.fullmatch(r'AR-\d{6}',record_id):
+                            continue
+                        title=' '.join(str(record.get('title') or '').split())
+                        catalog=' '.join(str(record.get('catalog') or '').split())
+                        if not title and not catalog:
+                            db.execute("INSERT INTO market_search_coverage VALUES(?,'no_route',NULL,'title/catalog missing') ON CONFLICT(edition_id) DO UPDATE SET status='no_route',last_error='title/catalog missing'",(record_id,))
+                            continue
+                        query=' '.join(x for x in (title,catalog) if x)[:220]
+                        db.execute("INSERT INTO market_search_coverage VALUES(?,'queued',NULL,NULL) ON CONFLICT(edition_id) DO UPDATE SET status=CASE WHEN market_search_coverage.status='no_route' THEN 'queued' ELSE market_search_coverage.status END,last_error=NULL",(record_id,))
+                        if record_id not in manual_ids:
+                            url='https://auctions.yahoo.co.jp/search/search?p='+quote(query)
+                            is_watched=record_id in watched_ids
+                            offset=watched_index*watched_gap if is_watched else normal_index*normal_gap
+                            if is_watched: watched_index+=1
+                            else: normal_index+=1
+                            db.execute('INSERT OR IGNORE INTO jobs(url,source,due) VALUES(?,?,?)',(url,source['id'],now+offset))
+                            db.execute("INSERT INTO market_search_targets(search_url,edition_id,query,mode,priority) VALUES(?,?,?,'catalog',?) ON CONFLICT(search_url,edition_id) DO UPDATE SET query=excluded.query,mode=excluded.mode,priority=excluded.priority",(url,record_id,query,int(is_watched)))
+                        db.execute("INSERT INTO market_search_coverage VALUES(?,'queued',NULL,NULL) ON CONFLICT(edition_id) DO UPDATE SET status=CASE WHEN market_search_coverage.status='no_route' THEN 'queued' ELSE market_search_coverage.status END,last_error=NULL",(record_id,))
                 for path in config.get('catalog_pages',{}).get(source['id'],[]):
                     db.execute('INSERT OR IGNORE INTO jobs(url,source,due) VALUES(?,?,?)', ('https://'+source['hosts'][0]+path,source['id'],time.time()))
             for path in ARCHIVE.glob('discovery-*.json') if ARCHIVE.is_dir() else ():
@@ -523,13 +568,28 @@ class Store:
             count = db.execute('SELECT COUNT(*) FROM jobs WHERE last_checked>?', (now-3600,)).fetchone()[0]
             if count >= config['max_jobs_per_hour']:
                 return None
+            watched_searches = db.execute("""SELECT COUNT(DISTINCT j.url) FROM jobs j
+              JOIN market_search_targets t ON t.search_url=j.url
+              WHERE j.last_checked>? AND t.mode='catalog' AND t.priority=1""",(now-3600,)).fetchone()[0]
+            exclude_watched_searches = watched_searches >= config.get('catalog_priority_slots_per_hour',12)
             priority = [s['id'] for s in config['sources'] if s.get('priority')] or ['']
-            if count >= config['max_jobs_per_hour'] - config.get('priority_slots_per_hour',0):
+            reserved_capacity = count >= config['max_jobs_per_hour'] - config.get('priority_slots_per_hour',0)
+            if reserved_capacity:
                 enabled = [s for s in enabled if s in priority]
                 if not enabled:
                     return None
-            query = "SELECT jobs.* FROM jobs JOIN source_state ON source_state.id=jobs.source WHERE status NOT IN ('running','ended') AND due<=? AND next_allowed<=? AND source IN (" + ','.join('?' for _ in enabled) + ') ORDER BY (source IN (' + ','.join('?' for _ in priority) + ')) DESC,(last_checked IS NULL) DESC,due LIMIT 1'
-            row = db.execute(query, (now,now,*enabled,*priority)).fetchone()
+            query = "SELECT jobs.* FROM jobs JOIN source_state ON source_state.id=jobs.source WHERE status NOT IN ('running','ended','rotated') AND due<=? AND next_allowed<=? AND source IN (" + ','.join('?' for _ in enabled) + ')'
+            params=[now,now,*enabled]
+            if reserved_capacity and 'yahoo_watch' in enabled:
+                yahoo=next(s for s in config['sources'] if s['id']=='yahoo_watch')
+                seeds=yahoo.get('seeds',[])
+                query += " AND (jobs.source!='yahoo_watch' OR jobs.url IN ("+','.join('?' for _ in seeds)+") OR EXISTS (SELECT 1 FROM market_search_targets t WHERE t.search_url=jobs.url AND t.priority=1) OR EXISTS (SELECT 1 FROM market_search_matches m JOIN market_search_targets t ON t.search_url=m.search_url AND t.edition_id=m.edition_id WHERE m.listing_url=jobs.url AND t.priority=1))"
+                params.extend(seeds)
+            if exclude_watched_searches:
+                query += " AND NOT EXISTS (SELECT 1 FROM market_search_targets t WHERE t.search_url=jobs.url AND t.mode='catalog' AND t.priority=1)"
+            query += ' ORDER BY (source IN (' + ','.join('?' for _ in priority) + ')) DESC,COALESCE((SELECT MAX(t.priority) FROM market_search_targets t WHERE t.search_url=jobs.url),0) DESC,(last_checked IS NULL) DESC,due LIMIT 1'
+            params.extend(priority)
+            row = db.execute(query, params).fetchone()
             if row:
                 db.execute("UPDATE jobs SET status='running',lease=?,attempts=attempts+1,last_checked=? WHERE url=?", (now+180,now,row['url']))
                 db.execute('UPDATE source_state SET next_allowed=? WHERE id=?', (now+config['min_request_gap_seconds'],row['source']))
@@ -537,6 +597,12 @@ class Store:
 
     def save(self, job, facts, excerpt, html, config):
         now = time.time()
+        with self.db() as db:
+            candidate_ids=[row[0] for row in db.execute(
+                'SELECT DISTINCT edition_id FROM market_search_matches WHERE listing_url=? AND checked_at>=?',
+                (job['url'],now-config['freshness_seconds']))]
+        if candidate_ids:
+            facts['candidate_ids']=sorted(set(facts.get('candidate_ids',[]))|set(candidate_ids))
         payload = json.dumps(facts,sort_keys=True,ensure_ascii=False)
         digest = hashlib.sha256(payload.encode()).hexdigest()
         raw = html.encode('utf-8')
@@ -569,7 +635,20 @@ class Store:
         delay = config['interval_seconds'] if blocked else min(3600 * 2 ** min(job['attempts'], 4), 86400)
         with self.db() as db:
             db.execute("UPDATE jobs SET status=?,due=?,lease=0,last_error=? WHERE url=?", ('blocked' if blocked else 'error', time.time()+delay,str(error)[:500],job['url']))
+            result='blocked' if blocked else 'error'
+            db.execute('UPDATE market_search_targets SET status=?,last_error=? WHERE search_url=?',(result,str(error)[:300],job['url']))
+            db.execute('UPDATE market_search_coverage SET status=?,last_error=? WHERE edition_id IN (SELECT edition_id FROM market_search_targets WHERE search_url=?)',(result,str(error)[:300],job['url']))
             db.execute('INSERT INTO events(url,created,kind,detail) VALUES(?,?,?,?)', (job['url'],time.time(),'fetch_failed',json.dumps({'error':str(error)[:500]})))
+
+    def save_market_search(self, search_url, links):
+        now=time.time()
+        with self.db() as db:
+            edition_ids=[row[0] for row in db.execute('SELECT edition_id FROM market_search_targets WHERE search_url=?',(search_url,))]
+            db.execute('DELETE FROM market_search_matches WHERE search_url=?',(search_url,))
+            db.executemany('INSERT OR IGNORE INTO market_search_matches VALUES(?,?,?,?)',
+                           ((search_url,url,edition_id,now) for url,_ in links for edition_id in edition_ids))
+            db.execute("UPDATE market_search_targets SET status='searched',last_checked=?,last_error=NULL WHERE search_url=?",(now,search_url))
+            db.execute("UPDATE market_search_coverage SET status='searched',checked_at=?,last_error=NULL WHERE edition_id IN (SELECT edition_id FROM market_search_targets WHERE search_url=?)",(now,search_url))
 
     def discover(self, source, links, config):
         # News -> registered merchant products. Never follow arbitrary external hosts.
@@ -580,8 +659,14 @@ class Store:
         if not source.get('discover'):
             return
         with self.db() as db:
-            count = db.execute("SELECT COUNT(*) FROM jobs WHERE source=? AND status!='ended'", (source['id'],)).fetchone()[0]
-            budget = min(100, max(0, source.get('max_urls',config['max_urls_per_source'])-count))
+            yahoo=source['id']=='yahoo_watch'
+            max_urls=source.get('max_urls',config['max_urls_per_source'])
+            if yahoo:
+                count=db.execute("SELECT COUNT(*) FROM jobs j WHERE j.source=? AND j.status NOT IN ('ended','rotated') AND NOT EXISTS (SELECT 1 FROM market_search_targets t WHERE t.search_url=j.url)",(source['id'],)).fetchone()[0]
+                budget=100
+            else:
+                count = db.execute("SELECT COUNT(*) FROM jobs WHERE source=? AND status!='ended'", (source['id'],)).fetchone()[0]
+                budget = min(100, max(0, max_urls-count))
             catalog_paths = config.get('catalog_pages',{}).get(source['id'],[])
             for url, _ in sorted(links,key=lambda x:0 if '?page=' in x[0] else 1):
                 if budget <= 0:
@@ -602,8 +687,19 @@ class Store:
                         continue
                     if source.get('accept_article_links'):
                         url=urlunsplit((p.scheme,source['hosts'][0],path,p.query,''))
-                    cursor = db.execute('INSERT OR IGNORE INTO jobs(url,source,due) VALUES(?,?,?)', (url,source['id'],time.time()+config['min_request_gap_seconds']))
-                    budget -= cursor.rowcount
+                    existing=db.execute('SELECT status FROM jobs WHERE url=?',(url,)).fetchone()
+                    if existing and existing['status']!='rotated':
+                        continue
+                    if yahoo and count>=max_urls:
+                        victim=db.execute("SELECT j.url FROM jobs j WHERE j.source=? AND j.status NOT IN ('ended','running','rotated') AND NOT EXISTS (SELECT 1 FROM market_search_targets t WHERE t.search_url=j.url) ORDER BY COALESCE(j.last_checked,0),j.due LIMIT 1",(source['id'],)).fetchone()
+                        if not victim:
+                            break
+                        db.execute("UPDATE jobs SET status='rotated',lease=0 WHERE url=?",(victim['url'],))
+                        count-=1
+                    due=time.time()+config['min_request_gap_seconds']
+                    db.execute("INSERT INTO jobs(url,source,due) VALUES(?,?,?) ON CONFLICT(url) DO UPDATE SET status='pending',due=excluded.due,lease=0,attempts=0,last_error=NULL WHERE jobs.status='rotated'",(url,source['id'],due))
+                    count+=1
+                    budget-=1
                 except ValueError:
                     continue
 
@@ -634,7 +730,10 @@ class Worker:
             if source['id']=='yahoo_watch' and urlsplit(final).path != urlsplit(job['url']).path:
                 raise ValueError('Yahoo redirected away from requested page')
             if source['id']=='yahoo_watch' and urlsplit(job['url']).path=='/search/search':
-                links=auction_links(html,self.config)
+                with self.store.db() as db:
+                    modes={row[0] for row in db.execute('SELECT mode FROM market_search_targets WHERE search_url=?',(job['url'],))}
+                links=auction_links(html,self.config,filter_watches='catalog' not in modes)
+                self.store.save_market_search(job['url'],links)
                 self.store.discover(source,links,self.config)
                 self.store.save(job,{'title':'Yahoo!オークション 重要盤検索','page_type':'market_search','price':None,'currency':None,'availability':'UNKNOWN','matching_urls':[url for url,_ in links]},'',html,self.config)
                 self.store.meta('last_success',time.time())

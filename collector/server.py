@@ -109,6 +109,8 @@ def possible_match(record, item):
     if item['url'] in {s.get('url') for s in record.get('sources', [])}:
         return 'source_url'
     f = item['facts']
+    if record.get('id') in f.get('candidate_ids',[]):
+        return 'market_search_candidate_needs_review'
     if record.get('id') in f.get('watch_ids',[]):
         return 'watch_title_or_catalog'
     if norm(record.get('catalog')) and norm(record.get('catalog')) == norm(f.get('catalog')):
@@ -209,6 +211,7 @@ def query_api(store, config, path, query, bot_db_path=None):
             fresh_priced=sum(p['facts'].get('price') is not None and p['freshness']=='RECENT_OBSERVATION' for p in products)
             meta = {r['key']:json.loads(r['value']) for r in db.execute('SELECT * FROM meta')}
             states = {r['status']:r['n'] for r in db.execute('SELECT status,COUNT(*) n FROM jobs GROUP BY status')}
+            market_search={r['status']:r['n'] for r in db.execute('SELECT status,COUNT(*) n FROM market_search_coverage GROUP BY status')}
             sources = []
             hourly = db.execute('SELECT COUNT(*) count,MIN(last_checked) oldest FROM jobs WHERE last_checked>?',(now-3600,)).fetchone()
             for s in config['sources']:
@@ -217,7 +220,7 @@ def query_api(store, config, path, query, bot_db_path=None):
                 sources.append({'id':s['id'],'name':s['name'],'enabled':s['enabled'],'method':s['method'],'note':s['note'],**dict(row),'errors':[dict(r) for r in errors]})
             quota={'used_last_hour':hourly['count'],'limit':config['max_jobs_per_hour'],'waiting':hourly['count']>=config['max_jobs_per_hour'],'resume_at':hourly['oldest']+3600 if hourly['oldest'] else None}
             coverage={'observed_products':len(products),'priced_products':priced,'fresh_priced_products':fresh_priced,'unknown_price_products':len(products)-priced,'price_coverage_pct':round(priced*100/len(products),1) if products else 0,'edition_verified_rows':0}
-            return {'server_time':now,'worker_alive':now-meta.get('heartbeat',0)<120,'meta':meta,'jobs':states,'record_count':db.execute('SELECT COUNT(*) FROM records').fetchone()[0], 'candidate_count':db.execute('SELECT COUNT(*) FROM candidates').fetchone()[0], 'coverage':coverage,'sources':sources,'bot_catalog':bot_data(bot_db_path, now=now),'scope':'全盤一覧と店舗の商品観測。商品価格は店舗価格取得率の分母で、全3,777盤の価格カバー率ではありません。Bot台帳とはAR-ID完全一致で読み取り専用結合します。','llm_calls':0}
+            return {'server_time':now,'worker_alive':now-meta.get('heartbeat',0)<120,'meta':meta,'jobs':states,'record_count':db.execute('SELECT COUNT(*) FROM records').fetchone()[0], 'candidate_count':db.execute('SELECT COUNT(*) FROM candidates').fetchone()[0], 'coverage':coverage,'market_search_coverage':market_search,'sources':sources,'bot_catalog':bot_data(bot_db_path, now=now),'scope':'全盤一覧、店舗商品観測、Yahoo Auctionsの対象盤別検索状態。商品価格のcoverageは全3,777盤の価格カバー率ではありません。検索結果は候補であり盤一致を証明しません。','llm_calls':0}
         if path == '/api/records':
             where=' WHERE norm_title LIKE ? OR norm_catalog LIKE ? OR data LIKE ?'
             args=('%'+norm(q)+'%','%'+norm(q)+'%','%'+q+'%')
@@ -301,7 +304,7 @@ def main():
     store = Store(args.db)
     handler = RotatingFileHandler(args.db.parent/'collector.log',maxBytes=1000000,backupCount=3,encoding='utf-8')
     logging.basicConfig(level=logging.WARNING,handlers=[handler])
-    store.initialize(config)
+    store.initialize(config,args.bot_db)
     worker = Worker(store,config)
     if args.once:
         print(json.dumps({'processed':worker.once()},ensure_ascii=True))

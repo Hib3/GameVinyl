@@ -988,6 +988,7 @@
         var openDetails = {};
         var coverageAreaLabels = { metadata: "基本情報", official_new_release: "公式新譜", used_listing: "中古出品", price: "価格", availability: "在庫", image: "画像権利", purchase_url: "購入URL" };
         var coverageStatusLabels = { verified_current: "現在確認済み", verified_historical: "過去確認", candidate_needs_review: "候補・要確認", no_route: "取得経路なし", not_found: "対象ソースで一致なし", blocked: "取得遮断", stale: "情報が古い", source_unverified: "出典未確認", not_applicable: "対象外", error: "取得エラー" };
+        var marketSearchStatusLabels = { queued: "巡回待ち", searched: "検索済み（出品なしを保証しない）", blocked: "取得遮断", error: "取得エラー", no_route: "検索情報不足" };
         function cardHTML(r) {
           var st = statusBadge(r);
           var searchMatches = searchHitFields(r);
@@ -1028,6 +1029,7 @@
           ];
           var a = r.fieldAudit;
           rows.push(["監査結果", a.summary], ["調査時価格の確認日", a.priceDate], ["最新の調査記録", a.surveyDate], ["外部目録検索", a.lookupNote], ["Botの価格確認", a.botPrice], ["店舗商品ページ候補", a.collectorOffers]);
+          if (a.marketSearch) rows.push(["Yahoo!オークション巡回", (marketSearchStatusLabels[a.marketSearch.status] || a.marketSearch.status) + (a.marketSearch.checkedAt ? "・確認 " + a.marketSearch.checkedAt : "")]);
           (a.coverage || []).forEach(function (item) {
             rows.push([coverageAreaLabels[item.area] || item.area, coverageStatusLabels[item.status] || item.status]);
           });

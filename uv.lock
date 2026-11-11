@@ -76,7 +76,7 @@ wheels = [
 
 [[package]]
 name = "game-record-tool"
-version = "2.0.76"
+version = "2.0.77"
 source = { virtual = "." }
 dependencies = [
     { name = "apscheduler" },

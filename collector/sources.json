@@ -3,6 +3,7 @@
   "min_request_gap_seconds": 20,
   "max_jobs_per_hour": 180,
   "priority_slots_per_hour": 12,
+  "catalog_priority_slots_per_hour": 12,
   "max_urls_per_source": 500,
   "freshness_seconds": 86400,
   "watches": [

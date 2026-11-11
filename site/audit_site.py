@@ -21,7 +21,7 @@ def safe_https(x):
 def collector_candidates(path, records, now):
     path=Path(path)
     if not path.is_file():
-        return {},'missing'
+        return {},{},'missing'
     try:
         config=json.loads((Path(__file__).resolve().parents[1]/'collector'/'sources.json').read_text(encoding='utf-8'))
         sources={s['id']:s for s in config['sources']}
@@ -31,8 +31,13 @@ def collector_candidates(path, records, now):
             rows=db.execute("""select o.url,o.source,o.observed,o.expires,o.facts,j.last_error
               from observations o join (select url,max(id) id from observations group by url) x on x.id=o.id
               join jobs j on j.url=o.url where json_extract(o.facts,'$.page_type')='product'""").fetchall()
+            search_coverage={}
+            if db.execute("select 1 from sqlite_master where type='table' and name='market_search_coverage'").fetchone():
+                for item in db.execute('select edition_id,status,checked_at,last_error from market_search_coverage'):
+                    checked=(datetime.fromtimestamp(item['checked_at'],timezone.utc).astimezone().isoformat(timespec='minutes') if item['checked_at'] else None)
+                    search_coverage[item['edition_id']]={'status':item['status'],'checkedAt':checked,'error':str(item['last_error'] or '')[:120] or None}
     except (OSError,sqlite3.Error,ValueError,KeyError,TypeError):
-        return {},'error'
+        return {},{},'error'
     titles={rid:[norm(r.get(k)) for k in ('title','originalTitle','englishTitle') if len(norm(r.get(k)))>=8]
             for rid,r in records.items()}
     catalogs={rid:norm(r.get('catalog')) for rid,r in records.items() if valid_catalog(r.get('catalog'))}
@@ -55,6 +60,8 @@ def collector_candidates(path, records, now):
             reason=None
             if row['url'] in {s.get('url') for s in record.get('sources',[]) if isinstance(s,dict)}:
                 reason='出典URL一致（盤一致は未確認）'
+            elif rid in facts.get('candidate_ids',[]):
+                reason='Yahoo市場検索候補（盤一致は未確認）'
             elif rid in facts.get('watch_ids',[]):
                 reason='重要盤ウォッチ検索'
             elif catalog and catalog==catalogs.get(rid):
@@ -66,8 +73,8 @@ def collector_candidates(path, records, now):
                 item={'url':row['url'],'title':str(facts.get('title') or '')[:160],
                       'source':source['name'],'observed':observed,'reason':reason}
                 out[rid][row['url']]=item
-    return {rid:sorted(items.values(),key=lambda x:x['observed'],reverse=True)[:2]
-            for rid,items in out.items()},'healthy'
+    return ({rid:sorted(items.values(),key=lambda x:x['observed'],reverse=True)[:2]
+            for rid,items in out.items()},search_coverage,'healthy')
 
 def pending_candidates(bot):
     if not bot.execute("select 1 from sqlite_master where type='table' and name='candidate_editions'").fetchone():
@@ -211,7 +218,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
         for rid,state,a,b,h,enrichment in rows:
             value=json.loads(enrichment) if enrichment else {}
             parsed.append((rid,state,json.loads(a),json.loads(b),json.loads(h),value if isinstance(value,dict) else {}))
-        collector_map,collector_state=collector_candidates(
+        collector_map,market_search_coverage,collector_state=collector_candidates(
             collector_db or Path(botdb).parent/'collector'/'collector.sqlite3',
             {rid:(a or {}) for rid,_,a,_,_,_ in parsed},now.timestamp())
         groups=Counter((norm(a.get('label')),norm(a.get('catalog'))) for _,_,a,_,_,_ in parsed if a and valid_catalog(a.get('catalog')))
@@ -443,6 +450,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
               'surveyDate':survey,'lookupNote':lookup_note,'botPrice':bot_note,'gameAlternative':alt,
               'museGameEvidence':muse_game_evidence,
               'musePriceHistory':historical_price,
+              'marketSearch':market_search_coverage.get(rid),
               'collectorOffers':offer_note,'collectorStatus':collector_state,'links':links,'image':thumb,
               'coverage':coverage_items,'marketListings':yahoo_market.get(rid,[])}
             export.append(r)
