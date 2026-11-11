@@ -408,6 +408,11 @@ def run() -> None:
 
     def health_job():
         def body(conn):
+            from . import maintenance
+            try:
+                maintenance.prune_discogs_snapshots(conn)
+            except Exception as exc:
+                _log_job_error("discogs_snapshot_retention", exc)
             health.evaluate_time_based_health(conn)
             # W-check B4 (AI engineer / maniac B): the outbox safety
             # net enqueue_pending_candidate_reviews existed but had

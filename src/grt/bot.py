@@ -1867,10 +1867,17 @@ class Bot:
         # pricedrop.bucket_best now requires of a baseline).
         _fresh = clock.to_iso(clock.now(self.db)
                               - timedelta(days=30))
+        _discogs_now_dt = clock.now(self.db)
+        _discogs_now = clock.to_iso(_discogs_now_dt)
+        _discogs_fresh = clock.to_iso(_discogs_now_dt
+                                      - timedelta(hours=6))
         with_price = self.db.execute(
             "SELECT COUNT(*) FROM editions e WHERE"
             " EXISTS (SELECT 1 FROM price_snapshots s"
             "  WHERE s.edition_id=e.id"
+            "  AND s.source='discogs'"
+            "  AND julianday(s.taken_at)>=julianday(?)"
+            "  AND julianday(s.taken_at)<=julianday(?)"
             "  AND s.lowest_price IS NOT NULL"
             "  AND typeof(s.lowest_price) IN ('integer', 'real')"
             "  AND s.lowest_price > 0"
@@ -1896,7 +1903,7 @@ class Bot:
             "   OR (UPPER(TRIM(COALESCE(l.currency,'')))='JPY'"
             "       AND typeof(l.price) IN ('integer', 'real')"
             "       AND l.price > 0)))",
-            (_fresh,)
+            (_discogs_fresh, _discogs_now, _fresh)
         ).fetchone()[0]
         lines = ["【カバレッジ】",
                  f"Edition: {total}件",
