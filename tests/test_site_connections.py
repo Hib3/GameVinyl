@@ -39,7 +39,9 @@ def site_fixture(tmp_path, monkeypatch):
                       ((f'AR-{i:06d}',) for i in range(1,3778)))
     c.close()
     template=tmp_path/'template.html'
-    template.write_text('@@AUDIT_OVERVIEW@@ @@AUDITED_RECORDS@@ @@DISCOVERED_CANDIDATES@@',encoding='utf-8')
+    template.write_text('<p class="audit-as-of" id="audit-as-of">監査データ更新：'
+                        '@@AUDIT_AS_OF@@ JST</p> @@AUDIT_OVERVIEW@@ '
+                        '@@AUDITED_RECORDS@@ @@DISCOVERED_CANDIDATES@@',encoding='utf-8')
     return audit,site,bot,template
 
 def test_audit_closes_database_connections(site_fixture,tmp_path,monkeypatch):
@@ -108,7 +110,7 @@ def test_field_evidence_is_visible_as_unconfirmed_and_urls_are_checked(site_fixt
 
 def test_pending_candidates_are_unconfirmed_and_only_link_to_source_host(site_fixture,tmp_path):
     audit,site,bot,template=site_fixture
-    template.write_text('@@AUDIT_OVERVIEW@@ @@AUDITED_RECORDS@@ '
+    template.write_text('@@AUDIT_AS_OF@@ @@AUDIT_OVERVIEW@@ @@AUDITED_RECORDS@@ '
                         '<script id="discovery-data" type="application/json">'
                         '@@DISCOVERED_CANDIDATES@@</script>',encoding='utf-8')
     c=sqlite3.connect(bot)
@@ -380,6 +382,27 @@ def test_mobile_masthead_and_tabs_keep_deliberate_line_breaks():
     assert '.stat:nth-child(n + 3)' not in source
     assert '.view-tab { flex: 0 0 auto; white-space: nowrap;' in source
     assert '@media (max-width: 360px)' in source and '.view-tabs { overflow-x: auto; overflow-y: hidden; padding: 0; }' in source
+
+
+def test_header_stats_separate_review_candidates_from_current_evidence():
+    template=Path(__file__).resolve().parents[1]/"site"/"site_template.html"
+    source=template.read_text(encoding="utf-8")
+    assert 'coverageCount("used_listing", "candidate_needs_review")' in source
+    assert 'coverageCount("price", "verified_current")' in source
+    assert '現行価格証跡・確認済み' in source
+    assert '中古出品候補・要確認' in source
+    assert 'var withEvidence = DATA.filter' not in source
+
+
+def test_audit_snapshot_time_is_rendered_visibly(site_fixture,tmp_path):
+    audit,site,bot,template=site_fixture
+    target=tmp_path/'index.html'
+    audit.run(site,bot,template,target,tmp_path/'audit.csv')
+    text=target.read_text(encoding="utf-8")
+    assert re.search(
+        r'<p class="audit-as-of" id="audit-as-of">監査データ更新：'
+        r'\d{4}-\d{2}-\d{2} \d{2}:\d{2} JST</p>', text)
+    assert '@@AUDIT_AS_OF@@' not in text
 
 
 

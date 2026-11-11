@@ -370,8 +370,9 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
             pending = catalog_result['selected'] - catalog_result['attempted']
             overview += f" MusicBrainz今回: 成功 {ok}・失敗 {catalog_result['failed']}・選択後未実行 {pending}。"
     source=template.read_text(encoding='utf-8')
-    assert source.count('@@AUDITED_RECORDS@@')==source.count('@@AUDIT_OVERVIEW@@')==source.count('@@DISCOVERED_CANDIDATES@@')==1
-    atomic_text(target,source.replace('@@AUDIT_OVERVIEW@@',html.escape(overview)).replace('@@AUDITED_RECORDS@@',compact_json(export)).replace('@@DISCOVERED_CANDIDATES@@',compact_json({'count':len(discoveries),'items':discoveries})))
+    assert source.count('@@AUDIT_AS_OF@@')==source.count('@@AUDITED_RECORDS@@')==source.count('@@AUDIT_OVERVIEW@@')==source.count('@@DISCOVERED_CANDIDATES@@')==1
+    audit_as_of=now.astimezone(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M')
+    atomic_text(target,source.replace('@@AUDIT_AS_OF@@',audit_as_of).replace('@@AUDIT_OVERVIEW@@',html.escape(overview)).replace('@@AUDITED_RECORDS@@',compact_json(export)).replace('@@DISCOVERED_CANDIDATES@@',compact_json({'count':len(discoveries),'items':discoveries})))
     tmp=csv_path.with_name(csv_path.name+'.tmp')
     with tmp.open('w',newline='',encoding='utf-8-sig') as f:
         w=csv.writer(f)
