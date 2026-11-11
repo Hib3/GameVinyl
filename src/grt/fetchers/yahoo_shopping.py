@@ -104,6 +104,10 @@ class YahooShoppingFetcher(BaseFetcher):
         for entry in api_list(data, "hits", "Yahoo Shopping"):
             if not isinstance(entry, dict):
                 continue
+            if condition is not None and entry.get("condition") != condition:
+                continue
+            if in_stock is not None and entry.get("inStock") is not in_stock:
+                continue
             title = entry.get("name") or ""
             price = api_price(entry.get("price"))
             items.append({

@@ -218,10 +218,18 @@ def test_yahoo_item_mapping(db, monkeypatch):
 
 def test_yahoo_used_search_filters_to_in_stock_used_items(db, monkeypatch):
     calls = {}
+    payload = {"hits": [
+        {"name": "used in stock", "url": "https://example.test/used",
+         "price": 1000, "condition": "used", "inStock": True},
+        {"name": "used out of stock", "url": "https://example.test/oos",
+         "price": 800, "condition": "used", "inStock": False},
+        {"name": "new in stock", "url": "https://example.test/new",
+         "price": 1200, "condition": "new", "inStock": True},
+    ]}
 
     def fake_get(url, params=None, headers=None, timeout=None):
         calls.update(url=url, params=params)
-        return FakeResp(200, YAHOO_PAYLOAD)
+        return FakeResp(200, payload)
 
     monkeypatch.setattr(httpx, "get", fake_get)
     f = YahooShoppingFetcher(db, _source_id(db, "yahoo"), app_id="test-app-id")
@@ -230,7 +238,7 @@ def test_yahoo_used_search_filters_to_in_stock_used_items(db, monkeypatch):
     assert calls["params"]["condition"] == "used"
     assert calls["params"]["in_stock"] == "true"
     assert calls["params"]["query"] == CATALOG
-    assert len(items) == 1
+    assert [item["title"] for item in items] == ["used in stock"]
 
 
 def test_yahoo_403_is_blocked(db, monkeypatch):
