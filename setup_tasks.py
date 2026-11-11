@@ -52,9 +52,9 @@ VENV_PYW = ROOT / ".venv" / "Scripts" / "pythonw.exe"
 
 
 def _default_data_dir() -> Path:
-    # Releases and the active app share the project root's single data folder.
+    # Releases and the active app share the named project root's data folder.
     for parent in (ROOT, *ROOT.parents):
-        if (parent / "backups").is_dir() and (parent / "releases").is_dir():
+        if parent.name.casefold() == "gamerecordtool":
             return parent / "data"
     return ROOT.parent / "data"
 

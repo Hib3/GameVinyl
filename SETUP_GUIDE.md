@@ -4,7 +4,7 @@
 
 > コードの配置例は `D:\GameRecordTool\releases\2.0.70\game-record-tool` です。C: と D: にコード・データを分けず、どちらも D: に置いてください。
 
-> **複数バージョンを使う場合:** コードは `D:\GameRecordTool\releases\<version>\game-record-tool` のように版ごとに置き、データは共通の `D:\GameRecordTool\data` だけを使います。`setup.bat` は親の `backups` と `releases` を目印に共通フォルダを探し、別ドライブを指定した場合は停止します。版フォルダへ `data` を複製して使い続けないでください。
+> **複数バージョンを使う場合:** コードは `D:\GameRecordTool\releases\<version>\game-record-tool` のように版ごとに置き、データは共通の `D:\GameRecordTool\data` だけを使います。`setup.bat` は親の `GameRecordTool` フォルダを基準に共通場所を決め、別ドライブを指定した場合は停止します。版フォルダへ `data` を複製して使い続けないでください。
 
 ---
 

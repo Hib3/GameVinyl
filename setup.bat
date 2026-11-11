@@ -375,8 +375,8 @@ exit /b 0
 set "GRT_HOME=%~dp0."
 :find_shared_data_home
 for %%I in ("%GRT_HOME%") do set "GRT_HOME=%%~fI"
-if exist "%GRT_HOME%\backups\." if exist "%GRT_HOME%\releases\." (
-  set "GRT_DATA_DIR=%GRT_HOME%\data"
+for %%I in ("%GRT_HOME%") do if /i "%%~nxI"=="GameRecordTool" (
+  set "GRT_DATA_DIR=%%~fI\data"
   exit /b 0
 )
 for %%I in ("%GRT_HOME%\..") do set "GRT_PARENT=%%~fI"

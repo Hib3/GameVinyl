@@ -43,8 +43,6 @@ def test_default_data_dir_uses_shared_project_home(tmp_path, monkeypatch):
     home = tmp_path / "GameRecordTool"
     release = home / "releases" / "2.0.70" / "game-record-tool"
     release.mkdir(parents=True)
-    (home / "backups").mkdir()
-    (home / "releases").mkdir(exist_ok=True)
     monkeypatch.setattr(setup_tasks, "ROOT", release)
     assert setup_tasks._default_data_dir() == home / "data"
 
