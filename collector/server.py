@@ -12,6 +12,7 @@ from logging.handlers import RotatingFileHandler
 import mimetypes
 import os
 from pathlib import Path
+import shutil
 import signal
 import sqlite3
 import sys
@@ -19,7 +20,7 @@ import threading
 import time
 from urllib.parse import parse_qs, urlsplit
 
-from core import DATA, ROOT, Store, Worker, norm
+from core import DATA, MIN_FREE_SPACE_RATIO, ROOT, Store, Worker, norm
 
 HERE = Path(__file__).resolve().parent
 SITE_DATA = DATA.parent / 'site'
@@ -210,6 +211,13 @@ def query_api(store, config, path, query, bot_db_path=None):
             priced=sum(p['facts'].get('price') is not None for p in products)
             fresh_priced=sum(p['facts'].get('price') is not None and p['freshness']=='RECENT_OBSERVATION' for p in products)
             meta = {r['key']:json.loads(r['value']) for r in db.execute('SELECT * FROM meta')}
+            usage=shutil.disk_usage(store.path.parent)
+            meta['storage_protection']={
+                'paused':usage.free < usage.total * MIN_FREE_SPACE_RATIO,
+                'free_bytes':usage.free,
+                'total_bytes':usage.total,
+                'minimum_free_percent':int(MIN_FREE_SPACE_RATIO*100),
+            }
             states = {r['status']:r['n'] for r in db.execute('SELECT status,COUNT(*) n FROM jobs GROUP BY status')}
             market_search={r['status']:r['n'] for r in db.execute('SELECT status,COUNT(*) n FROM market_search_coverage GROUP BY status')}
             sources = []

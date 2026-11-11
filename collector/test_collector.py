@@ -5,6 +5,7 @@ import sqlite3
 import tempfile
 import time
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from core import Store, Worker, Robots, canonical, public_target, extract, fetch_browser
@@ -268,6 +269,20 @@ class StorageTests(unittest.TestCase):
         with Store(restored).db() as db:
             self.assertEqual(db.execute('pragma integrity_check').fetchone()[0],'ok')
             self.assertEqual(db.execute('select count(*) from observations').fetchone()[0],1)
+
+    def test_low_disk_pauses_collection_and_resumes_at_ten_percent(self):
+        worker=Worker(self.store,self.config)
+        with patch('core.shutil.disk_usage',return_value=SimpleNamespace(total=1000,free=99)):
+            self.assertFalse(worker.once())
+        with self.store.db() as db:
+            self.assertEqual(db.execute("SELECT status FROM jobs WHERE url='https://example.com/p'").fetchone()[0],'pending')
+            self.assertTrue(json.loads(db.execute("SELECT value FROM meta WHERE key='storage_protection'").fetchone()[0])['paused'])
+        with patch('core.shutil.disk_usage',return_value=SimpleNamespace(total=1000,free=100)), patch.object(self.store,'claim',return_value=None):
+            self.assertFalse(worker.once())
+        with self.store.db() as db:
+            state=json.loads(db.execute("SELECT value FROM meta WHERE key='storage_protection'").fetchone()[0])
+        self.assertFalse(state['paused'])
+        self.assertEqual(state['minimum_free_percent'],10)
 
     def test_manual_backup_keeps_only_latest_valid_copy(self):
         with patch('core.datetime') as clock:

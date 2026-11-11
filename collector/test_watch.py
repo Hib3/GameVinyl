@@ -3,6 +3,7 @@ from pathlib import Path
 import sqlite3
 from tempfile import TemporaryDirectory
 import time
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -12,6 +13,14 @@ from server import query_api
 
 
 class WatchTest(unittest.TestCase):
+    def test_status_reports_live_disk_reserve(self):
+        with TemporaryDirectory() as folder:
+            store=Store(Path(folder)/'collector.sqlite3')
+            with patch('server.shutil.disk_usage',return_value=SimpleNamespace(total=1000,free=99)):
+                status=query_api(store,{'sources':[],'max_jobs_per_hour':10},'/api/status',{})
+        self.assertTrue(status['meta']['storage_protection']['paused'])
+        self.assertEqual(status['meta']['storage_protection']['free_bytes'],99)
+
     def test_all_seed_editions_are_queued_or_have_a_route_reason(self):
         config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
         config['sources'] = [s for s in config['sources'] if s['id'] == 'yahoo_watch']

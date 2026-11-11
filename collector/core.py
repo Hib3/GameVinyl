@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import socket
 import sqlite3
 import time
@@ -23,6 +24,7 @@ import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup, FeatureNotFound
 
 ROOT = Path(__file__).resolve().parent.parent
+MIN_FREE_SPACE_RATIO = 0.10
 ARCHIVE = ROOT / 'outputs/game-record-audit-2026-08-25/records-dashboard'
 DATA = Path(os.environ.get('GRT_DATA_DIR') or ROOT / 'data') / 'collector'
 AGENT = 'VGMVinylCollector/1.0'
@@ -708,9 +710,25 @@ class Worker:
     def __init__(self, store, config):
         self.store, self.config = store, config
         self.robots = Robots()
+        self.storage_paused = None
 
     def once(self):
         self.store.meta('heartbeat',time.time())
+        usage = shutil.disk_usage(self.store.path.parent)
+        paused = usage.free < usage.total * MIN_FREE_SPACE_RATIO
+        if paused != self.storage_paused:
+            self.storage_paused = paused
+            try:
+                self.store.meta('storage_protection', {
+                    'paused': paused,
+                    'free_bytes': usage.free,
+                    'total_bytes': usage.total,
+                    'minimum_free_percent': int(MIN_FREE_SPACE_RATIO * 100),
+                })
+            except sqlite3.Error:
+                pass
+        if paused:
+            return False
         job = self.store.claim(self.config)
         if not job:
             return False
