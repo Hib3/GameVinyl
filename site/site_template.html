@@ -1039,6 +1039,17 @@
             if (me.confidence) rows.push(["Muse確度", me.confidence]);
             if (me.basis) rows.push(["Muse根拠", me.basis]);
           }
+          if (a.musePriceHistory) {
+            var mh = a.musePriceHistory;
+            var musePriceLabel = 'Muse過去調査 ' + mh.surveyDate + '（個別確認 ' + mh.checkedAt + '）・' + mh.status;
+            if (mh.priceUsd) musePriceLabel += '・記録価格 $' + mh.priceUsd + ' USD';
+            musePriceLabel += '・現在価格/在庫ではなく、出典と盤一致は未検証';
+            rows.push(['Muse価格履歴（過去）', musePriceLabel]);
+            if (mh.sourceSummary) rows.push(['Muse記録の出典名', mh.sourceSummary]);
+            (mh.sourceUrls || []).forEach(function (url) {
+              a.links.push({label: 'Muse参照URL（未検証・現行出品ではない）', url: url});
+            });
+          }
           var links = a.links.map(function (link) {
             return '<a href="' + esc(link.url) + '" target="_blank" rel="noopener noreferrer">' + esc(link.label) + '</a>';
           }).join("");

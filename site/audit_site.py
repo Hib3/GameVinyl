@@ -158,9 +158,38 @@ def atomic_text(path, text):
 def compact_json(x):
     return json.dumps(x,ensure_ascii=False,separators=(',',':'),allow_nan=False).replace('<','\\u003c')
 
-def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector_db=None):
+def muse_price_history(path):
+    if not path or not path.exists():
+        return {}
+    with closing(sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True)) as history:
+        history.execute('pragma query_only=on')
+        if not history.execute("select 1 from sqlite_master where type='table' and name='muse_price_history'").fetchone():
+            return {}
+        out={}
+        for edition_id,survey_date,checked_at,status,price,summary,urls in history.execute("""
+          select h.edition_id,h.survey_date,h.checked_at,h.status,h.price_usd,
+                 h.source_summary,h.source_urls_json
+          from muse_price_history h join muse_price_imports i using(dataset_id)
+          order by h.survey_date desc,h.checked_at desc,i.imported_at desc
+        """):
+            if edition_id in out:
+                continue
+            try:
+                parsed=json.loads(urls)
+                safe_urls=[url for url in parsed if safe_https(url) and not urlsplit(url).query
+                           and not urlsplit(url).fragment] if isinstance(parsed,list) else []
+            except (TypeError,ValueError):
+                safe_urls=[]
+            out[edition_id]={'surveyDate':survey_date,'checkedAt':checked_at,'status':status,
+                'priceUsd':price if price_ok(price) else None,
+                'sourceSummary':' '.join(str(summary or '').split())[:200], 'sourceUrls':safe_urls}
+        return out
+
+
+def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector_db=None, price_history_db=None):
     now=datetime.now(timezone.utc)
     cutoff=now-timedelta(hours=6)
+    muse_history=muse_price_history(price_history_db)
     with closing(sqlite3.connect(botdb.as_uri()+'?mode=ro',uri=True)) as bot:
         bot.execute('pragma query_only=on')
         snapshots={}
@@ -369,14 +398,17 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                           offers[0]['source'] if offers else (yahoo_market[rid][0]['source'] if rid in yahoo_market else ('discogs_marketplace' if rid in market else None)))
             priced_observations=[item for item in evidence[rid] if price_ok(item[2])]
             latest_price=max(priced_observations,key=lambda item:item[0]) if priced_observations else None
+            historical_price=muse_history.get(rid)
             has_price=bool(snap) or bool(latest_price)
             price_status=('candidate_needs_review' if has_price else
+                          'candidate_needs_review' if historical_price else
                           'source_unverified' if rid in monitored_ids else 'no_route')
             price_reason=('価格の出典・原通貨・送料条件・盤一致をそろえて確認できていない' if has_price else
+                          'Museの過去調査記録あり。現在価格ではなく、出典と盤一致の確認待ち' if historical_price else
                           'Bot監視対象だが現行価格証拠なし' if rid in monitored_ids else 'この盤の現在価格を取得する経路なし')
             add_coverage('price',price_status,price_reason,
-                         snap[1] if snap else (latest_price[1] if latest_price else None),
-                         'bot_snapshot' if snap else (urlsplit(latest_price[4]).hostname if latest_price and latest_price[4] else None))
+                         snap[1] if snap else (latest_price[1] if latest_price else (historical_price['checkedAt'] if historical_price else None)),
+                         'bot_snapshot' if snap else (urlsplit(latest_price[4]).hostname if latest_price and latest_price[4] else ('muse_historical' if historical_price else None)))
             if snap:
                 availability_status='candidate_needs_review' if fresh else 'stale'
                 availability_reason='6時間以内のBot在庫観測だが出典/版の完全照合待ち' if fresh else 'Bot在庫観測は6時間より古い'
@@ -410,6 +442,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
               'priceStatus':'価格表示停止中（出典・通貨・利用条件を再確認中）',
               'surveyDate':survey,'lookupNote':lookup_note,'botPrice':bot_note,'gameAlternative':alt,
               'museGameEvidence':muse_game_evidence,
+              'musePriceHistory':historical_price,
               'collectorOffers':offer_note,'collectorStatus':collector_state,'links':links,'image':thumb,
               'coverage':coverage_items,'marketListings':yahoo_market.get(rid,[])}
             export.append(r)
