@@ -635,12 +635,29 @@ class Store:
     def failed(self, job, error, config):
         blocked = isinstance(error, (PermissionError, ValueError))
         delay = config['interval_seconds'] if blocked else min(3600 * 2 ** min(job['attempts'], 4), 86400)
+        now = time.time()
+        error_text = str(error)[:500]
         with self.db() as db:
-            db.execute("UPDATE jobs SET status=?,due=?,lease=0,last_error=? WHERE url=?", ('blocked' if blocked else 'error', time.time()+delay,str(error)[:500],job['url']))
+            db.execute("UPDATE jobs SET status=?,due=?,lease=0,last_error=? WHERE url=?", ('blocked' if blocked else 'error', now+delay,error_text,job['url']))
             result='blocked' if blocked else 'error'
-            db.execute('UPDATE market_search_targets SET status=?,last_error=? WHERE search_url=?',(result,str(error)[:300],job['url']))
-            db.execute('UPDATE market_search_coverage SET status=?,last_error=? WHERE edition_id IN (SELECT edition_id FROM market_search_targets WHERE search_url=?)',(result,str(error)[:300],job['url']))
-            db.execute('INSERT INTO events(url,created,kind,detail) VALUES(?,?,?,?)', (job['url'],time.time(),'fetch_failed',json.dumps({'error':str(error)[:500]})))
+            db.execute('UPDATE market_search_targets SET status=?,last_error=? WHERE search_url=?',(result,error_text[:300],job['url']))
+            db.execute('UPDATE market_search_coverage SET status=?,last_error=? WHERE edition_id IN (SELECT edition_id FROM market_search_targets WHERE search_url=?)',(result,error_text[:300],job['url']))
+            previous = db.execute("SELECT id,detail FROM events WHERE url=? AND kind='fetch_failed' ORDER BY id DESC LIMIT 1",(job['url'],)).fetchone()
+            detail={'error':error_text,'repeat_count':1,'last_seen':now}
+            if previous:
+                try:
+                    old=json.loads(previous['detail'])
+                except (TypeError,ValueError):
+                    old={}
+                if isinstance(old,dict) and old.get('error')==error_text:
+                    try:
+                        count=max(int(old.get('repeat_count',1)),1)
+                    except (TypeError,ValueError):
+                        count=1
+                    detail.update(repeat_count=count+1)
+                    db.execute('UPDATE events SET detail=? WHERE id=?',(json.dumps(detail),previous['id']))
+                    return
+            db.execute('INSERT INTO events(url,created,kind,detail) VALUES(?,?,?,?)', (job['url'],now,'fetch_failed',json.dumps(detail)))
 
     def save_market_search(self, search_url, links):
         now=time.time()

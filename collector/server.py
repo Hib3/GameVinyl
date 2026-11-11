@@ -277,7 +277,7 @@ def query_api(store, config, path, query, bot_db_path=None):
             items=[]
             for row in rows[:limit]:
                 detail=json.loads(row['detail'])
-                items.append(dict(row)|{'detail':{key:detail[key] for key in ('title','error','reason','observation_id') if key in detail}})
+                items.append(dict(row)|{'detail':{key:detail[key] for key in ('title','error','reason','observation_id','repeat_count','last_seen') if key in detail}})
             return {'items':items,'total':db.execute('SELECT COUNT(*) FROM events').fetchone()[0],'limit':limit,'has_more':len(rows)>limit,'offset':offset}
         if path == '/api/evidence':
             rid = int(query.get('id',['0'])[0])

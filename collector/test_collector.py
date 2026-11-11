@@ -238,6 +238,19 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(out['items'][0]['freshness'],'EXPIRED')
         self.assertFalse(out['items'][0]['purchase_recommended'])
 
+    def test_repeated_same_failure_updates_event_instead_of_adding_rows(self):
+        job=self.store.claim(self.config)
+        self.store.failed(job,ValueError('Yahoo redirected away from requested page'),self.config)
+        with self.store.db() as db:
+            first_created=db.execute("SELECT created FROM events WHERE kind='fetch_failed'").fetchone()[0]
+        self.store.failed(job,ValueError('Yahoo redirected away from requested page'),self.config)
+        with self.store.db() as db:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM events WHERE kind='fetch_failed'").fetchone()[0],1)
+            self.assertEqual(db.execute("SELECT created FROM events WHERE kind='fetch_failed'").fetchone()[0],first_created)
+        event=query_api(self.store,self.config,'/api/events',{})['items'][0]
+        self.assertEqual(event['detail']['repeat_count'],2)
+        self.assertIn('last_seen',event['detail'])
+
     def test_discovery_scope_dedup(self):
         source=self.config['sources'][0]
         self.store.discover(source,[('https://example.com/p2','x'),('https://example.com/p2','x'),('http://127.0.0.1/p3','x'),('https://evil.com/p','x')],self.config)
