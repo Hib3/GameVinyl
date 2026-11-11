@@ -313,13 +313,63 @@ class StorageTests(unittest.TestCase):
         finally:
             db.close()
 
-    def test_daily_backup_retains_only_two_latest_days(self):
+    def test_daily_backup_retains_only_latest_verified_day(self):
         with patch('core.datetime') as clock:
             clock.now.side_effect=[datetime(2026,11,1,tzinfo=timezone.utc),datetime(2026,11,2,tzinfo=timezone.utc),datetime(2026,11,3,tzinfo=timezone.utc)]
             for _ in range(3):
                 self.store.backup_daily()
         backups=sorted(p.name for p in (Path(self.temp.name)/'backups').glob('daily-*.sqlite3'))
-        self.assertEqual(backups,['daily-20261102.sqlite3','daily-20261103.sqlite3'])
+        self.assertEqual(backups,['daily-20261103.sqlite3'])
+        db=sqlite3.connect(Path(self.temp.name)/'backups'/backups[0])
+        try:
+            self.assertEqual(db.execute('PRAGMA quick_check').fetchone()[0],'ok')
+        finally:
+            db.close()
+
+    def test_daily_backup_failure_keeps_previous_and_cleans_temporary(self):
+        folder=Path(self.temp.name)/'backups'
+        with patch('core.datetime') as clock:
+            clock.now.side_effect=[datetime(2026,11,1,tzinfo=timezone.utc),datetime(2026,11,2,tzinfo=timezone.utc)]
+            self.store.backup_daily()
+            previous=folder/'daily-20261101.sqlite3'
+            previous_bytes=previous.read_bytes()
+            (folder/'daily-20261101.sqlite3-wal').write_bytes(b'old wal')
+            (folder/'daily-20261101.sqlite3-shm').write_bytes(b'old shm')
+            with patch.object(self.store,'_write_backup',side_effect=sqlite3.DatabaseError('interrupted')):
+                with self.assertRaises(sqlite3.DatabaseError):
+                    self.store.backup_daily()
+        self.assertEqual(previous.read_bytes(),previous_bytes)
+        self.assertTrue((folder/'daily-20261101.sqlite3-wal').exists())
+        self.assertTrue((folder/'daily-20261101.sqlite3-shm').exists())
+        self.assertFalse((folder/'daily-20261102.sqlite3').exists())
+        self.assertEqual(list(folder.glob('*.tmp')),[])
+
+    def test_daily_backup_rotation_removes_old_database_sidecars_after_success(self):
+        folder=Path(self.temp.name)/'backups'
+        with patch('core.datetime') as clock:
+            clock.now.side_effect=[datetime(2026,11,1,tzinfo=timezone.utc),datetime(2026,11,2,tzinfo=timezone.utc)]
+            self.store.backup_daily()
+            (folder/'daily-20261101.sqlite3-wal').write_bytes(b'old wal')
+            (folder/'daily-20261101.sqlite3-shm').write_bytes(b'old shm')
+            self.store.backup_daily()
+        self.assertFalse((folder/'daily-20261101.sqlite3').exists())
+        self.assertFalse((folder/'daily-20261101.sqlite3-wal').exists())
+        self.assertFalse((folder/'daily-20261101.sqlite3-shm').exists())
+
+    def test_daily_backup_does_not_duplicate_same_day(self):
+        with patch('core.datetime') as clock, patch.object(self.store,'_write_backup',wraps=self.store._write_backup) as write:
+            clock.now.side_effect=[datetime(2026,11,1,tzinfo=timezone.utc),datetime(2026,11,1,tzinfo=timezone.utc)]
+            self.assertTrue(self.store.backup_daily())
+            self.assertTrue(self.store.backup_daily())
+        write.assert_called_once()
+        self.assertEqual(len(list((Path(self.temp.name)/'backups').glob('daily-*.sqlite3'))),1)
+
+    def test_daily_backup_respects_projected_ten_percent_reserve(self):
+        with self.store.db() as db:
+            size=db.execute('PRAGMA page_count').fetchone()[0]*db.execute('PRAGMA page_size').fetchone()[0]
+        with patch('core.shutil.disk_usage',return_value=SimpleNamespace(total=1000,free=100+size-1)):
+            self.assertFalse(self.store.backup_daily())
+        self.assertEqual(list((Path(self.temp.name)/'backups').glob('daily-*.sqlite3')),[])
 
     def test_disabled_source_not_claimed(self):
         self.config['sources'][0]['enabled']=False

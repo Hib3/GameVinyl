@@ -10,6 +10,7 @@ import hashlib
 import http.client
 import ipaddress
 import json
+import logging
 import os
 from pathlib import Path
 import re
@@ -458,25 +459,48 @@ class Store:
 
     def backup_daily(self):
         day = datetime.now(timezone.utc).strftime('%Y%m%d')
+        folder = self.path.parent/'backups'
+        target = folder/f'daily-{day}.sqlite3'
+        temporary = target.with_suffix(target.suffix+'.tmp')
         with self.db() as db:
             last = db.execute("SELECT value FROM meta WHERE key='daily_backup'").fetchone()
-            if last and json.loads(last['value']) == day:
-                return
-        folder = self.path.parent/'backups'
+            if last and json.loads(last['value']) == day and target.is_file() and target.stat().st_size:
+                return True
+            page_count = db.execute('PRAGMA page_count').fetchone()[0]
+            page_size = db.execute('PRAGMA page_size').fetchone()[0]
+        usage = shutil.disk_usage(self.path.parent)
+        if usage.free-page_count*page_size < usage.total*MIN_FREE_SPACE_RATIO:
+            return False
         folder.mkdir(exist_ok=True)
-        target = folder/f'daily-{day}.sqlite3'
+        for stale in folder.glob('daily-*.sqlite3.tmp'):
+            if re.fullmatch(r'daily-\d{8}\.sqlite3\.tmp',stale.name) and stale.resolve().parent == folder.resolve():
+                stale.unlink(missing_ok=True)
+        try:
+            self._write_backup(temporary)
+            temporary.replace(target)
+            self.meta('daily_backup',day)
+            # Keep one verified daily restore point; manual backups have their own one-copy limit.
+            for old in folder.glob('daily-*.sqlite3'):
+                if old != target and re.fullmatch(r'daily-\d{8}\.sqlite3',old.name) and old.resolve().parent == folder.resolve():
+                    try:
+                        old.unlink()
+                        old.with_name(old.name+'-wal').unlink(missing_ok=True)
+                        old.with_name(old.name+'-shm').unlink(missing_ok=True)
+                    except OSError:
+                        logging.warning('Expired daily restore point retained: %s',old.name)
+            return True
+        finally:
+            temporary.unlink(missing_ok=True)
+
+    def _write_backup(self, temporary):
         with self.db() as db:
-            backup = sqlite3.connect(target)
+            backup = sqlite3.connect(temporary)
             try:
                 db.backup(backup)
+                if backup.execute('PRAGMA quick_check').fetchone()[0] != 'ok':
+                    raise sqlite3.DatabaseError('daily backup failed quick_check')
             finally:
                 backup.close()
-        self.meta('daily_backup',day)
-        # Keep two daily restore points; manual backups stay outside this rotation.
-        backups = sorted(p for p in folder.glob('daily-*.sqlite3') if re.fullmatch(r'daily-\d{8}\.sqlite3',p.name))
-        for old in backups[:-2]:
-            if old.resolve().parent == folder.resolve():
-                old.unlink()
 
     def backup_manual(self):
         folder = self.path.parent/'backups'

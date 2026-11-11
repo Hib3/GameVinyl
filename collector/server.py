@@ -363,6 +363,13 @@ def main():
     store.meta('worker_enabled',not args.no_worker)
 
     def work():
+        def daily_backup():
+            try:
+                store.backup_daily()
+            except Exception:
+                logging.exception('Collector daily restore point failed; existing copy retained')
+
+        threading.Thread(target=daily_backup,name='collector-daily-backup',daemon=True).start()
         while not stop.is_set():
             try:
                 worker.once()
