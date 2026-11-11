@@ -120,6 +120,9 @@ def audit_handoff(archive_path: Path, site_db_path: Path) -> tuple[dict, list[di
         if db_record is None:
             issue(record_id, "site_db_record_missing", record=record, evidence=evidence)
             continue
+        if evidence and not _nonempty(evidence.get("source_url")):
+            issue(record_id, "ledger_item_source_url_missing", "price_source_url",
+                  record, evidence)
         db_muse = db_record["muse"]
         if record_id not in ledger_by_id:
             ledger_missing += 1

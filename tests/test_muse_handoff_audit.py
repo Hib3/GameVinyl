@@ -81,6 +81,9 @@ def test_read_only_audit_reports_lineage_and_status_drift(tmp_path):
                for row in issues)
     assert any(row["issue"] == "muse_status_missing" and row["record_id"] == "AR-1"
                for row in issues)
+    assert any(row["issue"] == "ledger_item_source_url_missing"
+               and row["record_id"] == "AR-1" and row["field"] == "price_source_url"
+               for row in issues)
     assert any(row["issue"] == "expansion_source_url_missing" and row["record_id"] == "AR-1"
                for row in issues)
     assert any(row["issue"] == "expansion_what_established_missing"
