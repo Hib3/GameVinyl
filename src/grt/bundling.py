@@ -88,7 +88,8 @@ def _find_group(db, edition_id, variant_id, group, cond):
     if legacy:
         conds = {r[0] for r in db.execute(
             "SELECT DISTINCT cond_rank FROM listings"
-            " WHERE physical_copy_id=? AND source!='eBay Browse used'",
+            " WHERE physical_copy_id=?"
+            " AND COALESCE(source,'')!='eBay Browse used'",
             (legacy[0],)).fetchall()}
         if conds == {cond}:
             db.execute(
@@ -113,7 +114,7 @@ def _bundle_bucket(db, edition_id, variant_id, group, members):
         # the group — not just this bucket's slice of them.
         actual = db.execute(
             "SELECT * FROM listings WHERE physical_copy_id=?"
-            " AND source!='eBay Browse used'",
+            " AND COALESCE(source,'')!='eBay Browse used'",
             (gid,)).fetchall()
         represented = {m["source"] for m in actual}
         group_prices = [_price(m) for m in actual]
@@ -177,7 +178,7 @@ def _revalidate_groups(db) -> int:
     for gid, gcond in groups:
         members = db.execute(
             "SELECT * FROM listings WHERE physical_copy_id=?"
-            " AND source!='eBay Browse used'"
+            " AND COALESCE(source,'')!='eBay Browse used'"
             " AND status NOT IN ('ended')", (gid,)).fetchall()
         if len(members) < 2:
             continue
@@ -234,7 +235,8 @@ def propose_bundles(db) -> dict:
     """Scan listings and apply the bundling rules. Returns a summary."""
     dissolved = _revalidate_groups(db)
     rows = db.execute(
-        "SELECT * FROM listings WHERE source!='eBay Browse used'"
+        "SELECT * FROM listings"
+        " WHERE COALESCE(source,'')!='eBay Browse used'"
         " AND status NOT IN ('ended')"
         " AND edition_id IS NOT NULL ORDER BY edition_id, variant_id,"
         " source").fetchall()
@@ -313,7 +315,7 @@ def count_physical_copies(db, edition_id: str) -> int:
     """Copies for statistics: a bundle counts once (acceptance #8)."""
     rows = db.execute(
         "SELECT id, physical_copy_id FROM listings WHERE edition_id=?"
-        " AND source!='eBay Browse used'"
+        " AND COALESCE(source,'')!='eBay Browse used'"
         " AND status NOT IN ('ended')", (edition_id,)).fetchall()
     seen_groups = set()
     count = 0

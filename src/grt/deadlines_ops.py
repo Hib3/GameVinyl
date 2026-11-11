@@ -836,7 +836,8 @@ def arrival_check(db) -> list[dict]:
         if r["edition_id"]:
             arrived = db.execute(
                 "SELECT 1 FROM listings WHERE edition_id=? AND"
-                " source!='eBay Browse used' AND first_seen>=? LIMIT 1",
+                " COALESCE(source,'')!='eBay Browse used'"
+                " AND first_seen>=? LIMIT 1",
                 (r["edition_id"], _to_jst_iso(dt))).fetchone() \
                 is not None
             outcome = "confirmed_arrived" if arrived else "not_found"

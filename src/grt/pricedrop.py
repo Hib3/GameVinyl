@@ -131,7 +131,7 @@ def bucket_best(db, edition_id: str, variant_id, cond_rank,
     rows = db.execute(
         "SELECT id, total_jpy, price, currency, last_seen"
         " FROM listings"
-        " WHERE edition_id=? AND source!='eBay Browse used'"
+        " WHERE edition_id=? AND COALESCE(source,'')!='eBay Browse used'"
         " AND variant_id IS ? AND cond_rank=?"
         " AND id!=? AND status NOT IN ('ended', 'sold_candidate')",
         (edition_id, variant_id, cond_rank, exclude_listing_id)

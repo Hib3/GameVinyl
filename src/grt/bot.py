@@ -1299,7 +1299,7 @@ class Bot:
             " AND COALESCE(UPPER(TRIM(currency)), '') IS NOT 'JPY'"
             " THEN 1 ELSE 0 END)"
             " FROM listings WHERE edition_id=?"
-            " AND source!='eBay Browse used'"
+            " AND COALESCE(source,'')!='eBay Browse used'"
             " AND status NOT IN ('ended', 'sold_candidate')"
             " GROUP BY variant_id, cond_rank"
             " ORDER BY cond_rank DESC",
@@ -1877,7 +1877,8 @@ class Bot:
             "  AND NOT (typeof(s.num_for_sale)"
             "   IN ('integer', 'real') AND s.num_for_sale <= 0))"
             " OR EXISTS (SELECT 1 FROM listings l"
-            "  WHERE l.edition_id=e.id AND l.source!='eBay Browse used'"
+            "  WHERE l.edition_id=e.id"
+            "  AND COALESCE(l.source,'')!='eBay Browse used'"
             "  AND l.status='active'"
             "  AND l.last_seen IS NOT NULL AND l.last_seen>=?"
             # W-check B5 R24 (seller F-3/F-4): the listings side
