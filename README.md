@@ -55,6 +55,8 @@ game-record-tool/
 python tools\audit_muse_handoff.py --archive path\to\handoff.zip --site-db data\site\vgm_site.sqlite3
 ```
 
+必要なら `--bot-db data\grt.db` を追加するとBot DBも読み取り専用で照合します。`--issues-csv path\to\review.csv` は欠けている盤別価格出典URLと、Muse調査中のDiscogs Release URLから抽出した未確認ID候補を人手確認用CSVに出します。候補IDはBot DBへ自動登録しません。同じRelease IDが複数盤に現れる場合は曖昧候補として残します。
+
 人の確認用CSVが必要なときだけ `--issues-csv path\to\review.csv` を追加してください。価格や候補を正本へ自動反映せず、監査結果が `review_required` の場合は未確認のまま保ちます。
 
 ## はじめ方
