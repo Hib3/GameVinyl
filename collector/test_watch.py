@@ -29,6 +29,25 @@ class WatchTest(unittest.TestCase):
                 row=db.execute("SELECT status,last_error FROM market_search_coverage WHERE edition_id='AR-000001'").fetchone()
         self.assertEqual(tuple(row),('blocked','redirect diagnostics'))
 
+    def test_initialize_marks_legacy_coverage_reason_kept_on_target(self):
+        with TemporaryDirectory() as folder:
+            root=Path(folder)/'package'
+            (root/'seed').mkdir(parents=True)
+            (root/'seed'/'records.json').write_text(json.dumps([{'id':'AR-000001','title':'Game Vinyl','catalog':'GAME-1'}]),encoding='utf-8')
+            store=Store(Path(folder)/'collector.sqlite3')
+            config={'sources':[{'id':'yahoo_watch','seeds':[],'min_request_gap_seconds':0}], 'watches':[], 'interval_seconds':600,'min_request_gap_seconds':0,'catalog_priority_slots_per_hour':12}
+            with patch.object(core,'ROOT',root):
+                store.initialize(config)
+                with store.db() as db:
+                    db.execute("UPDATE market_search_targets SET status='blocked',last_error='legacy detail may contain a search term'")
+                    db.execute("UPDATE market_search_coverage SET status='blocked',last_error=NULL")
+                store.initialize(config)
+            with store.db() as db:
+                row=db.execute("SELECT status,last_error FROM market_search_coverage WHERE edition_id='AR-000001'").fetchone()
+                target_error=db.execute("SELECT last_error FROM market_search_targets WHERE edition_id='AR-000001'").fetchone()[0]
+        self.assertEqual(tuple(row),('blocked','failure detail retained on query target'))
+        self.assertEqual(target_error,'legacy detail may contain a search term')
+
     def test_status_reports_live_disk_reserve(self):
         with TemporaryDirectory() as folder:
             store=Store(Path(folder)/'collector.sqlite3')

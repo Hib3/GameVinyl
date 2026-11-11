@@ -556,6 +556,13 @@ class Store:
                         db.execute("INSERT INTO market_search_coverage VALUES(?,'queued',NULL,NULL) ON CONFLICT(edition_id) DO UPDATE SET status=CASE WHEN market_search_coverage.status='no_route' THEN 'queued' ELSE market_search_coverage.status END,last_error=CASE WHEN market_search_coverage.status='no_route' THEN NULL ELSE market_search_coverage.last_error END",(record_id,))
                 for path in config.get('catalog_pages',{}).get(source['id'],[]):
                     db.execute('INSERT OR IGNORE INTO jobs(url,source,due) VALUES(?,?,?)', ('https://'+source['hosts'][0]+path,source['id'],time.time()))
+            # Older redirect errors may embed a search URL; keep coverage safe.
+            db.execute("""UPDATE market_search_coverage
+                SET last_error='failure detail retained on query target'
+                WHERE status IN ('blocked','error') AND last_error IS NULL
+                  AND EXISTS (SELECT 1 FROM market_search_targets t
+                    WHERE t.edition_id=market_search_coverage.edition_id
+                      AND t.status IN ('blocked','error') AND t.last_error IS NOT NULL)""")
             for path in ARCHIVE.glob('discovery-*.json') if ARCHIVE.is_dir() else ():
                 db.execute('INSERT OR IGNORE INTO history_imports VALUES(?,?)', (path.name,path.read_text(encoding='utf-8')))
 
