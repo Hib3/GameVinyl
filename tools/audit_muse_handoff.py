@@ -42,6 +42,17 @@ def _discogs_release_candidate(value: str | None) -> str | None:
     return match.group(1) if match else None
 
 
+def _discogs_release_references(value: str | None) -> set[str]:
+    text = str(value or "")
+    return {
+        match.group(1) or match.group(2)
+        for match in re.finditer(
+            r"\bDiscogs\s+release\s+#?(\d{1,12})\b"
+            r"|https?://(?:www\.)?discogs\.com/release/(\d{1,12})(?:[/\s?#.:,;!()\[\]{}-]|$)",
+            text, re.IGNORECASE)
+    }
+
+
 def _decode_object(value, where: str) -> dict:
     if value in (None, ""):
         return {}
@@ -153,6 +164,7 @@ def audit_handoff(archive_path: Path, site_db_path: Path,
     status_missing = 0
     status_missing_with_price = 0
     ledger_missing = 0
+    ledger_discogs_locator_candidates = 0
     bot_conflicts: Counter = Counter()
     bot_presence_gaps: Counter = Counter()
     bot_records_missing = 0
@@ -165,6 +177,14 @@ def audit_handoff(archive_path: Path, site_db_path: Path,
         if evidence and not _nonempty(evidence.get("source_url")):
             issue(record_id, "ledger_item_source_url_missing", "price_source_url",
                   record, evidence)
+            notes = " ".join(str(evidence.get(key) or "")
+                             for key in ("explanation", "notes", "what_established"))
+            for release_id in sorted(_discogs_release_references(notes)):
+                ledger_discogs_locator_candidates += 1
+                issue(record_id, "ledger_discogs_locator_candidate_needs_review",
+                      "price_source_url", record,
+                      {**evidence, "candidate_value": release_id,
+                       "source_url": f"https://www.discogs.com/release/{release_id}"})
         if bot is not None:
             bot_record = bot.get(record_id)
             if bot_record is None:
@@ -303,6 +323,7 @@ def audit_handoff(archive_path: Path, site_db_path: Path,
         "muse_status_missing_with_expansion": len(set().union(*null_status_expansions.values())) if null_status_expansions else 0,
         "muse_status_missing_expansion_outcomes": dict(sorted((k, len(v)) for k, v in null_status_expansions.items())),
         "ledger_rows_without_item_source_url": evidence_without_url,
+        "ledger_discogs_locator_candidate_rows": ledger_discogs_locator_candidates,
         "expansion_rows": len(expansion),
         "expansion_outcome_counts": dict(sorted(Counter(row.get("outcome") or "(missing)" for row in expansion).items())),
         "discogs_release_id_candidate_rows": discogs_candidate_rows,

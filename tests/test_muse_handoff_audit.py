@@ -4,7 +4,9 @@ import sqlite3
 import zipfile
 from pathlib import Path
 
-from tools.audit_muse_handoff import _discogs_release_candidate, audit_handoff, main
+from tools.audit_muse_handoff import (
+    _discogs_release_candidate, _discogs_release_references, audit_handoff, main,
+)
 
 
 def _fixture_inputs(tmp_path: Path):
@@ -21,7 +23,8 @@ def _fixture_inputs(tmp_path: Path):
     ledger = {
         "evidence": [
             {"record_id": "AR-1", "status": "CURRENT_CONFIRMED",
-             "checked_at": "2026-10-27", "route": "discogs", "notes": "old claim"},
+             "checked_at": "2026-10-27", "route": "discogs",
+             "notes": "old claim cites Discogs release 555"},
             {"record_id": "AR-2", "status": "CURRENT_CONFIRMED",
              "checked_at": "2026-10-28", "route": "discogs",
              "source_url": "https://example.test/release/2"},
@@ -73,6 +76,7 @@ def test_read_only_audit_reports_lineage_and_status_drift(tmp_path):
     assert summary["muse_status_missing_with_price"] == 1
     assert summary["muse_status_missing_with_expansion"] == 1
     assert summary["ledger_rows_without_item_source_url"] == 1
+    assert summary["ledger_discogs_locator_candidate_rows"] == 1
     assert summary["expansion_rows_without_source_url"] == 1
     assert summary["expansion_rows_without_what_established"] == 1
     assert summary["expansion_rows_without_notes"] == 1
@@ -90,6 +94,10 @@ def test_read_only_audit_reports_lineage_and_status_drift(tmp_path):
                for row in issues)
     assert any(row["issue"] == "ledger_item_source_url_missing"
                and row["record_id"] == "AR-1" and row["field"] == "price_source_url"
+               for row in issues)
+    assert any(row["issue"] == "ledger_discogs_locator_candidate_needs_review"
+               and row["record_id"] == "AR-1" and row["candidate_value"] == "555"
+               and row["source_url"] == "https://www.discogs.com/release/555"
                for row in issues)
     assert any(row["issue"] == "expansion_source_url_missing" and row["record_id"] == "AR-1"
                for row in issues)
@@ -115,6 +123,16 @@ def test_discogs_candidate_parser_rejects_untrusted_routes():
         "https://api.discogs.com/releases/12345",
     ):
         assert _discogs_release_candidate(url) is None
+
+
+def test_discogs_release_references_only_accept_explicit_release_locators():
+    assert _discogs_release_references(
+        "Discogs release #123 and https://www.discogs.com/release/456-title. "
+        "Also https://discogs.com/release/789:"
+    ) == {"123", "456", "789"}
+    assert _discogs_release_references(
+        "https://www.discogs.com.attacker.test/release/123"
+    ) == set()
 
 
 def test_optional_bot_db_cross_check_is_read_only_and_marks_candidate_gaps(tmp_path):
