@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+import sqlite3
 import tempfile
 import time
 import unittest
@@ -267,6 +268,19 @@ class StorageTests(unittest.TestCase):
         with Store(restored).db() as db:
             self.assertEqual(db.execute('pragma integrity_check').fetchone()[0],'ok')
             self.assertEqual(db.execute('select count(*) from observations').fetchone()[0],1)
+
+    def test_manual_backup_keeps_only_latest_valid_copy(self):
+        with patch('core.datetime') as clock:
+            clock.now.side_effect=[datetime(2026,11,1,tzinfo=timezone.utc),datetime(2026,11,2,tzinfo=timezone.utc)]
+            self.store.backup_manual()
+            latest=self.store.backup_manual()
+        backups=list((Path(self.temp.name)/'backups').glob('collector-*.sqlite3'))
+        self.assertEqual(backups,[latest])
+        db=sqlite3.connect(latest)
+        try:
+            self.assertEqual(db.execute('PRAGMA quick_check').fetchone()[0],'ok')
+        finally:
+            db.close()
 
     def test_daily_backup_retains_only_two_latest_days(self):
         with patch('core.datetime') as clock:

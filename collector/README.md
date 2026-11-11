@@ -61,7 +61,7 @@ Disable-ScheduledTask -TaskName GameRecordToolCollector
 .\.venv-collector\Scripts\python.exe -m unittest discover -s collector -p test_collector.py
 ```
 
-統合インストールではデータは`data/collector/collector.sqlite3`、ログは`data/collector/collector.log`です。Botの`data/grt.db`は読み取り専用でAR-ID結合します。ログは1MB×最大4ファイル。自動バックアップはUTC日単位で1回、`data/collector/backups/daily-YYYYMMDD.sqlite3`を直近2日分保持。手動バックアップは自動削除しません。
+統合インストールではデータは`data/collector/collector.sqlite3`、ログは`data/collector/collector.log`です。Botの`data/grt.db`は読み取り専用でAR-ID結合します。ログは1MB×最大4ファイル。自動バックアップはUTC日単位で1回、`data/collector/backups/daily-YYYYMMDD.sqlite3`を直近2日分保持。手動バックアップは最新の検証済み1点だけを保持します。新しいコピーは quick_check に成功してから旧コピーを置き換えるため、失敗時は旧復元点が残ります。
 
 復元はタスク停止後に現在のDBと`-wal`/`-shm`を別フォルダーへ退避してから、バックアップを`collector.sqlite3`へコピーして再開します。現DBを直接上書きして退避なしに戻すことはしないでください。
 

@@ -1,9 +1,7 @@
 """Local administrator commands; never exposed through the HTTP API."""
 import argparse
-from datetime import datetime, timezone
 import json
 from pathlib import Path
-import sqlite3
 import time
 import hashlib
 import zlib
@@ -60,12 +58,4 @@ elif args.command=='reextract':
                 changed+=1
     print(json.dumps({'reextracted':changed,'observation_times_preserved':True}))
 else:
-    target=DATA/'backups'/('collector-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')+'.sqlite3')
-    target.parent.mkdir(exist_ok=True)
-    with store.db() as db:
-        backup=sqlite3.connect(target)
-        try:
-            db.backup(backup)
-        finally:
-            backup.close()
-    print(str(target))
+    print(str(store.backup_manual()))

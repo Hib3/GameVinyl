@@ -469,6 +469,29 @@ class Store:
             if old.resolve().parent == folder.resolve():
                 old.unlink()
 
+    def backup_manual(self):
+        folder = self.path.parent/'backups'
+        folder.mkdir(exist_ok=True)
+        target = folder/('collector-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')+'.sqlite3')
+        temporary = target.with_suffix('.tmp')
+        backup = sqlite3.connect(temporary)
+        try:
+            with self.db() as db:
+                db.backup(backup)
+            if backup.execute('PRAGMA quick_check').fetchone()[0] != 'ok':
+                raise sqlite3.DatabaseError('manual backup failed quick_check')
+        except Exception:
+            backup.close()
+            temporary.unlink(missing_ok=True)
+            raise
+        backup.close()
+        temporary.replace(target)
+        backups = sorted(p for p in folder.glob('collector-*.sqlite3') if re.fullmatch(r'collector-\d{8}T\d{12}Z\.sqlite3', p.name))
+        for old in backups:
+            if old != target and old.resolve().parent == folder.resolve():
+                old.unlink()
+        return target
+
     def initialize(self, config):
         with self.db() as db:
             if not db.execute('SELECT 1 FROM records LIMIT 1').fetchone():
