@@ -146,10 +146,11 @@ def test_runpy_successful_boot_writes_startup_record(tmp_path):
 
 def test_diagnose_header_shows_version_and_last_boot(tmp_path):
     data_dir = tmp_path / "data"
-    env = _clean_env({"GRT_DATA_DIR": str(data_dir)})
+    env = _clean_env({"GRT_DATA_DIR": str(data_dir),
+                      "PYTHONIOENCODING": "utf-8"})
     proc = subprocess.run(
         [sys.executable, "diagnose.py"], cwd=PROJECT_ROOT, env=env,
-        capture_output=True, text=True, timeout=180)
+        capture_output=True, text=True, encoding="utf-8", timeout=180)
     assert proc.returncode == 0, proc.stderr[-2000:]
     head = "\n".join(proc.stdout.splitlines()[:10])
     assert "バージョン: " + version_mod.app_version() in head
