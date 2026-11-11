@@ -1,6 +1,6 @@
 [project]
 name = "game-record-tool"
-version = "2.0.82"
+version = "2.0.83"
 description = "Archive / catalog / notification system for Japanese game-music analog records. No embedded AI; deterministic matching plus Telegram human review. Free to operate."
 requires-python = ">=3.12"
 # Pinned exactly to match requirements.txt (the file setup.bat installs
@@ -19,6 +19,8 @@ dependencies = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+tmp_path_retention_policy = "failed"
+tmp_path_retention_count = 1
 
 
 
