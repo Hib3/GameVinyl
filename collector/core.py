@@ -764,7 +764,12 @@ class Worker:
             if status != 200:
                 raise RuntimeError(f'HTTP {status}; not treated as sold out')
             if source['id']=='yahoo_watch' and urlsplit(final).path != urlsplit(job['url']).path:
-                raise ValueError('Yahoo redirected away from requested page')
+                requested=urlsplit(job['url'])
+                redirected=urlsplit(final)
+                route='root' if redirected.path=='/' else 'search' if redirected.path.startswith('/search/') else 'auction' if redirected.path.startswith('/jp/auction/') else 'other'
+                challenge=bool(re.search(r'captcha|verify you are human|robot check|人間であることを確認|アクセスが集中しています',html[:200000],re.I))
+                host_relation='same' if redirected.hostname==requested.hostname else 'alternate'
+                raise ValueError(f'Yahoo redirect blocked: host_relation={host_relation} route={route} challenge_marker={int(challenge)}')
             if source['id']=='yahoo_watch' and urlsplit(job['url']).path=='/search/search':
                 with self.store.db() as db:
                     modes={row[0] for row in db.execute('SELECT mode FROM market_search_targets WHERE search_url=?',(job['url'],))}

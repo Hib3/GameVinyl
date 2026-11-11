@@ -21,6 +21,27 @@ class WatchTest(unittest.TestCase):
         self.assertTrue(status['meta']['storage_protection']['paused'])
         self.assertEqual(status['meta']['storage_protection']['free_bytes'],99)
 
+    def test_yahoo_redirect_block_records_route_class_without_search_query(self):
+        config=json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        source=next(s for s in config['sources'] if s['id']=='yahoo_watch')
+        config['sources']=[source]
+        config['min_request_gap_seconds']=0
+        source['min_request_gap_seconds']=0
+        search='https://auctions.yahoo.co.jp/search/search?p=PRIVATE_QUERY_MARKER'
+        with TemporaryDirectory() as folder:
+            store=Store(Path(folder)/'collector.sqlite3')
+            with store.db() as db:
+                db.execute('INSERT INTO source_state(id,next_allowed) VALUES(?,0)',('yahoo_watch',))
+                db.execute('INSERT INTO jobs(url,source,due) VALUES(?,?,0)',(search,'yahoo_watch'))
+            worker=Worker(store,config)
+            with patch.object(worker.robots,'check',return_value=0), patch('core.fetch_http',return_value=(200,'<title>アクセスが集中しています</title>','https://auctions.yahoo.co.jp/')):
+                self.assertTrue(worker.once())
+            with store.db() as db:
+                row=db.execute('SELECT status,last_error FROM jobs WHERE url=?',(search,)).fetchone()
+            self.assertEqual(row['status'],'blocked')
+            self.assertIn('route=root challenge_marker=1',row['last_error'])
+            self.assertNotIn('PRIVATE_QUERY_MARKER',row['last_error'])
+
     def test_all_seed_editions_are_queued_or_have_a_route_reason(self):
         config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
         config['sources'] = [s for s in config['sources'] if s['id'] == 'yahoo_watch']
