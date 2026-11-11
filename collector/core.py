@@ -432,6 +432,7 @@ class Store:
             CREATE TABLE IF NOT EXISTS candidates(url TEXT PRIMARY KEY,title TEXT,first_seen REAL,last_seen REAL,status TEXT DEFAULT 'pending_verification');
             CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY,url TEXT,created REAL,kind TEXT,detail TEXT);
             CREATE INDEX IF NOT EXISTS watch_event_url ON events(url) WHERE kind='watch_new';
+            CREATE INDEX IF NOT EXISTS fetch_failed_url ON events(url,id) WHERE kind='fetch_failed';
             CREATE TABLE IF NOT EXISTS source_state(id TEXT PRIMARY KEY,next_allowed REAL DEFAULT 0);
             CREATE TABLE IF NOT EXISTS history_imports(name TEXT PRIMARY KEY,data TEXT);
             CREATE TABLE IF NOT EXISTS market_search_targets(search_url TEXT NOT NULL,edition_id TEXT NOT NULL,query TEXT NOT NULL,mode TEXT NOT NULL,priority INTEGER NOT NULL DEFAULT 0,status TEXT NOT NULL DEFAULT 'queued',last_checked REAL,last_error TEXT,PRIMARY KEY(search_url,edition_id));

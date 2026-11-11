@@ -239,6 +239,9 @@ class StorageTests(unittest.TestCase):
         self.assertFalse(out['items'][0]['purchase_recommended'])
 
     def test_repeated_same_failure_updates_event_instead_of_adding_rows(self):
+        with self.store.db() as db:
+            plan=[row['detail'] for row in db.execute("EXPLAIN QUERY PLAN SELECT id,detail FROM events WHERE url=? AND kind='fetch_failed' ORDER BY id DESC LIMIT 1",('https://example.com/p',))]
+        self.assertTrue(any('fetch_failed_url' in step for step in plan))
         job=self.store.claim(self.config)
         self.store.failed(job,ValueError('Yahoo redirected away from requested page'),self.config)
         with self.store.db() as db:
