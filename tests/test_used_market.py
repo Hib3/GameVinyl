@@ -1,5 +1,4 @@
 import json
-import pytest
 from grt import clock
 
 from grt.used_market import run_market_api_sweep, run_yahoo_used_sweep
@@ -51,51 +50,61 @@ def test_used_market_is_disabled_without_app_id(db):
         "SELECT COUNT(*) FROM used_market_search_state").fetchone()[0] == 0
 
 
-@pytest.mark.parametrize("provider,env,listing_url,image_url", [
-    ("ebay", {"EBAY_OAUTH_TOKEN": "test-token"},
-     "https://www.ebay.com/itm/123",
-     "https://i.ebayimg.com/images/g/a/s-l1600.jpg"),
-    ("rakuten", {"RAKUTEN_APP_ID": "test-id",
-                 "RAKUTEN_ACCESS_KEY": "test-key"},
-     "https://item.rakuten.co.jp/shop/item/",
-     "https://thumbnail.image.rakuten.co.jp/@0_mall/shop/a.jpg"),
-])
-def test_market_api_lane_rotates_and_requires_human_review(
-        db, monkeypatch, tmp_path, provider, env, listing_url, image_url):
+def test_rakuten_market_api_lane_rotates_and_requires_human_review(
+        db, monkeypatch, tmp_path):
     monkeypatch.setenv("GRT_DATA_DIR", str(tmp_path))
     for key in ("EBAY_OAUTH_TOKEN", "RAKUTEN_APP_ID", "RAKUTEN_ACCESS_KEY"):
         monkeypatch.delenv(key, raising=False)
-    for key, value in env.items():
-        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("RAKUTEN_APP_ID", "test-id")
+    monkeypatch.setenv("RAKUTEN_ACCESS_KEY", "test-key")
     for i in range(3):
         _edition(db, f"API-{i}", f"Record {i}", f"CAT-{i}", 1980+i)
     FakeApiFetcher.queries = []
     FakeApiFetcher.response = {"ok": True, "result": "OK", "items": [{
         "title": "Record 0", "raw_title": "Record 0 CAT-0",
-        "url": listing_url, "image_url": image_url,
-        "price": 12.5, "currency": "USD" if provider == "ebay" else "JPY",
+        "url": "https://item.rakuten.co.jp/shop/item/",
+        "image_url": "https://thumbnail.image.rakuten.co.jp/@0_mall/shop/a.jpg",
+        "price": 12.5, "currency": "JPY",
     }]}
     seen = set()
     for _ in range(3):
         result = run_market_api_sweep(
-            db, provider, batch_size=1, fetcher_factory=FakeApiFetcher)
+            db, "rakuten", batch_size=1, fetcher_factory=FakeApiFetcher)
         assert result["checked"] == 1
         seen.update(FakeApiFetcher.queries)
     assert seen == {"CAT-0", "CAT-1", "CAT-2"}
-    name = "eBay Browse used" if provider == "ebay" else "Rakuten Ichiba"
     row = db.execute(
         "SELECT id,edition_id,price,currency,total_jpy,image_url FROM listings"
-        " WHERE source=?", (name,)).fetchone()
+        " WHERE source='Rakuten Ichiba'").fetchone()
     assert row is not None and row["edition_id"] is None
     assert row["price"] == 12.5
-    assert row["total_jpy"] == (None if provider == "ebay" else 12.5)
-    assert row["image_url"] == image_url
+    assert row["total_jpy"] == 12.5
+    assert row["image_url"] == "https://thumbnail.image.rakuten.co.jp/@0_mall/shop/a.jpg"
     assert db.execute(
         "SELECT COUNT(*) FROM market_api_search_state WHERE provider=?",
-        (provider,)).fetchone()[0] == 3
+        ("rakuten",)).fetchone()[0] == 3
     assert db.execute(
         "SELECT COUNT(*) FROM review_queue WHERE kind='match_review'"
         " AND resolved_at IS NULL").fetchone()[0] > 0
+
+
+def test_ebay_market_api_lane_is_disabled_before_credentials_or_state(
+        db, monkeypatch):
+    from grt.fetchers import ebay
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("disabled eBay lane must not inspect credentials or fetch")
+
+    monkeypatch.setattr(ebay, "ebay_oauth_token", forbidden)
+    result = run_market_api_sweep(
+        db, "ebay", fetcher_factory=forbidden)
+
+    assert result == {"status": "disabled", "checked": 0,
+                      "listings": 0, "errors": 0}
+    assert db.execute("SELECT COUNT(*) FROM sources").fetchone()[0] == 0
+    assert db.execute(
+        "SELECT COUNT(*) FROM market_api_search_state").fetchone()[0] == 0
+    assert db.execute("SELECT COUNT(*) FROM listings").fetchone()[0] == 0
 
 
 def test_market_api_missing_credentials_does_not_create_or_advance_queue(
@@ -114,18 +123,13 @@ def test_market_api_missing_credentials_does_not_create_or_advance_queue(
     assert db.execute("SELECT COUNT(*) FROM sources").fetchone()[0] == 0
 
 
-@pytest.mark.parametrize("provider,env", [
-    ("ebay", {"EBAY_OAUTH_TOKEN": "test-token"}),
-    ("rakuten", {"RAKUTEN_APP_ID": "test-id",
-                 "RAKUTEN_ACCESS_KEY": "test-key"}),
-])
 def test_market_api_two_full_rotations_cover_all_3777_editions(
-        db, monkeypatch, tmp_path, provider, env):
+        db, monkeypatch, tmp_path):
     monkeypatch.setenv("GRT_DATA_DIR", str(tmp_path))
     for key in ("EBAY_OAUTH_TOKEN", "RAKUTEN_APP_ID", "RAKUTEN_ACCESS_KEY"):
         monkeypatch.delenv(key, raising=False)
-    for key, value in env.items():
-        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("RAKUTEN_APP_ID", "test-id")
+    monkeypatch.setenv("RAKUTEN_ACCESS_KEY", "test-key")
     db.executemany(
         "INSERT INTO editions(id,title,catalog,year) VALUES(?,?,?,?)",
         [(f"ROT-{i:04d}", f"Record {i}", f"CAT-{i:04d}", 1970+i%60)
@@ -138,7 +142,7 @@ def test_market_api_two_full_rotations_cover_all_3777_editions(
         for batch in range(189):
             batch_size = 17 if batch == 188 else 20
             result = run_market_api_sweep(
-                db, provider, batch_size=batch_size,
+                db, "rakuten", batch_size=batch_size,
                 fetcher_factory=FakeApiFetcher)
             assert result["status"] == "ok"
             offset += 900
@@ -146,30 +150,31 @@ def test_market_api_two_full_rotations_cover_all_3777_editions(
     assert len(FakeApiFetcher.queries) == 7554
     assert db.execute(
         "SELECT COUNT(*) FROM market_api_search_state WHERE provider=?",
-        (provider,)).fetchone()[0] == 3777
+        ("rakuten",)).fetchone()[0] == 3777
     attempts = db.execute(
         "SELECT MIN(attempts),MAX(attempts) FROM market_api_search_state"
-        " WHERE provider=?", (provider,)).fetchone()
+        " WHERE provider='rakuten'").fetchone()
     assert attempts[0] == attempts[1] == 2
     assert db.execute(
         "SELECT COUNT(*) FROM market_api_search_state WHERE provider=?"
-        " AND last_success IS NOT NULL", (provider,)).fetchone()[0] == 3777
+        " AND last_success IS NOT NULL", ("rakuten",)).fetchone()[0] == 3777
 
 
 def test_market_api_block_applies_source_cooldown(db, monkeypatch, tmp_path):
     monkeypatch.setenv("GRT_DATA_DIR", str(tmp_path))
-    monkeypatch.setenv("EBAY_OAUTH_TOKEN", "test-token")
+    monkeypatch.setenv("RAKUTEN_APP_ID", "test-id")
+    monkeypatch.setenv("RAKUTEN_ACCESS_KEY", "test-key")
     _edition(db, "API-1", "Record", "CAT-1", 1980)
     FakeApiFetcher.queries = []
     FakeApiFetcher.response = {"ok": False, "result": "BLOCKED", "items": []}
-    first = run_market_api_sweep(db, "ebay", batch_size=1,
+    first = run_market_api_sweep(db, "rakuten", batch_size=1,
                                  fetcher_factory=FakeApiFetcher)
     assert first["status"] == "partial" and first["checked"] == 1
     assert db.execute(
         "SELECT last_blocked FROM market_api_search_state"
-        " WHERE provider='ebay' AND edition_id='API-1'").fetchone()[0]
+        " WHERE provider='rakuten' AND edition_id='API-1'").fetchone()[0]
     calls = len(FakeApiFetcher.queries)
-    second = run_market_api_sweep(db, "ebay", batch_size=1,
+    second = run_market_api_sweep(db, "rakuten", batch_size=1,
                                   fetcher_factory=FakeApiFetcher)
     assert second["status"] == "blocked" and second["checked"] == 0
     assert len(FakeApiFetcher.queries) == calls

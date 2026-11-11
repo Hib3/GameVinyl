@@ -515,11 +515,10 @@ def run() -> None:
     def market_api_job():
         def body(conn):
             from .used_market import run_market_api_sweep
-            for provider in ("ebay", "rakuten"):
-                try:
-                    run_market_api_sweep(conn, provider)
-                except Exception as exc:
-                    _log_job_error("market_api_" + provider, exc)
+            try:
+                run_market_api_sweep(conn, "rakuten")
+            except Exception as exc:
+                _log_job_error("market_api_rakuten", exc)
         _run_job("market_api", body)
 
     def goods_job():

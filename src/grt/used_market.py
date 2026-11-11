@@ -83,28 +83,26 @@ def _upsert_listing(db, item: dict, now: str, *,
 
 def run_market_api_sweep(db, provider: str, batch_size: int = 20, *,
                          fetcher_factory=None) -> dict:
-    """Fair API search lane for eBay or Rakuten; results require review."""
+    """Fair Rakuten API search; eBay stays off until expiry handling exists."""
     if provider not in ("ebay", "rakuten"):
         raise ValueError("provider must be 'ebay' or 'rakuten'")
     if isinstance(batch_size, bool) or not isinstance(batch_size, int) \
             or not 1 <= batch_size <= 20:
         raise ValueError("batch_size must be between 1 and 20")
+    # eBay listing data cannot enter persistent review storage until its
+    # six-hour expiry and Telegram deletion lifecycle is implemented.
     if provider == "ebay":
-        from .fetchers.ebay import EbayFetcher, ebay_oauth_token
-        credentials = {"token": ebay_oauth_token()}
-        name, api_url = "eBay Browse used", "https://api.ebay.com/buy/browse/v1/item_summary/search"
-        listing_host, image_host = "ebay.com", "ebayimg.com"
-        default_factory = EbayFetcher
-    else:
-        from .fetchers.rakuten import (RakutenFetcher, rakuten_access_key,
-                                       rakuten_app_id)
-        credentials = {"app_id": rakuten_app_id(),
-                       "access_key": rakuten_access_key()}
-        name = "Rakuten Ichiba"
-        api_url = ("https://openapi.rakuten.co.jp/ichibams/api/"
-                   "IchibaItem/Search/20260701")
-        listing_host, image_host = "rakuten.co.jp", "image.rakuten.co.jp"
-        default_factory = RakutenFetcher
+        return {"status": "disabled", "checked": 0,
+                "listings": 0, "errors": 0}
+    from .fetchers.rakuten import (RakutenFetcher, rakuten_access_key,
+                                   rakuten_app_id)
+    credentials = {"app_id": rakuten_app_id(),
+                   "access_key": rakuten_access_key()}
+    name = "Rakuten Ichiba"
+    api_url = ("https://openapi.rakuten.co.jp/ichibams/api/"
+               "IchibaItem/Search/20260701")
+    listing_host, image_host = "rakuten.co.jp", "image.rakuten.co.jp"
+    default_factory = RakutenFetcher
     if not all(credentials.values()):
         return {"status": "disabled", "checked": 0, "listings": 0,
                 "errors": 0}

@@ -78,10 +78,17 @@ _QUIET_RANGE_RE = re.compile(
 _GATE_MESSAGE = ("初期設定が未完了です。まず静穏例外（締切が近い場合に"
                  "夜間でも即時通知するか）の選択を完了してください。")
 _CALLBACK_ERROR_MESSAGE = "ボタンの形式が不正です。操作を受け付けませんでした。"
+_DISABLED_REVIEW_SOURCES = frozenset({"eBay Browse used"})
 
 
 def gate_open(db) -> bool:
     return get_setting(db, "deadline_override_quiet_selected") == "1"
+
+
+def _is_disabled_api_review(payload) -> bool:
+    listing = payload.get("listing") if isinstance(payload, dict) else None
+    return (isinstance(listing, dict)
+            and listing.get("source") in _DISABLED_REVIEW_SOURCES)
 
 
 def _short(value, limit: int = ECHO_LIMIT) -> str:
@@ -689,6 +696,12 @@ class Bot:
         if not isinstance(payload, dict):
             payload = {}
         kind = row["kind"]
+        if kind == "match_review" and _is_disabled_api_review(payload):
+            self._settle_queue_row(qid, "source_disabled")
+            self.db.commit()
+            self._send(chat_id, "この出品元の自動レビューは停止中です。"
+                       "価格証拠としては登録していません。")
+            return "source_disabled"
         if kind == "match_review":
             return self._consume_match_review(chat_id, row, payload,
                                               approve)
@@ -1322,6 +1335,19 @@ class Bot:
         stale candidate rows as 'stale' on sight, and presents the
         first PRESENTABLE item of ANY kind with kind-appropriate
         buttons (qok:/qno: for the generic kinds)."""
+        # Suppress existing eBay review payloads before reporting counts or
+        # presenting an item. Their source-specific expiry lifecycle is
+        # not available in this version.
+        for stale in self.db.execute(
+                "SELECT id,payload_json FROM review_queue WHERE"
+                " kind='match_review' AND resolved_at IS NULL").fetchall():
+            try:
+                stale_payload = json.loads(stale["payload_json"] or "")
+            except (ValueError, TypeError):
+                stale_payload = {}
+            if _is_disabled_api_review(stale_payload):
+                self._settle_queue_row(stale["id"], "source_disabled")
+        self.db.commit()
         rows = self.db.execute(
             "SELECT kind, COUNT(*) FROM review_queue WHERE"
             " resolved_at IS NULL GROUP BY kind ORDER BY kind").fetchall()
