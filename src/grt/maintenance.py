@@ -8,11 +8,12 @@ silently in several paths at once (notifications lost with the same
 return value as a duplicate, error recording itself failing
 silently, the heartbeat still updating so the watchdog saw health).
 
-This job prunes ONLY operational telemetry. Archive data — price
-snapshots, listings, match decisions, candidates, the outbox itself
-(whose idempotency keys are a designed permanence) — is never
-touched. Retention horizons are operational defaults, recorded here
-so they can be changed in one place:
+This job prunes operational telemetry and expired Discogs marketplace
+snapshots. Other archive data — listings, match decisions, candidates,
+and the outbox itself (whose idempotency keys are a designed
+permanence) — is never touched. Discogs stats are retained only during
+the six-hour service window; they are also pruned by the 15-minute
+health job. Other retention horizons are operational defaults:
 
 - fetch_runs: 180 days (is_due needs the latest run; the health
   medians need the last few dozen)
@@ -36,11 +37,23 @@ SYSTEM_EVENTS_DAYS = 180
 TELEGRAM_UPDATES_DAYS = 90
 EVIDENCE_DAYS = 30
 DISK_LOW_BYTES = 500 * 1024 * 1024
+DISCOGS_SNAPSHOT_HOURS = 6
 
 
 def _prune_table(db, table: str, column: str, days: int, now) -> int:
     cutoff = clock.to_iso(now - timedelta(days=days))
     cur = db.execute(f"DELETE FROM {table} WHERE {column}<?", (cutoff,))
+    return cur.rowcount or 0
+
+
+def prune_discogs_snapshots(db, now=None) -> int:
+    """Discard Discogs marketplace stats outside their six-hour window."""
+    now = now or clock.now(db)
+    cutoff = clock.to_iso(now - timedelta(hours=DISCOGS_SNAPSHOT_HOURS))
+    cur = db.execute(
+        "DELETE FROM price_snapshots WHERE source='discogs'"
+        " AND julianday(taken_at)<julianday(?)", (cutoff,))
+    db.commit()
     return cur.rowcount or 0
 
 
@@ -110,6 +123,7 @@ def run_maintenance(db) -> dict:
         db, "system_events", "created_at", SYSTEM_EVENTS_DAYS, now))
     step("telegram_updates", lambda: _prune_table(
         db, "telegram_updates", "received_at", TELEGRAM_UPDATES_DAYS, now))
+    step("discogs_snapshots", lambda: prune_discogs_snapshots(db, now))
     try:
         db.commit()
     except Exception as exc:

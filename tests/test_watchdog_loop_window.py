@@ -38,7 +38,9 @@ def test_startup_fallback_starts_watchdog_and_bot(tmp_path, monkeypatch):
     calls=[]
     monkeypatch.setattr(mod.subprocess,'Popen',lambda *args,**kwargs:calls.append((args,kwargs)))
     assert mod.start_now()==0
-    assert [Path(call[0][0][1]).name for call in calls]==['run.py','server.py','freshness_loop.py','watchdog_loop.py']
+    assert [Path(call[0][0][1]).name for call in calls]==['task_launcher.py']*4
+    assert [call[0][0][5] for call in calls]==[
+        'run.py','collector/server.py','site/freshness_loop.py','watchdog_loop.py']
 
 def test_scheduler_start_skips_hourly_site_task(tmp_path,monkeypatch):
     source=Path(__file__).resolve().parents[1]/'setup_tasks.py'

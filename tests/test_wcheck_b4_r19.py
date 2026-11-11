@@ -322,6 +322,49 @@ def _match_setup(db, *, result_extra=None, decision_edition="AR-1"):
     return lid, qid
 
 
+def _ebay_match_review(db):
+    return _queue_row(db, "match_review", {
+        "listing": {"source": "eBay Browse used",
+                    "url": "https://www.ebay.com/itm/123",
+                    "raw_title": "restricted listing title"},
+        "result": {"edition_id": "AR-1", "score": 80},
+    }, priority=50)
+
+
+def test_disabled_ebay_review_is_not_presented_by_queue(db, monkeypatch):
+    _edition(db)
+    qid = _ebay_match_review(db)
+    bot, sent = _bot(db, monkeypatch)
+
+    assert _cmd(bot, "/queue") == "queue"
+
+    row = db.execute(
+        "SELECT resolution, resolved_at FROM review_queue WHERE id=?",
+        (qid,)).fetchone()
+    assert row[0] == "source_disabled" and row[1] is not None
+    assert all("restricted listing title" not in text
+               and "www.ebay.com/itm/123" not in text
+               for text, _markup in sent)
+
+
+def test_disabled_ebay_review_callback_cannot_approve(db, monkeypatch):
+    _edition(db)
+    qid = _ebay_match_review(db)
+    bot, sent = _bot(db, monkeypatch)
+
+    assert _cb(bot, f"qok:{qid}") == "source_disabled"
+
+    row = db.execute(
+        "SELECT resolution, resolved_at FROM review_queue WHERE id=?",
+        (qid,)).fetchone()
+    assert row[0] == "source_disabled" and row[1] is not None
+    assert db.execute(
+        "SELECT COUNT(*) FROM match_decisions").fetchone()[0] == 0
+    assert all("restricted listing title" not in text
+               and "www.ebay.com/itm/123" not in text
+               for text, _markup in sent)
+
+
 def test_match_review_unresolvable_payload_is_not_consumed(
         db, monkeypatch):
     qid = _queue_row(db, "match_review",

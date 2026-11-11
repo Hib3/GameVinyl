@@ -4,7 +4,7 @@
 
 ## 三本柱
 
-- **発見** — 新譜の発売情報や、中古・新品の出品を定期的にチェックし、見逃しを防ぎます。
+- **発見** — 登録済みAPI/RSSと、許可条件を確認した情報源を定期的に確認します。全市場・全3,777盤の出品網羅は保証しません。
 - **カタログ** — 発売されたレコードを、在庫の有無にかかわらずカタログとして積み上げていきます。同梱のシードデータは 3,777 件です。
 - **通知** — 見つけた情報を Telegram の Bot 経由で、あなたのスマホ／PC に届けます。通知の範囲は Telegram からいつでも変更できます。
 
@@ -12,6 +12,8 @@
 
 - **AI 非内蔵** — このツール自体の中に AI（LLM、画像認識など）は入っていません。判定は決められたルール（パターンマッチと正規化）で行い、迷うものは Telegram の確認キューで人が判断します。AI はこのツールを作るための道具であり、成果物ではありません。
 - **完全無料で運用可能** — 使うライブラリは無料の公開パッケージのみ、通知は Telegram（無料）、レコード情報の照合は Discogs の無料トークンを使います。有料 API は使いません。
+
+自動巡回は、Discogsの監視対象盤統計API、認証設定済みの場合のYahoo!ショッピング／楽天市場API、提供元RSS/Atomなど、登録した経路に限定します。RSSは新着告知であり、出品の在庫・価格の証拠とは区別します。サイト鮮度ジョブはBlip Blop RSS、Data Discsの固定商品JSONとrobots.txt確認済み一覧ページ、MusicBrainz APIを使います。Data Discsの一覧ページはHTMLを解析するため、ここはスクレイピングを含む限定経路です。Yahoo!オークションやメルカリは市場側の保存検索通知を利用者が設定し、候補URLを人が確認する経路です。許可されたAPI/feedがない市場へログインして自動巡回しません。API資格がない場合はYahoo!ショッピング／Yahoo!オークション／メルカリ／楽天市場／eBay／Discogsの手動検索リンクを表示します。検索リンクは商品や在庫の存在を示しません。MusicBrainzに版候補がある場合はCover Art Archiveの画像候補を開けますが、版一致・画像利用権は未確認です。eBay Browse APIは自動取得を停止中で、保存済みeBay行も集計・通知から除外します。
 
 ## フォルダ構成
 
@@ -27,6 +29,7 @@ game-record-tool/
 ├── run.py             本体の起動（自動起動から呼ばれる）
 ├── watchdog.py        ウォッチドッグ（本体が止まっていないか見守る）
 ├── setup_tasks.py     自動起動の登録（3方式を順に試し、確認まで行う）
+├── task_launcher.py  共有データ場所を指定して各常駐プロセスを起動
 ├── wait_start.py      setup.bat の最終確認（本体が実際に起動したか）
 ├── watchdog_loop.py   スタートアップ方式のときのウォッチドッグ（15分間隔ループ）
 ├── register_tasks.ps1 / make_startup_shortcuts.ps1
@@ -38,14 +41,26 @@ game-record-tool/
 │   └── music_type_audit.json 音楽種別の監査データ（初期取り込みに使用）
 ├── src/
 │   └── grt/           本体のコード
-└── data/              あなたのデータ（更新しても消えません）
+└── (shared data)      D:\GameRecordTool\data（版フォルダの外に1つだけ置く）
     ├── grt.db         データベース
     ├── .env           あなたのトークンなどの設定
     └── logs           ログ
 ```
 
-- `data\` フォルダだけが、あなたのデータの置き場所です。データベース（`grt.db`）と設定（`.env`）はここにあります。
+- `D:\GameRecordTool\data\` だけが、あなたのデータの置き場所です。データベース（`grt.db`）と設定（`.env`）は版ごとのコードフォルダの外に置きます。
 - コード一式を新しい版に差し替えても、`data\` は上書きされません。詳しくは `SETUP_GUIDE.md` の「9. 更新版への差し替え手順」を見てください。
+
+## Muse データの読み取り監査
+
+`tools\audit_muse_handoff.py` は Muse handoff ZIP と `data\site\vgm_site.sqlite3` を照合する決定的な監査ツールです。ZIP は展開せず、ネット接続・AI・DB書き込みも行いません。件数・出典差分・根拠不足を標準出力に表示します。
+
+```powershell
+python tools\audit_muse_handoff.py --archive path\to\handoff.zip --site-db data\site\vgm_site.sqlite3
+```
+
+必要なら `--bot-db data\grt.db` を追加するとBot DBも読み取り専用で照合します。`--issues-csv path\to\review.csv` は欠けている盤別価格出典URLと、Muse調査中のDiscogs Release URLから抽出した未確認ID候補を人手確認用CSVに出します。候補IDはBot DBへ自動登録しません。同じRelease IDが複数盤に現れる場合は曖昧候補として残します。
+
+人の確認用CSVが必要なときだけ `--issues-csv path\to\review.csv` を追加してください。価格や候補を正本へ自動反映せず、監査結果が `review_required` の場合は未確認のまま保ちます。
 
 ## はじめ方
 

@@ -58,13 +58,29 @@ class YahooShoppingFetcher(BaseFetcher):
         items, _ev = self._search(catalog)
         return items
 
-    def _search(self, catalog: str) -> tuple[list[dict], dict]:
+    def search_used_catalog(self, catalog: str) -> list[dict]:
+        """Search only currently in-stock used listings.
+
+        Yahoo's official itemSearch API supports both filters. When the
+        application ID is absent this returns [] without a network call.
+        """
+        if not self.enabled:
+            return []
+        items, _ev = self._search(catalog, condition="used", in_stock=True)
+        return items
+
+    def _search(self, catalog: str, condition=None,
+                in_stock=None) -> tuple[list[dict], dict]:
         self._polite()
+        params = {"appid": self.app_id, "query": catalog, "results": "30"}
+        if condition is not None:
+            params["condition"] = condition
+        if in_stock is not None:
+            params["in_stock"] = str(in_stock).lower()
         try:
             resp = httpx.get(
                 API,
-                params={"appid": self.app_id, "query": catalog,
-                        "results": "30"},
+                params=params,
                 headers={"User-Agent": "GameRecordTool/1.0"},
                 timeout=30)
         except httpx.TimeoutException as exc:
@@ -88,11 +104,18 @@ class YahooShoppingFetcher(BaseFetcher):
         for entry in api_list(data, "hits", "Yahoo Shopping"):
             if not isinstance(entry, dict):
                 continue
+            if condition is not None and entry.get("condition") != condition:
+                continue
+            if in_stock is not None and entry.get("inStock") is not in_stock:
+                continue
             title = entry.get("name") or ""
             price = api_price(entry.get("price"))
+            image = entry.get("image")
+            image_url = image.get("medium") if isinstance(image, dict) else None
             items.append({
                 "title": title,
                 "url": entry.get("url") or "",
+                "image_url": image_url or "",
                 "price": price,
                 "currency": "JPY",
                 "raw_title": title,
@@ -116,7 +139,7 @@ class YahooShoppingFetcher(BaseFetcher):
             from urllib.parse import parse_qs, urlparse
             qs = parse_qs(urlparse(url).query)
             catalog = (qs.get("query") or [url])[0]
-        return self._search(catalog)
+        return self._search(catalog, condition="used", in_stock=True)
 
     def run(self, url: str) -> dict:
         if not self.enabled:

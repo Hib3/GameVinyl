@@ -239,7 +239,9 @@ def price_drop_qualifies_bucketed(db, edition_id: str, new_price: float, *,
     if baseline_price is None:
         rows = db.execute(
             "SELECT total_jpy, price, currency FROM listings"
-            " WHERE edition_id=? AND variant_id IS ? AND cond_rank=?"
+            " WHERE edition_id=?"
+            " AND COALESCE(source,'')!='eBay Browse used'"
+            " AND variant_id IS ? AND cond_rank=?"
             " AND status NOT IN ('ended', 'sold_candidate')",
             (edition_id, variant_id, cond_rank)).fetchall()
         vals = [yen_value(r[0], r[1], r[2]) for r in rows]

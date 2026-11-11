@@ -369,6 +369,25 @@ def test_coverage_excludes_zero_stock_snapshot(db, monkeypatch):
     assert "価格証拠あり: 0件" in text
 
 
+def test_coverage_excludes_expired_discogs_snapshot(db, monkeypatch):
+    _edition(db)
+    _edition(db, "AR-2")
+    expired = clock.to_iso(clock.now(db) - timedelta(hours=6, seconds=1))
+    db.execute(
+        "INSERT INTO price_snapshots(edition_id, source, taken_at,"
+        " num_for_sale, lowest_price, currency) VALUES('AR-1',"
+        " 'discogs', ?, 1, 2500, 'JPY')", (expired,))
+    db.execute(
+        "INSERT INTO price_snapshots(edition_id, source, taken_at,"
+        " num_for_sale, lowest_price, currency) VALUES('AR-2',"
+        " 'discogs', ?, 1, 2500, 'JPY')", (clock.now_iso(db),))
+    db.commit()
+    bot, sent = _bot(db, monkeypatch)
+    assert _cmd(bot, "/coverage") == "coverage"
+    text = "\n".join(t for t, _m in sent)
+    assert "価格証拠あり: 1件" in text
+
+
 def test_declared_oos_member_not_revived_by_group_round(db):
     db.execute(
         "INSERT INTO listings(id, source, url, status,"

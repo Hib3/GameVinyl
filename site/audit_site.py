@@ -3,7 +3,7 @@ from collections import Counter, defaultdict
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import urlencode, urlsplit, urlunsplit
+from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 from catalog_search import norm, valid_catalog
 
 COVERAGE_AREAS = (
@@ -96,6 +96,50 @@ def pending_candidates(bot):
                         'url':link})
     return out
 
+def approved_yahoo_listings(bot, now):
+    """Read only fresh, human-approved Yahoo API listings for public export."""
+    tables={r[0] for r in bot.execute(
+        "select name from sqlite_master where type='table'")}
+    if not {'listings','match_decisions'} <= tables:
+        return defaultdict(list)
+    cols={r[1] for r in bot.execute('pragma table_info(listings)')}
+    image_expr='l.image_url' if 'image_url' in cols else 'NULL'
+    out=defaultdict(list)
+    rows=bot.execute(f"""
+      select l.source,l.edition_id,l.url,{image_expr},l.raw_title,l.last_seen,
+             l.price,l.currency
+      from listings l join match_decisions d
+        on d.listing_id=l.id and d.edition_id=l.edition_id
+      where l.source='Yahoo Shopping used'
+        and l.edition_id is not null
+        and d.id=(select max(d2.id) from match_decisions d2
+                  where d2.listing_id=l.id and d2.edition_id=l.edition_id)
+        and d.matcher_version='human-review-1'
+        and d.price_confidence='高'
+      order by l.last_seen desc, l.id desc
+    """).fetchall()
+    source_rules={'Yahoo Shopping used':('shopping.yahoo.co.jp','yimg.jp',
+                                          'Yahoo!ショッピング中古')}
+    for source,edition_id,url,image,title,seen,price,currency in rows:
+        listing_host,image_suffix,label=source_rules[source]
+        host=(urlsplit(url).hostname or '').lower() if safe_https(url) else ''
+        if not (host==listing_host or host.endswith('.'+listing_host)):
+            continue
+        checked=parse_date(seen)
+        if checked is None or checked>now or checked<now-timedelta(hours=48):
+            continue
+        image_host=(urlsplit(image).hostname or '').lower() if safe_https(image) else ''
+        image_ok=image_host==image_suffix or image_host.endswith('.'+image_suffix)
+        items=out[edition_id]
+        if len(items)<3:
+            items.append({'url':url,'image':image if image_ok else None,
+                          'title':' '.join(str(title or '').split())[:200],
+                          'lastSeen':str(seen)[:40], 'source':source,
+                          'sourceLabel':label,
+                          'price':price if price_ok(price) else None,
+                          'currency':currency if isinstance(currency,str) else None})
+    return out
+
 def price_ok(x):
     return type(x) in (int,float) and math.isfinite(x) and x>0
 
@@ -127,6 +171,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
         monitored_ids={row[0] for row in bot.execute('select id from editions where watch_level>0')}
         monitored=len(monitored_ids)
         discoveries=pending_candidates(bot)
+        yahoo_market=approved_yahoo_listings(bot,now)
     with closing(sqlite3.connect(db)) as c:
         c.execute('pragma foreign_keys=on')
         rows=c.execute('select id,identity_status,tool_json,muse_json,html_json from editions order by id').fetchall()
@@ -226,6 +271,8 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                     if not parts.query and not parts.fragment:
                         links.append({'label':'調査出典（版・在庫は未確定）','url':url})
             if rid in market: links.append({'label':'Discogsの盤別出品一覧（在庫未確認）','url':market[rid]})
+            for item in yahoo_market.get(rid,[]):
+                links.append({'label':item['sourceLabel']+'（最終観測 '+item['lastSeen']+'・現在在庫は未保証）','url':item['url']})
             if key[0]=='data discs' and key[1] in merchants:
                 links.append({'label':'公式商品ページ（型番共通・盤違いに注意）','url':merchants[key[1]]})
             offers=collector_map.get(rid,[])
@@ -233,7 +280,19 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                 links.append({'label':offer['source']+' 商品ページ候補（'+offer['reason']+'・'+offer['observed']+'。版・在庫・総額は未確認）: '+offer['title'],
                               'url':offer['url']})
             q=' '.join(str(r.get(k) or '') for k in ('title','catalog') if k!='catalog' or valid_catalog(r.get(k)))
-            links.append({'label':'Discogsで探す（検索）','url':'https://www.discogs.com/search/?'+urlencode({'q':q,'type':'release'})})
+            if q:
+                links.append({'label':'Discogsで探す（検索）','url':'https://www.discogs.com/search/?'+urlencode({'q':q,'type':'release'})})
+                links.append({'label':'ブックオフで探す（在庫未確認）','url':'https://shopping.bookoff.co.jp/search/keyword/'+quote(q,safe='')})
+                links.append({'label':'オフモールで探す（在庫未確認）','url':'https://netmall.hardoff.co.jp/cate/000100150001/?q='+quote(q,safe='')})
+                for label,base,param in (
+                    ('Yahoo!ショッピングで探す（在庫未確認）','https://shopping.yahoo.co.jp/search','p'),
+                    ('Yahoo!オークションで探す（在庫未確認）','https://auctions.yahoo.co.jp/search/search','p'),
+                    ('メルカリで探す（在庫未確認）','https://jp.mercari.com/search','keyword'),
+                    ('楽天市場で探す（在庫未確認）','https://search.rakuten.co.jp/search/mall/','sitem'),
+                    ('駿河屋で探す（在庫未確認）','https://www.suruga-ya.jp/search','search_word'),
+                    ('eBayで探す（在庫未確認）','https://www.ebay.com/sch/i.html','_nkw'),
+                ):
+                    links.append({'label':label,'url':base+'?'+urlencode({param:q})})
             thumb=images.get(rid) if safe_https(images.get(rid)) else None
             if not thumb: checks.append('掲載可能画像なし')
             snap=snapshots.get(rid)
@@ -253,6 +312,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                     uid=candidate.get('id','')
                     if re.fullmatch(r'[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}',uid):
                         links.append({'label':'MusicBrainzの盤候補（未確定）','url':'https://musicbrainz.org/release/'+uid})
+                        links.append({'label':'Cover Art Archiveの前面画像候補（版一致・利用権未確認）','url':'https://coverartarchive.org/release/'+uid+'/front-250'})
             lookup_labels={'pending':'未照会','candidates':'候補あり・版未確定','partial':'検索結果の一部のみ確認','no_exact_candidate':'一致候補なし・資料不足の可能性'}
             lookup_note=lookup_labels.get(query_state,'取得に失敗・再試行予定')
             if not fresh: checks.append('個別盤の在庫は未確認')
@@ -278,17 +338,18 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
             official=key[0]=='data discs' and key[1] in merchants
             add_coverage('official_new_release','no_route',
                          '利用条件と対象盤一致を確認した公開公式新譜フィード/APIなし')
-            market_candidate=bool(offers) or rid in market
+            market_candidate=bool(offers) or rid in market or rid in yahoo_market
             used_status=('candidate_needs_review' if market_candidate else
                          'source_unverified' if collector_state=='healthy' else
                          'error' if collector_state=='error' else 'no_route')
-            used_reason=('店舗/マーケット候補があり在庫・版は未確認' if market_candidate else
+            used_reason=('人間承認済みAPI商品ページあり（最終観測日時表示・現在在庫は未保証）' if rid in yahoo_market else
+                         '店舗/マーケット候補があり在庫・版は未確認' if market_candidate else
                          '取得済み情報に盤別候補なし（市場全体での不存在は未確認）' if collector_state=='healthy' else
                          'Collector候補DBを読めず' if collector_state=='error' else
                          'Collector候補DBが未配置')
             add_coverage('used_listing',used_status,used_reason,
-                         offers[0]['observed'] if offers else None,
-                         offers[0]['source'] if offers else ('discogs_marketplace' if rid in market else None))
+                          offers[0]['observed'] if offers else (yahoo_market[rid][0]['lastSeen'] if rid in yahoo_market else None),
+                          offers[0]['source'] if offers else (yahoo_market[rid][0]['source'] if rid in yahoo_market else ('discogs_marketplace' if rid in market else None)))
             priced_observations=[item for item in evidence[rid] if price_ok(item[2])]
             latest_price=max(priced_observations,key=lambda item:item[0]) if priced_observations else None
             has_price=bool(snap) or bool(latest_price)
@@ -307,6 +368,10 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                 availability_status='candidate_needs_review'
                 availability_reason='候補ページに販売状態の記載あり・盤一致未確認'
                 availability_at,availability_source=offers[0]['observed'],offers[0]['source']
+            elif rid in yahoo_market:
+                availability_status='candidate_needs_review'
+                availability_reason='人間承認済みAPI返却履歴あり（現在在庫は未保証）'
+                availability_at,availability_source=yahoo_market[rid][0]['lastSeen'],yahoo_market[rid][0]['source']
             elif rid in monitored_ids:
                 availability_status='source_unverified'; availability_reason='Bot監視対象だが在庫観測なし'
                 availability_at=availability_source=None
@@ -320,15 +385,15 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
             add_coverage('image',image_status,image_reason,source_id='image_rights_review' if image_status=='candidate_needs_review' else None)
             purchase_candidate=official or market_candidate
             add_coverage('purchase_url','candidate_needs_review' if purchase_candidate else 'no_route',
-                         '購入ページ候補あり・対象盤/購入可否の人手確認待ち' if purchase_candidate else '盤一致を確認した購入URLなし',
-                         offers[0]['observed'] if offers else None,
-                         offers[0]['source'] if offers else ('data_discs' if official else ('discogs_marketplace' if rid in market else None)))
+                         '購入ページ候補あり・最終観測日時表示、現在の購入可否は未保証' if rid in yahoo_market else ('購入ページ候補あり・対象盤/購入可否の人手確認待ち' if purchase_candidate else '盤一致を確認した購入URLなし'),
+                         offers[0]['observed'] if offers else (yahoo_market[rid][0]['lastSeen'] if rid in yahoo_market else None),
+                         offers[0]['source'] if offers else (yahoo_market[rid][0]['source'] if rid in yahoo_market else ('data_discs' if official else ('discogs_marketplace' if rid in market else None))))
             assert len(coverage_items)==len(COVERAGE_AREAS)
             r['fieldAudit']={'summary':summary,'priceDate':None,
               'priceStatus':'価格表示停止中（出典・通貨・利用条件を再確認中）',
               'surveyDate':survey,'lookupNote':lookup_note,'botPrice':bot_note,'gameAlternative':alt,
               'collectorOffers':offer_note,'collectorStatus':collector_state,'links':links,'image':thumb,
-              'coverage':coverage_items}
+              'coverage':coverage_items,'marketListings':yahoo_market.get(rid,[])}
             export.append(r)
             audit.append((rid,now.isoformat(),identity,query_state,lookup[1] if lookup else None,survey,price_date,int(fresh),len(links)-1,int(bool(thumb)),summary))
         c.executescript("""
@@ -370,8 +435,9 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
             pending = catalog_result['selected'] - catalog_result['attempted']
             overview += f" MusicBrainz今回: 成功 {ok}・失敗 {catalog_result['failed']}・選択後未実行 {pending}。"
     source=template.read_text(encoding='utf-8')
-    assert source.count('@@AUDITED_RECORDS@@')==source.count('@@AUDIT_OVERVIEW@@')==source.count('@@DISCOVERED_CANDIDATES@@')==1
-    atomic_text(target,source.replace('@@AUDIT_OVERVIEW@@',html.escape(overview)).replace('@@AUDITED_RECORDS@@',compact_json(export)).replace('@@DISCOVERED_CANDIDATES@@',compact_json({'count':len(discoveries),'items':discoveries})))
+    assert source.count('@@AUDIT_AS_OF@@')==source.count('@@AUDITED_RECORDS@@')==source.count('@@AUDIT_OVERVIEW@@')==source.count('@@DISCOVERED_CANDIDATES@@')==1
+    audit_as_of=now.astimezone(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M')
+    atomic_text(target,source.replace('@@AUDIT_AS_OF@@',audit_as_of).replace('@@AUDIT_OVERVIEW@@',html.escape(overview)).replace('@@AUDITED_RECORDS@@',compact_json(export)).replace('@@DISCOVERED_CANDIDATES@@',compact_json({'count':len(discoveries),'items':discoveries})))
     tmp=csv_path.with_name(csv_path.name+'.tmp')
     with tmp.open('w',newline='',encoding='utf-8-sig') as f:
         w=csv.writer(f)

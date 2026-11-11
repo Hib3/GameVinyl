@@ -408,6 +408,11 @@ def run() -> None:
 
     def health_job():
         def body(conn):
+            from . import maintenance
+            try:
+                maintenance.prune_discogs_snapshots(conn)
+            except Exception as exc:
+                _log_job_error("discogs_snapshot_retention", exc)
             health.evaluate_time_based_health(conn)
             # W-check B4 (AI engineer / maniac B): the outbox safety
             # net enqueue_pending_candidate_reviews existed but had
@@ -505,6 +510,21 @@ def run() -> None:
                 except Exception as exc:
                     _log_job_error("ingest_absence", exc)
         _run_job("ingest", body)
+
+    def yahoo_used_job():
+        def body(conn):
+            from .used_market import run_yahoo_used_sweep
+            run_yahoo_used_sweep(conn)
+        _run_job("yahoo_used", body)
+
+    def market_api_job():
+        def body(conn):
+            from .used_market import run_market_api_sweep
+            try:
+                run_market_api_sweep(conn, "rakuten")
+            except Exception as exc:
+                _log_job_error("market_api_rakuten", exc)
+        _run_job("market_api", body)
 
     def goods_job():
         # GOODS lane (agreement-09): approved GOODS sources are
@@ -716,6 +736,12 @@ def run() -> None:
     scheduler.add_job(storewatch_job, "interval", minutes=15,
                       id="storewatch", misfire_grace_time=GRACE_INTERVAL_S)
     scheduler.add_job(ingest_job, "interval", minutes=15, id="ingest",
+                      misfire_grace_time=GRACE_INTERVAL_S)
+    scheduler.add_job(yahoo_used_job, "interval", minutes=15,
+                      id="yahoo_used", max_instances=1, coalesce=True,
+                      misfire_grace_time=GRACE_INTERVAL_S)
+    scheduler.add_job(market_api_job, "interval", minutes=15,
+                      id="market_api", max_instances=1, coalesce=True,
                       misfire_grace_time=GRACE_INTERVAL_S)
     scheduler.add_job(goods_job, "interval", minutes=15, id="goods",
                       misfire_grace_time=GRACE_INTERVAL_S)

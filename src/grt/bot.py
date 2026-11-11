@@ -78,10 +78,17 @@ _QUIET_RANGE_RE = re.compile(
 _GATE_MESSAGE = ("初期設定が未完了です。まず静穏例外（締切が近い場合に"
                  "夜間でも即時通知するか）の選択を完了してください。")
 _CALLBACK_ERROR_MESSAGE = "ボタンの形式が不正です。操作を受け付けませんでした。"
+_DISABLED_REVIEW_SOURCES = frozenset({"eBay Browse used"})
 
 
 def gate_open(db) -> bool:
     return get_setting(db, "deadline_override_quiet_selected") == "1"
+
+
+def _is_disabled_api_review(payload) -> bool:
+    listing = payload.get("listing") if isinstance(payload, dict) else None
+    return (isinstance(listing, dict)
+            and listing.get("source") in _DISABLED_REVIEW_SOURCES)
 
 
 def _short(value, limit: int = ECHO_LIMIT) -> str:
@@ -689,6 +696,12 @@ class Bot:
         if not isinstance(payload, dict):
             payload = {}
         kind = row["kind"]
+        if kind == "match_review" and _is_disabled_api_review(payload):
+            self._settle_queue_row(qid, "source_disabled")
+            self.db.commit()
+            self._send(chat_id, "この出品元の自動レビューは停止中です。"
+                       "価格証拠としては登録していません。")
+            return "source_disabled"
         if kind == "match_review":
             return self._consume_match_review(chat_id, row, payload,
                                               approve)
@@ -1180,11 +1193,13 @@ class Bot:
                 return None
             return f"{f:,.2f}".rstrip("0").rstrip(".")
 
+        cutoff = clock.to_iso(clock.now(self.db) - timedelta(hours=6))
         snaps = self.db.execute(
             "SELECT taken_at, num_for_sale, lowest_price, currency FROM"
             " price_snapshots WHERE edition_id=? AND source='discogs'"
+            " AND julianday(taken_at)>=julianday(?)"
             " ORDER BY taken_at DESC, rowid DESC LIMIT 12",
-            (eid,)).fetchall()
+            (eid, cutoff)).fetchall()
         if snaps:
             latest = snaps[0]
             # W-check B3 (collector D-1/D-4, wholesaler 5, maniac A
@@ -1284,6 +1299,7 @@ class Bot:
             " AND COALESCE(UPPER(TRIM(currency)), '') IS NOT 'JPY'"
             " THEN 1 ELSE 0 END)"
             " FROM listings WHERE edition_id=?"
+            " AND COALESCE(source,'')!='eBay Browse used'"
             " AND status NOT IN ('ended', 'sold_candidate')"
             " GROUP BY variant_id, cond_rank"
             " ORDER BY cond_rank DESC",
@@ -1320,6 +1336,19 @@ class Bot:
         stale candidate rows as 'stale' on sight, and presents the
         first PRESENTABLE item of ANY kind with kind-appropriate
         buttons (qok:/qno: for the generic kinds)."""
+        # Suppress existing eBay review payloads before reporting counts or
+        # presenting an item. Their source-specific expiry lifecycle is
+        # not available in this version.
+        for stale in self.db.execute(
+                "SELECT id,payload_json FROM review_queue WHERE"
+                " kind='match_review' AND resolved_at IS NULL").fetchall():
+            try:
+                stale_payload = json.loads(stale["payload_json"] or "")
+            except (ValueError, TypeError):
+                stale_payload = {}
+            if _is_disabled_api_review(stale_payload):
+                self._settle_queue_row(stale["id"], "source_disabled")
+        self.db.commit()
         rows = self.db.execute(
             "SELECT kind, COUNT(*) FROM review_queue WHERE"
             " resolved_at IS NULL GROUP BY kind ORDER BY kind").fetchall()
@@ -1838,17 +1867,26 @@ class Bot:
         # pricedrop.bucket_best now requires of a baseline).
         _fresh = clock.to_iso(clock.now(self.db)
                               - timedelta(days=30))
+        _discogs_now_dt = clock.now(self.db)
+        _discogs_now = clock.to_iso(_discogs_now_dt)
+        _discogs_fresh = clock.to_iso(_discogs_now_dt
+                                      - timedelta(hours=6))
         with_price = self.db.execute(
             "SELECT COUNT(*) FROM editions e WHERE"
             " EXISTS (SELECT 1 FROM price_snapshots s"
             "  WHERE s.edition_id=e.id"
+            "  AND s.source='discogs'"
+            "  AND julianday(s.taken_at)>=julianday(?)"
+            "  AND julianday(s.taken_at)<=julianday(?)"
             "  AND s.lowest_price IS NOT NULL"
             "  AND typeof(s.lowest_price) IN ('integer', 'real')"
             "  AND s.lowest_price > 0"
             "  AND NOT (typeof(s.num_for_sale)"
             "   IN ('integer', 'real') AND s.num_for_sale <= 0))"
             " OR EXISTS (SELECT 1 FROM listings l"
-            "  WHERE l.edition_id=e.id AND l.status='active'"
+            "  WHERE l.edition_id=e.id"
+            "  AND COALESCE(l.source,'')!='eBay Browse used'"
+            "  AND l.status='active'"
             "  AND l.last_seen IS NOT NULL AND l.last_seen>=?"
             # W-check B5 R24 (seller F-3/F-4): the listings side
             # lacked the snapshot side's discipline twice over —
@@ -1865,7 +1903,7 @@ class Bot:
             "   OR (UPPER(TRIM(COALESCE(l.currency,'')))='JPY'"
             "       AND typeof(l.price) IN ('integer', 'real')"
             "       AND l.price > 0)))",
-            (_fresh,)
+            (_discogs_fresh, _discogs_now, _fresh)
         ).fetchone()[0]
         lines = ["【カバレッジ】",
                  f"Edition: {total}件",

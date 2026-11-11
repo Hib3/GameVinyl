@@ -52,7 +52,8 @@ EBAY_PAYLOAD = {
     "itemSummaries": [
         {"title": "Game OST Vinyl TGCS-123",
          "itemWebUrl": "https://www.ebay.com/itm/111",
-         "price": {"value": "45.50", "currency": "USD"}},
+         "price": {"value": "45.50", "currency": "USD"},
+         "image": {"imageUrl": "https://i.ebayimg.com/images/g/abc/s-l1600.jpg"}},
         {"title": "TGCS-123 loose disc, no price listed",
          "itemWebUrl": "https://www.ebay.com/itm/222"},
     ],
@@ -86,10 +87,13 @@ def test_ebay_item_mapping(db, monkeypatch):
     assert f.enabled is True
     items = f.search_catalog(CATALOG)
     assert calls["params"]["q"] == CATALOG
+    assert calls["params"]["filter"] == \
+        "conditions:{USED},deliveryCountry:JP"
     assert calls["headers"]["Authorization"] == "Bearer test-token"
     assert items[0] == {
         "title": "Game OST Vinyl TGCS-123",
         "url": "https://www.ebay.com/itm/111",
+        "image_url": "https://i.ebayimg.com/images/g/abc/s-l1600.jpg",
         "price": 45.50,
         "currency": "USD",
         "raw_title": "Game OST Vinyl TGCS-123",
@@ -118,16 +122,18 @@ def test_ebay_env_token_enables(db, monkeypatch):
 
 RAKUTEN_PAYLOAD = {
     "count": 1, "page": 1, "hits": 1,
-    "Items": [
-        {"Item": {"itemName": "ゲーム サントラ TGCS-123",
-                   "itemUrl": "https://item.rakuten.co.jp/shop/abc/",
-                   "itemPrice": 3980}},
+    "items": [
+        {"itemName": "ゲーム サントラ TGCS-123",
+         "itemUrl": "https://item.rakuten.co.jp/shop/abc/",
+         "itemPrice": 3980,
+         "mediumImageUrls": ["https://thumbnail.image.rakuten.co.jp/@0_mall/shop/cabinet/a.jpg"]},
     ],
 }
 
 
 def test_rakuten_disabled_without_app_id(db, monkeypatch):
     monkeypatch.delenv("RAKUTEN_APP_ID", raising=False)
+    monkeypatch.delenv("RAKUTEN_ACCESS_KEY", raising=False)
     _no_network(monkeypatch)
     f = RakutenFetcher(db, _source_id(db, "rakuten"))
     assert f.enabled is False
@@ -137,22 +143,35 @@ def test_rakuten_disabled_without_app_id(db, monkeypatch):
     assert result["result"] == "DISABLED"
 
 
+def test_rakuten_disabled_without_access_key(db, monkeypatch):
+    monkeypatch.setenv("RAKUTEN_APP_ID", "test-app-id")
+    monkeypatch.delenv("RAKUTEN_ACCESS_KEY", raising=False)
+    _no_network(monkeypatch)
+    f = RakutenFetcher(db, _source_id(db, "rakuten"))
+    assert f.enabled is False
+    assert f.search_catalog(CATALOG) == []
+
+
 def test_rakuten_item_mapping(db, monkeypatch):
     calls = {}
 
     def fake_get(url, params=None, headers=None, timeout=None):
-        calls.update(url=url, params=params)
+        calls.update(url=url, params=params, headers=headers)
         return FakeResp(200, RAKUTEN_PAYLOAD)
 
     monkeypatch.setattr(httpx, "get", fake_get)
-    f = RakutenFetcher(db, _source_id(db, "rakuten"), app_id="test-app-id")
+    f = RakutenFetcher(db, _source_id(db, "rakuten"), app_id="test-app-id",
+                       access_key="test-access-key")
     assert f.enabled is True
     items = f.search_catalog(CATALOG)
     assert calls["params"]["applicationId"] == "test-app-id"
+    assert calls["headers"]["accessKey"] == "test-access-key"
     assert calls["params"]["keyword"] == CATALOG
+    assert calls["params"]["formatVersion"] == "2"
     assert items == [{
         "title": "ゲーム サントラ TGCS-123",
         "url": "https://item.rakuten.co.jp/shop/abc/",
+        "image_url": "https://thumbnail.image.rakuten.co.jp/@0_mall/shop/cabinet/a.jpg",
         "price": 3980,
         "currency": "JPY",
         "raw_title": "ゲーム サントラ TGCS-123",
@@ -162,7 +181,8 @@ def test_rakuten_item_mapping(db, monkeypatch):
 def test_rakuten_403_is_blocked(db, monkeypatch):
     monkeypatch.setattr(httpx, "get",
                         lambda *a, **kw: FakeResp(403, {"errors": []}))
-    f = RakutenFetcher(db, _source_id(db, "rakuten"), app_id="test-app-id")
+    f = RakutenFetcher(db, _source_id(db, "rakuten"), app_id="test-app-id",
+                       access_key="test-access-key")
     with pytest.raises(FetchError) as ei:
         f.search_catalog(CATALOG)
     assert ei.value.result == "BLOCKED"
@@ -177,7 +197,8 @@ YAHOO_PAYLOAD = {
     "hits": [
         {"name": "ゲーム サントラ TGCS-123",
          "url": "https://store.shopping.yahoo.co.jp/shop/abc.html",
-         "price": 4200},
+         "image": {"medium": "https://item-shopping.c.yimg.jp/i/g/abc"},
+         "price": 4200, "condition": "used", "inStock": True},
     ],
 }
 
@@ -188,6 +209,7 @@ def test_yahoo_disabled_without_app_id(db, monkeypatch):
     f = YahooShoppingFetcher(db, _source_id(db, "yahoo"))
     assert f.enabled is False
     assert f.search_catalog(CATALOG) == []
+    assert f.search_used_catalog(CATALOG) == []
     result = f.run(CATALOG)
     assert result["enabled"] is False
     assert result["result"] == "DISABLED"
@@ -209,10 +231,36 @@ def test_yahoo_item_mapping(db, monkeypatch):
     assert items == [{
         "title": "ゲーム サントラ TGCS-123",
         "url": "https://store.shopping.yahoo.co.jp/shop/abc.html",
+        "image_url": "https://item-shopping.c.yimg.jp/i/g/abc",
         "price": 4200,
         "currency": "JPY",
         "raw_title": "ゲーム サントラ TGCS-123",
     }]
+
+
+def test_yahoo_used_search_filters_to_in_stock_used_items(db, monkeypatch):
+    calls = {}
+    payload = {"hits": [
+        {"name": "used in stock", "url": "https://example.test/used",
+         "price": 1000, "condition": "used", "inStock": True},
+        {"name": "used out of stock", "url": "https://example.test/oos",
+         "price": 800, "condition": "used", "inStock": False},
+        {"name": "new in stock", "url": "https://example.test/new",
+         "price": 1200, "condition": "new", "inStock": True},
+    ]}
+
+    def fake_get(url, params=None, headers=None, timeout=None):
+        calls.update(url=url, params=params)
+        return FakeResp(200, payload)
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+    f = YahooShoppingFetcher(db, _source_id(db, "yahoo"), app_id="test-app-id")
+    items = f.search_used_catalog(CATALOG)
+
+    assert calls["params"]["condition"] == "used"
+    assert calls["params"]["in_stock"] == "true"
+    assert calls["params"]["query"] == CATALOG
+    assert [item["title"] for item in items] == ["used in stock"]
 
 
 def test_yahoo_403_is_blocked(db, monkeypatch):
@@ -227,13 +275,20 @@ def test_yahoo_403_is_blocked(db, monkeypatch):
 
 
 def test_yahoo_run_records_ok_fetch_run(db, monkeypatch):
-    monkeypatch.setattr(httpx, "get",
-                        lambda *a, **kw: FakeResp(200, YAHOO_PAYLOAD))
+    calls = {}
+
+    def fake_get(url, params=None, headers=None, timeout=None):
+        calls.update(url=url, params=params)
+        return FakeResp(200, YAHOO_PAYLOAD)
+
+    monkeypatch.setattr(httpx, "get", fake_get)
     sid = _source_id(db, "yahoo")
     f = YahooShoppingFetcher(db, sid, app_id="test-app-id")
     result = f.run(CATALOG)
     assert result["ok"] is True
     assert len(result["items"]) == 1
+    assert calls["params"]["condition"] == "used"
+    assert calls["params"]["in_stock"] == "true"
     row = db.execute(
         "SELECT result, fetcher_kind, items_extracted FROM fetch_runs"
         " WHERE source_id=?", (sid,)).fetchone()
@@ -251,12 +306,16 @@ def test_market_api_keys_load_from_data_env(tmp_path, monkeypatch):
     (tmp_path / ".env").write_text(
         "EBAY_OAUTH_TOKEN=ebay-from-env-file\n"
         "RAKUTEN_APP_ID=rakuten-from-env-file\n"
+        "RAKUTEN_ACCESS_KEY=rakuten-access-from-env-file\n"
         "YAHOO_APP_ID=yahoo-from-env-file\n",
         encoding="utf-8")
     monkeypatch.setenv("GRT_DATA_DIR", str(tmp_path))
-    for key in ("EBAY_OAUTH_TOKEN", "RAKUTEN_APP_ID", "YAHOO_APP_ID"):
+    for key in ("EBAY_OAUTH_TOKEN", "RAKUTEN_APP_ID",
+                "RAKUTEN_ACCESS_KEY", "YAHOO_APP_ID"):
         monkeypatch.delenv(key, raising=False)
 
     assert ebay_oauth_token() == "ebay-from-env-file"
     assert rakuten_app_id() == "rakuten-from-env-file"
+    from grt.fetchers.rakuten import rakuten_access_key
+    assert rakuten_access_key() == "rakuten-access-from-env-file"
     assert yahoo_app_id() == "yahoo-from-env-file"

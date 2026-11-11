@@ -117,7 +117,7 @@ def test_site_reports_catalog_error_after_audit(tmp_path, monkeypatch):
     assert update.main()==1
     assert calls==["refresh",result]
 
-def test_site_treats_intentional_catalog_cooldown_as_completed(tmp_path,monkeypatch):
+def test_site_treats_partial_source_failure_as_completed(tmp_path,monkeypatch):
     import importlib.util
     import sys
     site_code=Path(__file__).resolve().parents[1]/'site'
@@ -126,7 +126,7 @@ def test_site_treats_intentional_catalog_cooldown_as_completed(tmp_path,monkeypa
     update=importlib.util.module_from_spec(spec);spec.loader.exec_module(update)
     root=tmp_path/'game-record-tool';code=root/'site';code.mkdir(parents=True)
     monkeypatch.setattr(update,'__file__',str(code/'update_site.py'))
-    monkeypatch.setattr(update.refresh_site_data,'run',lambda *args:True)
+    monkeypatch.setattr(update.refresh_site_data,'run',lambda *args:False)
     result={'status':'cooldown','attempted':0,'failed':0,'selected':3,'reason':'http_503'}
     monkeypatch.setattr(update.catalog_search,'run',lambda *args,**kwargs:result)
     monkeypatch.setattr(update.audit_site,'run',lambda *args,**kwargs:None)

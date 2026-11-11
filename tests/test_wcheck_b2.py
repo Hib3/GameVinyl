@@ -434,6 +434,10 @@ def test_scheduler_grace_listener_and_maintenance_job(tmp_path,
     assert jobs["maintenance"]["minute"] == 30
     assert jobs["maintenance"]["misfire_grace_time"] == \
         main_mod.GRACE_WEEKLY_CRON_S
+    assert jobs["yahoo_used"]["max_instances"] == 1
+    assert jobs["yahoo_used"]["coalesce"] is True
+    assert jobs["yahoo_used"]["misfire_grace_time"] == \
+        main_mod.GRACE_INTERVAL_S
     assert recorded["listener"] is True
 
 
@@ -804,7 +808,8 @@ def test_pricedrop_second_episode_notifies(db):
     assert r3["notified"] is False
 
 
-def test_maintenance_prunes_telemetry_only(db, tmp_path, monkeypatch):
+def test_maintenance_prunes_expired_discogs_cache_and_telemetry(
+        db, tmp_path, monkeypatch):
     monkeypatch.setenv("GRT_DATA_DIR", str(tmp_path))
     old = clock.to_iso(clock.now(db) - __import__("datetime").timedelta(
         days=200))
@@ -820,18 +825,25 @@ def test_maintenance_prunes_telemetry_only(db, tmp_path, monkeypatch):
                " VALUES(1, ?)", (old,))
     db.execute("INSERT INTO telegram_updates(update_id, received_at)"
                " VALUES(2, ?)", (new,))
+    expired = clock.to_iso(clock.now(db) - __import__("datetime").timedelta(
+        hours=6, seconds=1))
+    fresh = clock.now_iso(db)
     db.execute(
         "INSERT INTO price_snapshots(edition_id, source, taken_at)"
-        " VALUES('AR-K', 'discogs', ?)", (old,))
+        " VALUES('AR-K', 'discogs', ?), ('AR-K', 'discogs', ?),"
+        " ('AR-K', 'manual', ?)", (expired, fresh, old))
     db.commit()
     res = maintenance.run_maintenance(db)
     assert res["fetch_runs"] == 1 and res["telegram_updates"] == 1
+    assert res["discogs_snapshots"] == 1
     assert db.execute("SELECT COUNT(*) FROM fetch_runs").fetchone()[0] == 1
     assert db.execute("SELECT COUNT(*) FROM telegram_updates"
                       ).fetchone()[0] == 1
-    # archive data is never pruned
-    assert db.execute("SELECT COUNT(*) FROM price_snapshots"
-                      ).fetchone()[0] == 1
+    snapshots = db.execute(
+        "SELECT source, taken_at FROM price_snapshots ORDER BY source"
+    ).fetchall()
+    assert [(row[0], row[1]) for row in snapshots] == [
+        ("discogs", fresh), ("manual", old)]
 
 
 # ---------------------------------------------------------------------------

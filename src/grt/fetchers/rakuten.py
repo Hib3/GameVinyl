@@ -1,10 +1,8 @@
 """Rakuten Ichiba Item Search API fetcher (fetcher kind: API).
 
 Phase 3 source: searches current Rakuten Ichiba listings by catalog
-number / keyword through the free Rakuten Web Service
-(IchibaItem/Search). The API key is the operator's own applicationId,
-supplied via the RAKUTEN_APP_ID environment variable. Without it the
-fetcher is disabled and says so — it never fabricates data.
+number / keyword through the free Rakuten Web Service. Without both
+operator credentials the fetcher is disabled and makes no network call.
 """
 from __future__ import annotations
 
@@ -17,7 +15,7 @@ from ..evidence import normalized_text_hash, save_raw_evidence
 from .base import (BaseFetcher, FetchError, api_list,
                    api_price, classify_http)
 
-API = ("https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706")
+API = "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701"
 
 
 def rakuten_app_id() -> str | None:
@@ -30,17 +28,24 @@ def rakuten_app_id() -> str | None:
     return os.environ.get("RAKUTEN_APP_ID") or None
 
 
+def rakuten_access_key() -> str | None:
+    config.load_dotenv()
+    return os.environ.get("RAKUTEN_ACCESS_KEY") or None
+
+
 class RakutenFetcher(BaseFetcher):
     kind = "API"
     min_gap_seconds = 1.1  # Rakuten guideline: at most ~1 request/second
 
-    def __init__(self, db, source_id: int, app_id=None):
+    def __init__(self, db, source_id: int, app_id=None, access_key=None):
         super().__init__(db, source_id)
         self.app_id = app_id if app_id is not None else rakuten_app_id()
+        self.access_key = (access_key if access_key is not None
+                           else rakuten_access_key())
 
     @property
     def enabled(self) -> bool:
-        return bool(self.app_id)
+        return bool(self.app_id and self.access_key)
 
     # ------------------------------------------------------------- search
 
@@ -64,8 +69,10 @@ class RakutenFetcher(BaseFetcher):
             resp = httpx.get(
                 API,
                 params={"applicationId": self.app_id, "keyword": catalog,
-                        "hits": "30", "format": "json"},
-                headers={"User-Agent": "GameRecordTool/1.0"},
+                        "hits": "30", "format": "json",
+                        "formatVersion": "2"},
+                headers={"User-Agent": "GameRecordTool/1.0",
+                         "accessKey": self.access_key},
                 timeout=30)
         except httpx.TimeoutException as exc:
             raise FetchError("TIMEOUT", str(exc))
@@ -83,8 +90,7 @@ class RakutenFetcher(BaseFetcher):
         if not isinstance(data, dict):
             raise FetchError("PARSE_ERROR", "Rakuten payload is not an object")
         items = []
-        for wrapper in api_list(data, "Items", "Rakuten"):
-            entry = wrapper.get("Item") if isinstance(wrapper, dict) else None
+        for entry in api_list(data, "items", "Rakuten"):
             if not isinstance(entry, dict):
                 continue
             title = entry.get("itemName") or ""
@@ -92,6 +98,7 @@ class RakutenFetcher(BaseFetcher):
             items.append({
                 "title": title,
                 "url": entry.get("itemUrl") or "",
+                "image_url": next(iter(entry.get("mediumImageUrls") or []), ""),
                 "price": price,
                 "currency": "JPY",
                 "raw_title": title,
@@ -107,7 +114,8 @@ class RakutenFetcher(BaseFetcher):
         """BaseFetcher contract: `url` is a catalog number / keyword
         (or a full search URL, whose keyword= term is extracted)."""
         if not self.enabled:
-            return [], {"disabled": True, "reason": "RAKUTEN_APP_ID not set",
+            return [], {"disabled": True,
+                        "reason": "Rakuten API credentials not set",
                         "raw_hash": None}
         catalog = url
         if url.startswith("http"):
@@ -121,7 +129,7 @@ class RakutenFetcher(BaseFetcher):
             self.db.execute(
                 "INSERT INTO system_events(kind, detail_json, created_at)"
                 " VALUES('fetcher_disabled', ?, ?)",
-                ('{"fetcher": "rakuten", "reason": "RAKUTEN_APP_ID not set"}',
+                ('{"fetcher": "rakuten", "reason": "credentials not set"}',
                  clock.now_iso(self.db)))
             self.db.commit()
             return {"ok": False, "enabled": False, "result": "DISABLED",

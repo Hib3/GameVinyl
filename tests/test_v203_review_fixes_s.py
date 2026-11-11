@@ -33,6 +33,22 @@ def test_bundling_same_source_never_grouped(db):
     assert bundling.count_physical_copies(db, "AR-1") == 2
 
 
+def test_suspended_ebay_rows_are_not_bundled_or_counted(db):
+    db.execute("INSERT INTO editions(id, title) VALUES('AR-1','T')")
+    _group(db)
+    _listing(db, "https://x/a", 10000, 3, source="shopA")
+    _listing(db, "https://x/b", 10200, 3, source="shopB")
+    _listing(db, "https://ebay.example/i", 10000, 3,
+             source="eBay Browse used")
+    out = bundling.propose_bundles(db)
+    assert out["grouped"] == 1
+    assert bundling.count_physical_copies(db, "AR-1") == 1
+    members = db.execute(
+        "SELECT l.source FROM listing_copy_members m JOIN listings l"
+        " ON l.id=m.listing_id ORDER BY l.source").fetchall()
+    assert [r[0] for r in members] == ["shopA", "shopB"]
+
+
 # S-D4: a later relisting from a new source JOINs the group.
 def test_bundling_late_member_joins(db):
     db.execute("INSERT INTO editions(id, title) VALUES('AR-1','T')")

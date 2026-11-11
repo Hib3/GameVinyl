@@ -2,11 +2,12 @@
 matching. Each test pins one R11 repro from the seven persona
 reviews so the defect cannot return silently."""
 import json
+from datetime import timedelta
 
 import httpx
 import pytest
 
-from grt import (bundling, candidates, evidence, matcher, pricedrop,
+from grt import (bundling, candidates, clock, evidence, matcher, pricedrop,
                  scoring, seedops, sweep, variant_sweep)
 from grt.bot import Bot
 from grt.fetchers import ingest as ingest_mod
@@ -106,13 +107,15 @@ def _price_text(db, monkeypatch, eid="AR-1"):
 
 def test_price_cmd_stats_use_latest_currency_only(db, monkeypatch):
     _edition(db)
-    rows = [("2026-11-05", 100.0, "USD"), ("2026-11-06", 15000.0, "JPY"),
-            ("2026-11-07", 200.0, "USD"), ("2026-11-08", 300.0, "USD")]
-    for taken, price, cur in rows:
+    now = clock.now(db)
+    rows = [(100.0, "USD"), (15000.0, "JPY"),
+            (200.0, "USD"), (300.0, "USD")]
+    for i, (price, cur) in enumerate(rows):
         db.execute(
             "INSERT INTO price_snapshots(edition_id, source, taken_at,"
             " num_for_sale, lowest_price, currency) VALUES('AR-1',"
-            " 'discogs', ?, 3, ?, ?)", (taken, price, cur))
+            " 'discogs', ?, 3, ?, ?)",
+            (clock.to_iso(now - timedelta(hours=3 - i)), price, cur))
     db.commit()
     text = _price_text(db, monkeypatch)
     # USD series only: median of (100, 200, 300) = 200; the JPY row
@@ -132,6 +135,58 @@ def test_price_cmd_bucket_yen_semantics(db, monkeypatch):
     assert "最安 8,000円" in text          # the JPY row, not $50/¥1,000
     assert "円換算のない出品 1件" in text   # the USD row is named, not priced
     assert "50円" not in text
+
+
+def test_price_command_ignores_suspended_ebay_rows(db, monkeypatch):
+    _edition(db)
+    _listing(db, "https://ebay.example/item", 1000, 3,
+             source="eBay Browse used")
+    text = _price_text(db, monkeypatch)
+    assert "1,000円" not in text
+    assert "状態ランク3" not in text
+
+
+def test_pricedrop_ignores_suspended_ebay_source(db):
+    _edition(db)
+    lid = _listing(db, "https://ebay.example/item", 5000, 3,
+                   source="eBay Browse used")
+    _decision(db, lid, "AR-1", "高")
+    row = dict(db.execute("SELECT * FROM listings WHERE id=?",
+                          (lid,)).fetchone())
+    assert pricedrop.on_listing_price(
+        db, row)["reason"] == "source disabled"
+    assert pricedrop.on_listing_price_update(
+        db, row, 10000, 5000)["reason"] == "source disabled"
+    assert pricedrop.bucket_best(db, "AR-1", None, 3) is None
+
+
+def test_price_drop_fallback_ignores_suspended_ebay_baseline(db):
+    _edition(db)
+    _listing(db, "https://ebay.example/item", 10000, 3,
+             source="eBay Browse used")
+    assert scoring.price_drop_qualifies_bucketed(
+        db, "AR-1", 5000, cond_rank=3) is False
+
+
+def test_absence_round_does_not_transition_suspended_ebay_member(db):
+    _edition(db)
+    shop_id = _listing(db, "https://shop.example/item", 10000, 3,
+                       source="shopA")
+    ebay_id = _listing(db, "https://ebay.example/item", 10000, 3,
+                       source="eBay Browse used")
+    group_id = db.execute(
+        "INSERT INTO listing_copy_groups(edition_id, seller_group,"
+        " first_seen, cond_rank) VALUES('AR-1','G1',?,3)",
+        (clock.now_iso(db),)).lastrowid
+    db.execute("UPDATE listings SET physical_copy_id=? WHERE id IN (?,?)",
+               (group_id, shop_id, ebay_id))
+    db.commit()
+    evidence.apply_absence_round(db, {"shopA": set()})
+    status = dict(db.execute(
+        "SELECT source, status FROM listings WHERE id IN (?,?)",
+        (shop_id, ebay_id)).fetchall())
+    assert status == {"shopA": "sold_candidate",
+                      "eBay Browse used": "active"}
 
 
 def test_register_missing_currency_stays_unknown(db):
@@ -1025,6 +1080,7 @@ def test_r14_price_series_survives_soldout_snapshot(db, monkeypatch):
     # Collector E1: latest snapshot sold out (currency NULL) must
     # not erase the JPY history.
     _edition(db, watch_level=2)
+    now = clock.now(db)
     for i, (price, cur) in enumerate(
             [(14000, "JPY"), (15000, "JPY"), (16000, "JPY"),
              (None, None)]):
@@ -1032,7 +1088,7 @@ def test_r14_price_series_survives_soldout_snapshot(db, monkeypatch):
             "INSERT INTO price_snapshots(edition_id, source,"
             " taken_at, num_for_sale, lowest_price, currency)"
             " VALUES('AR-1', 'discogs', ?, ?, ?, ?)",
-            (f"2026-11-0{i + 1}T00:00:00+09:00",
+            (clock.to_iso(now - timedelta(hours=3 - i)),
              0 if price is None else 3, price, cur))
     db.commit()
     bot, sent = _bot(db, monkeypatch)
@@ -1040,6 +1096,24 @@ def test_r14_price_series_survives_soldout_snapshot(db, monkeypatch):
     out = "\n".join(sent)
     assert "中央値" in out and "15,000" in out
     assert "他通貨" not in out
+
+
+def test_price_command_excludes_discogs_data_older_than_six_hours(
+        db, monkeypatch):
+    _edition(db, watch_level=2)
+    now = clock.now(db)
+    for age, price in ((7, 8000), (2, 14000), (1, 15000)):
+        db.execute(
+            "INSERT INTO price_snapshots(edition_id, source, taken_at,"
+            " num_for_sale, lowest_price, currency)"
+            " VALUES('AR-1', 'discogs', ?, 1, ?, 'JPY')",
+            (clock.to_iso(now - timedelta(hours=age)), price))
+    db.commit()
+    bot, sent = _bot(db, monkeypatch)
+    bot._cmd_price(555, ["AR-1"])
+    out = "\n".join(sent)
+    assert "14,000" in out and "15,000" in out
+    assert "8,000" not in out
 
 
 def test_r14_price_bucket_count_excludes_priceless(db, monkeypatch):

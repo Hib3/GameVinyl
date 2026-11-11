@@ -164,3 +164,13 @@ def test_manifest_check_ignores_git_metadata(tmp_path, monkeypatch):
     lines = _run_manifest_check(tmp_path, monkeypatch)
     assert any(ln.startswith("[OK]") for ln in lines)
     assert not any(".git/" in ln for ln in lines)
+
+
+def test_manifest_check_ignores_playwright_cli_artifacts(tmp_path, monkeypatch):
+    _write_manifest(tmp_path, {"run.py": b"print('x')\n"})
+    artifacts = tmp_path / ".playwright-cli"
+    artifacts.mkdir()
+    (artifacts / "page.yml").write_text("local browser snapshot\n", encoding="utf-8")
+    lines = _run_manifest_check(tmp_path, monkeypatch)
+    assert any(ln.startswith("[OK]") for ln in lines)
+    assert not any(".playwright-cli" in ln for ln in lines)
