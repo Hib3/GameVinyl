@@ -209,6 +209,7 @@ def test_each_record_gets_manual_marketplace_search_links_labeled_unverified(sit
     record=next(row for row in records if row['id']=='AR-000001')
     links=record['fieldAudit']['links']
     expected={
+        'ブックオフで探す（在庫未確認）':'https://shopping.bookoff.co.jp/search/keyword/',
         'Yahoo!ショッピングで探す（在庫未確認）':'https://shopping.yahoo.co.jp/search?p=',
         'Yahoo!オークションで探す（在庫未確認）':'https://auctions.yahoo.co.jp/search/search?p=',
         'メルカリで探す（在庫未確認）':'https://jp.mercari.com/search?keyword=',
@@ -220,6 +221,9 @@ def test_each_record_gets_manual_marketplace_search_links_labeled_unverified(sit
         link=next(item for item in links if item['label']==label)
         assert link['url'].startswith(prefix)
         assert 'Example' in link['url']
+    bookoff=next(item for item in links if item['label']=='ブックオフで探す（在庫未確認）')
+    assert 'Example%20soundtrack' in bookoff['url']
+    assert 'VG-123' in bookoff['url']
     empty=next(row for row in records if row['id']=='AR-000002')
     assert not any(item['label'] in expected for item in empty['fieldAudit']['links'])
 

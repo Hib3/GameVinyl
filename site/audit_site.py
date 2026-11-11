@@ -3,7 +3,7 @@ from collections import Counter, defaultdict
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import urlencode, urlsplit, urlunsplit
+from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 from catalog_search import norm, valid_catalog
 
 COVERAGE_AREAS = (
@@ -282,6 +282,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
             q=' '.join(str(r.get(k) or '') for k in ('title','catalog') if k!='catalog' or valid_catalog(r.get(k)))
             if q:
                 links.append({'label':'Discogsで探す（検索）','url':'https://www.discogs.com/search/?'+urlencode({'q':q,'type':'release'})})
+                links.append({'label':'ブックオフで探す（在庫未確認）','url':'https://shopping.bookoff.co.jp/search/keyword/'+quote(q,safe='')})
                 for label,base,param in (
                     ('Yahoo!ショッピングで探す（在庫未確認）','https://shopping.yahoo.co.jp/search','p'),
                     ('Yahoo!オークションで探す（在庫未確認）','https://auctions.yahoo.co.jp/search/search','p'),
