@@ -219,6 +219,8 @@ def test_each_record_gets_manual_marketplace_search_links_labeled_unverified(sit
         link=next(item for item in links if item['label']==label)
         assert link['url'].startswith(prefix)
         assert 'Example' in link['url']
+    empty=next(row for row in records if row['id']=='AR-000002')
+    assert not any(item['label'] in expected for item in empty['fieldAudit']['links'])
 
 def test_discogs_observation_display_expires_after_six_hours(site_fixture,tmp_path):
     audit,site,bot,template=site_fixture

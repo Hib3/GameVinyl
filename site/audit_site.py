@@ -273,15 +273,16 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                 links.append({'label':offer['source']+' 商品ページ候補（'+offer['reason']+'・'+offer['observed']+'。版・在庫・総額は未確認）: '+offer['title'],
                               'url':offer['url']})
             q=' '.join(str(r.get(k) or '') for k in ('title','catalog') if k!='catalog' or valid_catalog(r.get(k)))
-            links.append({'label':'Discogsで探す（検索）','url':'https://www.discogs.com/search/?'+urlencode({'q':q,'type':'release'})})
-            for label,base,param in (
-                ('Yahoo!ショッピングで探す（在庫未確認）','https://shopping.yahoo.co.jp/search','p'),
-                ('Yahoo!オークションで探す（在庫未確認）','https://auctions.yahoo.co.jp/search/search','p'),
-                ('メルカリで探す（在庫未確認）','https://jp.mercari.com/search','keyword'),
-                ('楽天市場で探す（在庫未確認）','https://search.rakuten.co.jp/search/mall/','sitem'),
-                ('eBayで探す（在庫未確認）','https://www.ebay.com/sch/i.html','_nkw'),
-            ):
-                links.append({'label':label,'url':base+'?'+urlencode({param:q})})
+            if q:
+                links.append({'label':'Discogsで探す（検索）','url':'https://www.discogs.com/search/?'+urlencode({'q':q,'type':'release'})})
+                for label,base,param in (
+                    ('Yahoo!ショッピングで探す（在庫未確認）','https://shopping.yahoo.co.jp/search','p'),
+                    ('Yahoo!オークションで探す（在庫未確認）','https://auctions.yahoo.co.jp/search/search','p'),
+                    ('メルカリで探す（在庫未確認）','https://jp.mercari.com/search','keyword'),
+                    ('楽天市場で探す（在庫未確認）','https://search.rakuten.co.jp/search/mall/','sitem'),
+                    ('eBayで探す（在庫未確認）','https://www.ebay.com/sch/i.html','_nkw'),
+                ):
+                    links.append({'label':label,'url':base+'?'+urlencode({param:q})})
             thumb=images.get(rid) if safe_https(images.get(rid)) else None
             if not thumb: checks.append('掲載可能画像なし')
             snap=snapshots.get(rid)
