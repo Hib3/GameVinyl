@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 import tempfile
 import time
@@ -266,6 +267,14 @@ class StorageTests(unittest.TestCase):
         with Store(restored).db() as db:
             self.assertEqual(db.execute('pragma integrity_check').fetchone()[0],'ok')
             self.assertEqual(db.execute('select count(*) from observations').fetchone()[0],1)
+
+    def test_daily_backup_retains_only_two_latest_days(self):
+        with patch('core.datetime') as clock:
+            clock.now.side_effect=[datetime(2026,11,1,tzinfo=timezone.utc),datetime(2026,11,2,tzinfo=timezone.utc),datetime(2026,11,3,tzinfo=timezone.utc)]
+            for _ in range(3):
+                self.store.backup_daily()
+        backups=sorted(p.name for p in (Path(self.temp.name)/'backups').glob('daily-*.sqlite3'))
+        self.assertEqual(backups,['daily-20261102.sqlite3','daily-20261103.sqlite3'])
 
     def test_disabled_source_not_claimed(self):
         self.config['sources'][0]['enabled']=False

@@ -29,6 +29,7 @@ game-record-tool/
 ├── run.py             本体の起動（自動起動から呼ばれる）
 ├── watchdog.py        ウォッチドッグ（本体が止まっていないか見守る）
 ├── setup_tasks.py     自動起動の登録（3方式を順に試し、確認まで行う）
+├── task_launcher.py  共有データ場所を指定して各常駐プロセスを起動
 ├── wait_start.py      setup.bat の最終確認（本体が実際に起動したか）
 ├── watchdog_loop.py   スタートアップ方式のときのウォッチドッグ（15分間隔ループ）
 ├── register_tasks.ps1 / make_startup_shortcuts.ps1
@@ -40,13 +41,13 @@ game-record-tool/
 │   └── music_type_audit.json 音楽種別の監査データ（初期取り込みに使用）
 ├── src/
 │   └── grt/           本体のコード
-└── data/              あなたのデータ（更新しても消えません）
+└── (shared data)      D:\GameRecordTool\data（版フォルダの外に1つだけ置く）
     ├── grt.db         データベース
     ├── .env           あなたのトークンなどの設定
     └── logs           ログ
 ```
 
-- `data\` フォルダだけが、あなたのデータの置き場所です。データベース（`grt.db`）と設定（`.env`）はここにあります。
+- `D:\GameRecordTool\data\` だけが、あなたのデータの置き場所です。データベース（`grt.db`）と設定（`.env`）は版ごとのコードフォルダの外に置きます。
 - コード一式を新しい版に差し替えても、`data\` は上書きされません。詳しくは `SETUP_GUIDE.md` の「9. 更新版への差し替え手順」を見てください。
 
 ## Muse データの読み取り監査
