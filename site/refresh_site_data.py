@@ -206,7 +206,9 @@ def run(db, rounds, merchants_only=False):
                     result=f'http_{status}'
                 except httpx.RequestError:
                     result='network_error'
-                except (ValueError,KeyError,PermissionError,TypeError):
+                except PermissionError as exc:
+                    result=str(exc)
+                except (ValueError,KeyError,TypeError):
                     result='directory_unverified'
                 now=datetime.now().astimezone().isoformat(timespec='seconds')
                 c.execute('insert into freshness_runs(source_id,checked_at,result,http_status,extracted) values(?,?,?,?,?)',
