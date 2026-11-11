@@ -447,6 +447,8 @@
       @media (max-width: 560px) {
         .deal-cards { grid-template-columns: 1fr; }
         .deal-thumb { width: 88px; height: 88px; }
+        .era-strip { flex-wrap: nowrap; overflow-x: auto; padding-block: 10px; scrollbar-width: thin; }
+        .era-strip .strip-label, .era-chip { flex: 0 0 auto; white-space: nowrap; }
         .masthead h1 { font-size: 22px; letter-spacing: .02em; }
         .masthead h1 span { display: block; }
         .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; width: 100%; }
@@ -486,6 +488,8 @@
       .audit-disclosure { margin: 0 0 1rem; }
       .audit-disclosure summary { color: var(--ink-soft); cursor: pointer; }
       .audit-overview { margin: .55rem 0 0; line-height: 1.6; }
+      .audit-as-of { margin: .35rem 0 0; color: var(--muted); font-size: .75rem; }
+      .audit-context { margin: .2rem 0 .55rem; color: var(--ink-soft); font-size: .8rem; line-height: 1.5; }
       .search-match { margin-top: .25rem; color: var(--muted); font-size: .76rem; }
       .audit-art {display: block; width: 52px; height: 52px; margin-top: .35rem; object-fit: contain;}
       .audit-art-fallback {display: inline-grid; width: 52px; height: 52px; margin-top: .35rem; place-content: center; text-align: center; border: 1px solid currentColor; border-radius: 4px; font-size: .62rem; line-height: 1.2; background: radial-gradient(circle, transparent 31%, rgba(127,127,127,.17) 32%, transparent 35%, rgba(127,127,127,.17) 42%, transparent 45%);}
@@ -513,7 +517,7 @@
     </div>
 
     <div class="era-strip-wrap" id="era-strip-wrap">
-      <div class="era-strip" id="era-strip">
+      <div class="era-strip" id="era-strip" role="group" aria-label="年代から探す">
         <span class="strip-label">年代から探す</span>
       </div>
     </div>
@@ -559,7 +563,7 @@
             <label for="sort">並び替え</label>
             <select id="sort">
               <option value="year-desc">年：新しい順</option>
-              <option value="year-asc">年：古い順</option>
+              <option value="year-asc" selected>年：古い順</option>
               <option value="price-asc" disabled>調査時価格：安い順（停止中）</option>
               <option value="price-desc" disabled>調査時価格：高い順（停止中）</option>
               <option value="median-desc" disabled>成約中央値：高い順（停止中）</option>
@@ -582,6 +586,8 @@
           <span class="active-chips" id="active-chips"></span>
         </div>
 
+        <p class="audit-as-of" id="audit-as-of">監査データ更新：@@AUDIT_AS_OF@@ JST</p>
+        <p class="audit-context">中古・ヴィンテージを優先。公式新譜も対象（低優先）。候補や過去調査は現在の価格・在庫として数えません。</p>
         <details class="audit-disclosure">
           <summary>監査の詳細（取得範囲・確認状態）</summary>
           <p class="audit-overview" id="audit-overview">@@AUDIT_OVERVIEW@@</p>
@@ -785,7 +791,7 @@
           q: "",
           era: {}, content: {}, format: {}, sales: {}, console: {}, label: {}, maker: {}, rarity: {}, status: {}, audit: {}, mtype: {},
           priceMin: null, priceMax: null,
-          sort: "year-desc", page: 1, perPage: 60
+          sort: "year-asc", page: 1, perPage: 60
         };
         var expanded = {}; // facet key -> show all
 
@@ -841,15 +847,25 @@
         /* ---------- header stats ---------- */
         (function renderStats() {
           var total = DATA.length;
-          var withPrice = DATA.filter(function (r) { return r.price !== null; }).length;
-          var withEvidence = DATA.filter(function (r) { return r.price !== null || r.median !== null; }).length;
-          var buyable = DATA.filter(function (r) { return statusKey(r) === "buyable"; }).length;
-          function pct(n) { return (Math.round(n / total * 1000) / 10) + "%"; }
+          function coverageCount(area, status) {
+            return DATA.filter(function (r) {
+              var coverage = r.fieldAudit && Array.isArray(r.fieldAudit.coverage)
+                ? r.fieldAudit.coverage : [];
+              return coverage.some(function (item) {
+                return item.area === area && item.status === status;
+              });
+            }).length;
+          }
+          var usedCandidates = coverageCount("used_listing", "candidate_needs_review");
+          var currentPrices = coverageCount("price", "verified_current");
+          var eligibleImages = DATA.filter(function (r) {
+            return Boolean(r.fieldAudit && r.fieldAudit.image);
+          }).length;
           var items = [
-            { num: fmtNum(total), lbl: "収録盤 総数" },
-            { num: fmtNum(withPrice), sub: pct(withPrice), lbl: "調査時価格あり" },
-            { num: fmtNum(withEvidence), sub: pct(withEvidence), lbl: "価格証跡あり（現在＋過去）" },
-            { num: fmtNum(buyable), sub: pct(buyable), lbl: "調査時に出品あり（出品・価格確認）" }
+            { num: fmtNum(total), lbl: "収録盤" },
+            { num: fmtNum(usedCandidates), lbl: "中古出品候補・要確認" },
+            { num: fmtNum(currentPrices), lbl: "現行価格証跡・確認済み" },
+            { num: fmtNum(eligibleImages), lbl: "掲載可能な画像" }
           ];
           document.getElementById("stats").innerHTML = items.map(function (it) {
             return '<div class="stat"><div class="num">' + it.num + (it.sub ? "<small>" + it.sub + "</small>" : "") +

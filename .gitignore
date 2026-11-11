@@ -5,6 +5,7 @@ __pycache__/
 **/__pycache__/
 .pytest_cache/
 **/.pytest_cache/
+.playwright-cli/
 .ruff_cache/
 *.py[cod]
 .env

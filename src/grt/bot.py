@@ -1180,11 +1180,13 @@ class Bot:
                 return None
             return f"{f:,.2f}".rstrip("0").rstrip(".")
 
+        cutoff = clock.to_iso(clock.now(self.db) - timedelta(hours=6))
         snaps = self.db.execute(
             "SELECT taken_at, num_for_sale, lowest_price, currency FROM"
             " price_snapshots WHERE edition_id=? AND source='discogs'"
+            " AND julianday(taken_at)>=julianday(?)"
             " ORDER BY taken_at DESC, rowid DESC LIMIT 12",
-            (eid,)).fetchall()
+            (eid, cutoff)).fetchall()
         if snaps:
             latest = snaps[0]
             # W-check B3 (collector D-1/D-4, wholesaler 5, maniac A

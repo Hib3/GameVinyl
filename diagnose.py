@@ -729,7 +729,8 @@ def check_manifest() -> None:
             continue
         rel = path.relative_to(root).as_posix()
         parts = Path(rel).parts
-        if (rel == "MANIFEST.sha256" or parts[0] in {"data", ".venv", ".git"}
+        if (rel == "MANIFEST.sha256" or parts[0] in {
+                "data", ".venv", ".git", ".playwright-cli"}
                 or "__pycache__" in parts or ".pytest_cache" in parts
                 or rel in runtime_outputs):
             continue
