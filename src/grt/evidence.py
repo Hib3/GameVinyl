@@ -205,7 +205,8 @@ def apply_absence_round(db, rounds: dict) -> dict:
         return {"absent": 0, "ended": 0, "sold_candidate": 0}
     rows = db.execute(
         "SELECT id, source, url, physical_copy_id FROM listings"
-        " WHERE status IN ('active', 'sold_candidate')").fetchall()
+        " WHERE source!='eBay Browse used'"
+        " AND status IN ('active', 'sold_candidate')").fetchall()
     # R14 (seller): membership is compared in CANONICAL form on
     # both sides. Rows registered before canonicalisation carry
     # tracking parameters in the stored URL; the rounds carry the
@@ -271,7 +272,8 @@ def apply_absence_round(db, rounds: dict) -> dict:
     for gid, members in groups.items():
         all_members = db.execute(
             "SELECT id, source FROM listings WHERE"
-            " physical_copy_id=?", (gid,)).fetchall()
+            " physical_copy_id=? AND source!='eBay Browse used'",
+            (gid,)).fetchall()
         if any(m[1] not in rounds and m[1] in live_sources
                and m[1] in fresh_sources
                for m in all_members):

@@ -160,6 +160,35 @@ def test_pricedrop_ignores_suspended_ebay_source(db):
     assert pricedrop.bucket_best(db, "AR-1", None, 3) is None
 
 
+def test_price_drop_fallback_ignores_suspended_ebay_baseline(db):
+    _edition(db)
+    _listing(db, "https://ebay.example/item", 10000, 3,
+             source="eBay Browse used")
+    assert scoring.price_drop_qualifies_bucketed(
+        db, "AR-1", 5000, cond_rank=3) is False
+
+
+def test_absence_round_does_not_transition_suspended_ebay_member(db):
+    _edition(db)
+    shop_id = _listing(db, "https://shop.example/item", 10000, 3,
+                       source="shopA")
+    ebay_id = _listing(db, "https://ebay.example/item", 10000, 3,
+                       source="eBay Browse used")
+    group_id = db.execute(
+        "INSERT INTO listing_copy_groups(edition_id, seller_group,"
+        " first_seen, cond_rank) VALUES('AR-1','G1',?,3)",
+        (clock.now_iso(db),)).lastrowid
+    db.execute("UPDATE listings SET physical_copy_id=? WHERE id IN (?,?)",
+               (group_id, shop_id, ebay_id))
+    db.commit()
+    evidence.apply_absence_round(db, {"shopA": set()})
+    status = dict(db.execute(
+        "SELECT source, status FROM listings WHERE id IN (?,?)",
+        (shop_id, ebay_id)).fetchall())
+    assert status == {"shopA": "sold_candidate",
+                      "eBay Browse used": "active"}
+
+
 def test_register_missing_currency_stays_unknown(db):
     sid = _source(db)
     _edition(db)
