@@ -102,6 +102,8 @@ def test_setup_bat_delegates_and_stays_ascii_crlf():
     text = data.decode("ascii")
     assert "setup_tasks.py" in text
     assert "wait_start.py" in text
+    assert "%GRT_HOME%\\app\\data" in text
+    assert 'robocopy "%DATA_SOURCE%" "%GRT_DATA_DIR%"' in text
     code_lines = [ln for ln in text.splitlines()
                   if not ln.lstrip().upper().startswith("REM")]
     assert not any("schtasks" in ln for ln in code_lines), \

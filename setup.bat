@@ -10,11 +10,12 @@ REM diagnose tool could not tell whether setup.bat had even been
 REM run in a folder, or how far it got. Now it can - check.bat
 REM includes this log in its report.
 REM ------------------------------------------------------------
-if not defined GRT_DATA_DIR call :set_shared_data_dir
-if not defined GRT_DATA_DIR (
-  echo [ERROR] Could not locate the shared GameRecordTool data folder.
+call :set_shared_data_dir
+if not defined GRT_HOME_FOUND (
+  echo [ERROR] Could not locate the GameRecordTool project folder.
   exit /b 1
 )
+if not defined GRT_DATA_DIR set "GRT_DATA_DIR=%GRT_HOME%\data"
 for %%I in ("%GRT_DATA_DIR%") do set "GRT_DATA_DIR=%%~fI"
 for %%I in ("%~dp0.") do set "APP_DRIVE=%%~dI"
 for %%I in ("%GRT_DATA_DIR%") do set "DATA_DRIVE=%%~dI"
@@ -34,9 +35,17 @@ if not exist "%GRT_DATA_DIR%\logs" mkdir "%GRT_DATA_DIR%\logs"
 set "SETUP_LOG=%GRT_DATA_DIR%\logs\setup_bat.log"
 echo ==== setup.bat started %DATE% %TIME% ====>> "%SETUP_LOG%"
 
-if not defined GRT_DATA_DIR_WAS_PRESENT if exist "%~dp0data\." (
+set "DATA_SOURCE="
+if not defined GRT_DATA_DIR_WAS_PRESENT if exist "%GRT_HOME%\app\data\." (
+  set "DATA_SOURCE=%GRT_HOME%\app\data"
+)
+if not defined DATA_SOURCE if not defined GRT_DATA_DIR_WAS_PRESENT if exist "%~dp0data\." (
+  set "DATA_SOURCE=%~dp0data"
+)
+if defined DATA_SOURCE (
   echo [DATA] Copying the package data folder to the shared D-drive location ...
-  robocopy "%~dp0data" "%GRT_DATA_DIR%" /E /COPY:DAT /R:1 /W:1 /NP /NFL /NDL >> "%SETUP_LOG%" 2>&1
+  echo [DATA] Source: %DATA_SOURCE%>> "%SETUP_LOG%"
+  robocopy "%DATA_SOURCE%" "%GRT_DATA_DIR%" /E /COPY:DAT /R:1 /W:1 /NP /NFL /NDL >> "%SETUP_LOG%" 2>&1
   if errorlevel 8 (
     echo [ERROR] Data copy failed. Existing source data was left in place.>> "%SETUP_LOG%"
     echo [ERROR] Data copy failed; source data remains untouched. See "%SETUP_LOG%".
@@ -373,10 +382,12 @@ exit /b 0
 
 :set_shared_data_dir
 set "GRT_HOME=%~dp0."
+set "GRT_HOME_FOUND="
 :find_shared_data_home
 for %%I in ("%GRT_HOME%") do set "GRT_HOME=%%~fI"
 for %%I in ("%GRT_HOME%") do if /i "%%~nxI"=="GameRecordTool" (
-  set "GRT_DATA_DIR=%%~fI\data"
+  set "GRT_HOME_FOUND=1"
+  if not defined GRT_DATA_DIR set "GRT_DATA_DIR=%%~fI\data"
   exit /b 0
 )
 for %%I in ("%GRT_HOME%\..") do set "GRT_PARENT=%%~fI"
