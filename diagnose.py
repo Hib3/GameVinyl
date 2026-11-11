@@ -654,9 +654,11 @@ def check_tasks() -> None:
             continue
         cmd_ok = _norm_path(info["command"]) == _norm_path(str(python_path))
         args_norm = _norm_path(info["arguments"])
+        script_arg = f'--script "{script}"'.replace("/", "\\").casefold()
         arg_ok = (_norm_path(str(root / "task_launcher.py")) in args_norm
                   and _norm_path(str(config.data_dir())) in args_norm
-                  and f'--script "{script}"' in args_norm)
+                  and (script_arg in args_norm
+                       or args_norm.endswith(script_arg[:-1])))
         problems = task_settings_problems(info)
         if problems:
             out(f"[NG] タスク {name} の設定が常駐用になっていません:")
@@ -669,7 +671,8 @@ def check_tasks() -> None:
         else:
             out(f"[NG] タスク {name} はありますが、このフォルダの本体を指していません。")
             out(f"     登録先: {info['command']} {info['arguments']}")
-            out(f"     本来の向く先: {python_path} {script}")
+            out(f"     本来の向く先: {python_path} {root / 'task_launcher.py'} "
+                f"--data-dir {config.data_dir()} --script {script}")
             out("     フォルダを移動した場合は古い登録が残っています。")
             out("     setup.bat を実行してください（管理者権限は不要です）。失敗した場合は下記 == 8 == のログに理由が残ります。")
 
