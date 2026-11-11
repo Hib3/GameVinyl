@@ -716,7 +716,8 @@ def _stack_duplicate_suspects(db, listing: dict, listing_id,
                  "matcher_version": MATCHER_VERSION})
 
 
-def match_listing(db, listing: dict, listing_id: int | None = None) -> list[dict]:
+def match_listing(db, listing: dict, listing_id: int | None = None,
+                  require_human_review: bool = False) -> list[dict]:
     """Evaluate a listing against all blocking candidates; log decisions.
 
     Ties at the top score are never auto-decided: every tied candidate is
@@ -824,6 +825,12 @@ def match_listing(db, listing: dict, listing_id: int | None = None) -> list[dict
             if best is None or key > best[0]:
                 best = (key, res)
         results.append(best[1])
+
+    if require_human_review:
+        for r in results:
+            r["disposition"] = "review"
+            r["breakdown"] = dict(r.get("breakdown") or {})
+            r["breakdown"]["source_requires_human_review"] = True
 
     if results:
         top = max(r["score"] for r in results)

@@ -506,6 +506,12 @@ def run() -> None:
                     _log_job_error("ingest_absence", exc)
         _run_job("ingest", body)
 
+    def yahoo_used_job():
+        def body(conn):
+            from .used_market import run_yahoo_used_sweep
+            run_yahoo_used_sweep(conn)
+        _run_job("yahoo_used", body)
+
     def goods_job():
         # GOODS lane (agreement-09): approved GOODS sources are
         # fetched on the ladder like other source jobs.
@@ -716,6 +722,9 @@ def run() -> None:
     scheduler.add_job(storewatch_job, "interval", minutes=15,
                       id="storewatch", misfire_grace_time=GRACE_INTERVAL_S)
     scheduler.add_job(ingest_job, "interval", minutes=15, id="ingest",
+                      misfire_grace_time=GRACE_INTERVAL_S)
+    scheduler.add_job(yahoo_used_job, "interval", minutes=15,
+                      id="yahoo_used", max_instances=1, coalesce=True,
                       misfire_grace_time=GRACE_INTERVAL_S)
     scheduler.add_job(goods_job, "interval", minutes=15, id="goods",
                       misfire_grace_time=GRACE_INTERVAL_S)

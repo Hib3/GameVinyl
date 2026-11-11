@@ -68,6 +68,7 @@ _LATE_COLUMNS = (
     # absence — the declared flag is what arms the variant_stock
     # REPRESS transition when the copy returns.
     ("listings", "oos_declared", "INTEGER DEFAULT 0"),
+    ("listings", "image_url", "TEXT"),
 )
 
 
@@ -108,6 +109,8 @@ _INDEXES = (
     " ON candidate_editions(status, found_at)",
     "CREATE INDEX IF NOT EXISTS idx_match_decisions_time"
     " ON match_decisions(decided_at)",
+    "CREATE INDEX IF NOT EXISTS idx_used_market_search_checked"
+    " ON used_market_search_state(last_checked, edition_id)",
     # W-check B3 (adversarial 4): listings identity is (source,
     # url); without a UNIQUE index the SELECT-then-INSERT in
     # register_ingested raced under concurrent lanes and produced

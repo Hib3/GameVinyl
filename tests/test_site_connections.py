@@ -405,4 +405,43 @@ def test_audit_snapshot_time_is_rendered_visibly(site_fixture,tmp_path):
     assert '@@AUDIT_AS_OF@@' not in text
 
 
+def test_only_human_approved_yahoo_listing_is_exported_with_attribution(site_fixture,tmp_path):
+    audit,site,bot,template=site_fixture
+    seen=datetime.now(timezone.utc).isoformat()
+    c=sqlite3.connect(bot)
+    with c:
+        c.executescript("""
+          create table listings(id integer,edition_id text,source text,url text,
+            image_url text,raw_title text,last_seen text);
+          create table match_decisions(id integer,listing_id integer,
+            edition_id text,matcher_version text,price_confidence text);
+        """)
+        c.execute("insert into listings values(1,'AR-000001',?,?,?, ?,?)",
+                  ('Yahoo Shopping used',
+                   'https://store.shopping.yahoo.co.jp/shop/record.html',
+                   'https://item-shopping.c.yimg.jp/i/g/record',
+                   'Vintage record',seen))
+        c.execute("insert into match_decisions values(1,1,'AR-000001',"
+                  "'human-review-1','高')")
+        c.execute("insert into listings values(2,'AR-000002',?,?,?, ?,?)",
+                  ('Yahoo Shopping used',
+                   'https://store.shopping.yahoo.co.jp/shop/unreviewed.html',
+                   'https://item-shopping.c.yimg.jp/i/g/unreviewed',
+                   'Unreviewed',seen))
+        c.execute("insert into match_decisions values(2,2,'AR-000002',"
+                  "'matcher-1','高')")
+    c.close()
+
+    target=tmp_path/'index.html'
+    audit.run(site,bot,template,target,tmp_path/'audit.csv')
+    html=target.read_text(encoding='utf-8')
+    assert 'https://store.shopping.yahoo.co.jp/shop/record.html' in html
+    assert 'https://item-shopping.c.yimg.jp/i/g/record' in html
+    assert 'unreviewed.html' not in html
+    assert 'marketListings' in html
+    production_template=(Path(__file__).resolve().parents[1]/'site'/'site_template.html').read_text(encoding='utf-8')
+    assert '<!-- Begin Yahoo! JAPAN Web Services Attribution Snippet -->' in production_template
+    assert '<span style="margin:15px 15px 15px 15px"><a href="https://developer.yahoo.co.jp/sitemap/">Webサービス by Yahoo! JAPAN</a></span>' in production_template
+
+
 

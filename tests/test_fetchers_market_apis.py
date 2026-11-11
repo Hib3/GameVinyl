@@ -177,7 +177,8 @@ YAHOO_PAYLOAD = {
     "hits": [
         {"name": "ゲーム サントラ TGCS-123",
          "url": "https://store.shopping.yahoo.co.jp/shop/abc.html",
-         "price": 4200},
+         "image": {"medium": "https://item-shopping.c.yimg.jp/i/g/abc"},
+         "price": 4200, "condition": "used", "inStock": True},
     ],
 }
 
@@ -210,6 +211,7 @@ def test_yahoo_item_mapping(db, monkeypatch):
     assert items == [{
         "title": "ゲーム サントラ TGCS-123",
         "url": "https://store.shopping.yahoo.co.jp/shop/abc.html",
+        "image_url": "https://item-shopping.c.yimg.jp/i/g/abc",
         "price": 4200,
         "currency": "JPY",
         "raw_title": "ゲーム サントラ TGCS-123",
@@ -253,13 +255,20 @@ def test_yahoo_403_is_blocked(db, monkeypatch):
 
 
 def test_yahoo_run_records_ok_fetch_run(db, monkeypatch):
-    monkeypatch.setattr(httpx, "get",
-                        lambda *a, **kw: FakeResp(200, YAHOO_PAYLOAD))
+    calls = {}
+
+    def fake_get(url, params=None, headers=None, timeout=None):
+        calls.update(url=url, params=params)
+        return FakeResp(200, YAHOO_PAYLOAD)
+
+    monkeypatch.setattr(httpx, "get", fake_get)
     sid = _source_id(db, "yahoo")
     f = YahooShoppingFetcher(db, sid, app_id="test-app-id")
     result = f.run(CATALOG)
     assert result["ok"] is True
     assert len(result["items"]) == 1
+    assert calls["params"]["condition"] == "used"
+    assert calls["params"]["in_stock"] == "true"
     row = db.execute(
         "SELECT result, fetcher_kind, items_extracted FROM fetch_runs"
         " WHERE source_id=?", (sid,)).fetchone()

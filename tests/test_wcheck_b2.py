@@ -434,6 +434,10 @@ def test_scheduler_grace_listener_and_maintenance_job(tmp_path,
     assert jobs["maintenance"]["minute"] == 30
     assert jobs["maintenance"]["misfire_grace_time"] == \
         main_mod.GRACE_WEEKLY_CRON_S
+    assert jobs["yahoo_used"]["max_instances"] == 1
+    assert jobs["yahoo_used"]["coalesce"] is True
+    assert jobs["yahoo_used"]["misfire_grace_time"] == \
+        main_mod.GRACE_INTERVAL_S
     assert recorded["listener"] is True
 
 
