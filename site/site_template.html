@@ -447,6 +447,8 @@
       @media (max-width: 560px) {
         .deal-cards { grid-template-columns: 1fr; }
         .deal-thumb { width: 88px; height: 88px; }
+        .era-strip { flex-wrap: nowrap; overflow-x: auto; padding-block: 10px; scrollbar-width: thin; }
+        .era-strip .strip-label, .era-chip { flex: 0 0 auto; white-space: nowrap; }
         .masthead h1 { font-size: 22px; letter-spacing: .02em; }
         .masthead h1 span { display: block; }
         .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; width: 100%; }
@@ -515,7 +517,7 @@
     </div>
 
     <div class="era-strip-wrap" id="era-strip-wrap">
-      <div class="era-strip" id="era-strip">
+      <div class="era-strip" id="era-strip" role="group" aria-label="年代から探す">
         <span class="strip-label">年代から探す</span>
       </div>
     </div>
@@ -561,7 +563,7 @@
             <label for="sort">並び替え</label>
             <select id="sort">
               <option value="year-desc">年：新しい順</option>
-              <option value="year-asc">年：古い順</option>
+              <option value="year-asc" selected>年：古い順</option>
               <option value="price-asc" disabled>調査時価格：安い順（停止中）</option>
               <option value="price-desc" disabled>調査時価格：高い順（停止中）</option>
               <option value="median-desc" disabled>成約中央値：高い順（停止中）</option>
@@ -789,7 +791,7 @@
           q: "",
           era: {}, content: {}, format: {}, sales: {}, console: {}, label: {}, maker: {}, rarity: {}, status: {}, audit: {}, mtype: {},
           priceMin: null, priceMax: null,
-          sort: "year-desc", page: 1, perPage: 60
+          sort: "year-asc", page: 1, perPage: 60
         };
         var expanded = {}; // facet key -> show all
 
