@@ -2,10 +2,11 @@
 (2026-11-08, maniac-B + adversarial-QA persona — bot commands,
 market API clients, webpages fetchers, goods, doujin events)."""
 import gzip
+from datetime import timedelta
 
 import pytest
 
-from grt import deadlines_ops
+from grt import clock, deadlines_ops
 from grt.bot import Bot
 from grt.fetchers import webpages
 from grt.fetchers.base import FetchError
@@ -117,15 +118,18 @@ def test_deadlines_tzfix_flow(db, monkeypatch):
 # B4: /price median of an even count + NULL latest price label.
 def test_price_median_and_null_latest(db, monkeypatch):
     db.execute("INSERT INTO editions(id, title) VALUES('AR-1','T')")
+    now = clock.now(db)
     for i, price in enumerate((100.0, 200.0, 300.0, 400.0)):
         db.execute(
             "INSERT INTO price_snapshots(edition_id, source, taken_at,"
             " num_for_sale, lowest_price, currency) VALUES('AR-1',"
-            " 'discogs', ?, 1, ?, 'USD')", (f"2026-11-0{i+1}", price))
+            " 'discogs', ?, 1, ?, 'USD')",
+            (clock.to_iso(now - timedelta(hours=4 - i)), price))
     db.execute(
         "INSERT INTO price_snapshots(edition_id, source, taken_at,"
         " num_for_sale, lowest_price, currency) VALUES('AR-1',"
-        " 'discogs', '2026-11-08', 0, NULL, 'USD')")
+        " 'discogs', ?, 0, NULL, 'USD')",
+        (clock.to_iso(now),))
     db.commit()
     bot, sent = _bot(db, monkeypatch)
     _cmd(bot, "/price AR-1")
