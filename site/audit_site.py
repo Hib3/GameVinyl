@@ -96,8 +96,8 @@ def pending_candidates(bot):
                         'url':link})
     return out
 
-def approved_market_api_listings(bot, now):
-    """Read fresh API listings only after a human approved their edition match."""
+def approved_yahoo_listings(bot, now):
+    """Read only fresh, human-approved Yahoo API listings for public export."""
     tables={r[0] for r in bot.execute(
         "select name from sqlite_master where type='table'")}
     if not {'listings','match_decisions'} <= tables:
@@ -110,7 +110,7 @@ def approved_market_api_listings(bot, now):
              l.price,l.currency
       from listings l join match_decisions d
         on d.listing_id=l.id and d.edition_id=l.edition_id
-      where l.source in ('Yahoo Shopping used','eBay Browse used','Rakuten Ichiba')
+      where l.source='Yahoo Shopping used'
         and l.edition_id is not null
         and d.id=(select max(d2.id) from match_decisions d2
                   where d2.listing_id=l.id and d2.edition_id=l.edition_id)
@@ -118,12 +118,8 @@ def approved_market_api_listings(bot, now):
         and d.price_confidence='高'
       order by l.last_seen desc, l.id desc
     """).fetchall()
-    source_rules={
-        'Yahoo Shopping used':('shopping.yahoo.co.jp','yimg.jp',
-                               'Yahoo!ショッピング中古'),
-        'eBay Browse used':('ebay.com','ebayimg.com','eBay中古'),
-        'Rakuten Ichiba':('rakuten.co.jp','image.rakuten.co.jp','楽天市場'),
-    }
+    source_rules={'Yahoo Shopping used':('shopping.yahoo.co.jp','yimg.jp',
+                                          'Yahoo!ショッピング中古')}
     for source,edition_id,url,image,title,seen,price,currency in rows:
         listing_host,image_suffix,label=source_rules[source]
         host=(urlsplit(url).hostname or '').lower() if safe_https(url) else ''
@@ -133,8 +129,7 @@ def approved_market_api_listings(bot, now):
         if checked is None or checked>now or checked<now-timedelta(hours=48):
             continue
         image_host=(urlsplit(image).hostname or '').lower() if safe_https(image) else ''
-        image_ok=(source=='Yahoo Shopping used' and
-                  (image_host==image_suffix or image_host.endswith('.'+image_suffix)))
+        image_ok=image_host==image_suffix or image_host.endswith('.'+image_suffix)
         items=out[edition_id]
         if len(items)<3:
             items.append({'url':url,'image':image if image_ok else None,
@@ -144,9 +139,6 @@ def approved_market_api_listings(bot, now):
                           'price':price if price_ok(price) else None,
                           'currency':currency if isinstance(currency,str) else None})
     return out
-
-
-approved_yahoo_listings=approved_market_api_listings
 
 def price_ok(x):
     return type(x) in (int,float) and math.isfinite(x) and x>0
@@ -179,7 +171,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
         monitored_ids={row[0] for row in bot.execute('select id from editions where watch_level>0')}
         monitored=len(monitored_ids)
         discoveries=pending_candidates(bot)
-        yahoo_market=approved_market_api_listings(bot,now)
+        yahoo_market=approved_yahoo_listings(bot,now)
     with closing(sqlite3.connect(db)) as c:
         c.execute('pragma foreign_keys=on')
         rows=c.execute('select id,identity_status,tool_json,muse_json,html_json from editions order by id').fetchall()

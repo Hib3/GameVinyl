@@ -449,6 +449,13 @@ def test_only_human_approved_yahoo_listing_is_exported_with_attribution(site_fix
                    'Vintage record',seen,4200,'JPY'))
         c.execute("insert into match_decisions values(1,1,'AR-000001',"
                   "'human-review-1','高')")
+        c.execute("insert into listings values(6,'AR-000001',?,?,?, ?,?,?,?)",
+                  ('Yahoo Shopping used',
+                   'https://store.shopping.yahoo.co.jp/shop/record-2.html',
+                   'https://item-shopping.c.yimg.jp/i/g/record-2',
+                   'Second vintage record',seen,4300,'JPY'))
+        c.execute("insert into match_decisions values(6,6,'AR-000001',"
+                  "'human-review-1','高')")
         c.execute("insert into listings values(2,'AR-000002',?,?,?, ?,?,?,?)",
                   ('Yahoo Shopping used',
                    'https://store.shopping.yahoo.co.jp/shop/unreviewed.html',
@@ -481,18 +488,18 @@ def test_only_human_approved_yahoo_listing_is_exported_with_attribution(site_fix
     records,_=json.JSONDecoder().raw_decode(html[html.index('[{'):])
     exported={row['id']:row for row in records}
     assert 'https://store.shopping.yahoo.co.jp/shop/record.html' in html
+    assert 'https://store.shopping.yahoo.co.jp/shop/record-2.html' in html
     assert 'https://item-shopping.c.yimg.jp/i/g/record' in html
     assert 'unreviewed.html' not in html
-    assert 'https://www.ebay.com/itm/123' in html
-    ebay=exported['AR-000003']['fieldAudit']['marketListings'][0]
-    assert ebay['title']=='eBay vintage' and ebay['price']==18 and ebay['currency']=='USD'
-    assert ebay['image'] is None
-    assert 'https://item.rakuten.co.jp/shop/abc/' in html
-    rakuten=exported['AR-000004']['fieldAudit']['marketListings'][0]
-    assert rakuten['title']=='Rakuten item' and rakuten['price']==3000
-    assert rakuten['currency']=='JPY' and rakuten['image'] is None
+    assert 'https://www.ebay.com/itm/123' not in html
+    assert 'eBay vintage' not in html
+    assert exported['AR-000003']['fieldAudit']['marketListings']==[]
+    assert 'https://item.rakuten.co.jp/shop/abc/' not in html
+    assert 'Rakuten item' not in html
+    assert exported['AR-000004']['fieldAudit']['marketListings']==[]
     assert exported['AR-000005']['fieldAudit']['marketListings']==[]
     assert 'image.jpg' not in html and '/stale' not in html
+    assert len(exported['AR-000001']['fieldAudit']['marketListings'])==2
     assert 'marketListings' in html
     production_template=(Path(__file__).resolve().parents[1]/'site'/'site_template.html').read_text(encoding='utf-8')
     assert '<!-- Begin Yahoo! JAPAN Web Services Attribution Snippet -->' in production_template
