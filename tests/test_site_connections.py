@@ -197,6 +197,29 @@ def test_unverified_survey_marketplace_prices_are_not_published(site_fixture,tmp
     template_source=(Path(__file__).resolve().parents[1]/'site'/'site_template.html').read_text(encoding='utf-8')
     assert '価格は出典・通貨・利用条件の再確認まで非表示です。' in template_source
 
+def test_each_record_gets_manual_marketplace_search_links_labeled_unverified(site_fixture,tmp_path):
+    audit,site,bot,template=site_fixture
+    with sqlite3.connect(site) as db:
+        db.execute("update editions set html_json=? where id='AR-000001'",
+                   (json.dumps({'title':'Example soundtrack','catalog':'VG-123'}),))
+    target=tmp_path/'index.html'
+    audit.run(site,bot,template,target,tmp_path/'audit.csv')
+    text=target.read_text(encoding='utf-8')
+    records,_=json.JSONDecoder().raw_decode(text[text.index('[{'):])
+    record=next(row for row in records if row['id']=='AR-000001')
+    links=record['fieldAudit']['links']
+    expected={
+        'Yahoo!ショッピングで探す（在庫未確認）':'https://shopping.yahoo.co.jp/search?p=',
+        'Yahoo!オークションで探す（在庫未確認）':'https://auctions.yahoo.co.jp/search/search?p=',
+        'メルカリで探す（在庫未確認）':'https://jp.mercari.com/search?keyword=',
+        '楽天市場で探す（在庫未確認）':'https://search.rakuten.co.jp/search/mall/?sitem=',
+        'eBayで探す（在庫未確認）':'https://www.ebay.com/sch/i.html?_nkw=',
+    }
+    for label,prefix in expected.items():
+        link=next(item for item in links if item['label']==label)
+        assert link['url'].startswith(prefix)
+        assert 'Example' in link['url']
+
 def test_discogs_observation_display_expires_after_six_hours(site_fixture,tmp_path):
     audit,site,bot,template=site_fixture
     now=datetime.now(timezone.utc)
