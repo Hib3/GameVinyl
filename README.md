@@ -47,6 +47,16 @@ game-record-tool/
 - `data\` フォルダだけが、あなたのデータの置き場所です。データベース（`grt.db`）と設定（`.env`）はここにあります。
 - コード一式を新しい版に差し替えても、`data\` は上書きされません。詳しくは `SETUP_GUIDE.md` の「9. 更新版への差し替え手順」を見てください。
 
+## Muse データの読み取り監査
+
+`tools\audit_muse_handoff.py` は Muse handoff ZIP と `data\site\vgm_site.sqlite3` を照合する決定的な監査ツールです。ZIP は展開せず、ネット接続・AI・DB書き込みも行いません。件数・出典差分・根拠不足を標準出力に表示します。
+
+```powershell
+python tools\audit_muse_handoff.py --archive path\to\handoff.zip --site-db data\site\vgm_site.sqlite3
+```
+
+人の確認用CSVが必要なときだけ `--issues-csv path\to\review.csv` を追加してください。価格や候補を正本へ自動反映せず、監査結果が `review_required` の場合は未確認のまま保ちます。
+
 ## はじめ方
 
 **詳しい手順は [SETUP_GUIDE.md](SETUP_GUIDE.md) を見てください。** 大まかな流れは次のとおりです。
