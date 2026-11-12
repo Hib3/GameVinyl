@@ -818,10 +818,15 @@ class Worker:
                     and bool(requested_query[0]) and bool(redirected_query[0])
                     and Counter(unicodedata.normalize('NFKC',requested_query[0]).casefold().split())
                     == Counter(unicodedata.normalize('NFKC',redirected_query[0]).casefold().split()))
+                requested_tokens=Counter(unicodedata.normalize('NFKC',requested_query[0]).casefold().split()) if len(requested_query)==1 else Counter()
+                redirected_tokens=Counter(unicodedata.normalize('NFKC',redirected_query[0]).casefold().split()) if len(redirected_query)==1 else Counter()
+                shared_token_count=sum((requested_tokens & redirected_tokens).values())
                 safe_search_redirect=(host_relation=='same' and requested.path.startswith('/search/')
                     and redirected.path.startswith('/search/') and query_match and not challenge)
                 if not safe_search_redirect:
-                    raise ValueError(f'Yahoo redirect blocked: host_relation={host_relation} route={route} challenge_marker={int(challenge)} query_match={int(query_match)} normalized_match={int(normalized_query_match)} token_multiset_match={int(token_multiset_match)}')
+                    requested_length=len(requested_query[0]) if len(requested_query)==1 else 0
+                    redirected_length=len(redirected_query[0]) if len(redirected_query)==1 else 0
+                    raise ValueError(f'Yahoo redirect blocked: host_relation={host_relation} route={route} challenge_marker={int(challenge)} query_match={int(query_match)} normalized_match={int(normalized_query_match)} token_multiset_match={int(token_multiset_match)} p_count={len(requested_query)}/{len(redirected_query)} p_chars={requested_length}/{redirected_length} token_count={sum(requested_tokens.values())}/{sum(redirected_tokens.values())} shared_tokens={shared_token_count}')
             if source['id']=='yahoo_watch' and urlsplit(job['url']).path=='/search/search':
                 with self.store.db() as db:
                     modes={row[0] for row in db.execute('SELECT mode FROM market_search_targets WHERE search_url=?',(job['url'],))}
