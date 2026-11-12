@@ -396,6 +396,8 @@ def run() -> None:
         try:
             gated = bot_mod.gate_open(conn)
             if gated:
+                from . import collector_bridge
+                collector_bridge.poll(conn)
                 outbox.process_outbox(conn, transport)
             # last_job_at must mean 'a job actually ran' (AI-engineer
             # #7): with the gate closed it used to advance anyway,

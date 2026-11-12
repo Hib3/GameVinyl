@@ -717,20 +717,19 @@ def _stack_duplicate_suspects(db, listing: dict, listing_id,
 
 
 def match_listing(db, listing: dict, listing_id: int | None = None,
-                  require_human_review: bool = False) -> list[dict]:
+                  require_human_review: bool = False, *,
+                  review_edition_ids: tuple[str, ...] | None = None,
+                  commit: bool = True) -> list[dict]:
     """Evaluate a listing against all blocking candidates; log decisions.
 
     Ties at the top score are never auto-decided: every tied candidate is
     routed to the review queue (deterministic 'judgement withheld').
 
-    Transaction contract (R14, adversarial QA): this function commits
-    its own decisions at its end (and on the parent-veto early return)
-    but does NOT roll back on an internal failure — a caller wrapping
-    several operations in one unit of work must roll back itself when
-    match_listing raises, or partial decisions can be persisted by a
-    later commit. register_ingested (the only production caller) does
-    exactly that per item.
+    With commit=False the caller owns the surrounding transaction.
+    On an internal failure the caller must roll back any partial work.
     """
+    if review_edition_ids is not None and not require_human_review:
+        raise ValueError("Explicit Edition hints require human review")
     # Agreement-26 (Phase 2 acceptance #7): a listing whose barcode
     # belongs to a PARENT product (the game box, a bundle, ...) is
     # vetoed outright — it never reaches scoring, so a parent
@@ -761,7 +760,8 @@ def match_listing(db, listing: dict, listing_id: int | None = None,
                           0, ?, ?, ?, ?)""",
                 (listing_id, listing.get("barcode_source_tier"),
                  MATCHER_VERSION, pv0, clock.now_iso(db)))
-            db.commit()
+            if commit:
+                db.commit()
             return [{"edition_id": None, "score": 0, "breakdown": {},
                      "vetoes": ["parent_product"],
                      "existence_confidence": "低",
@@ -782,7 +782,10 @@ def match_listing(db, listing: dict, listing_id: int | None = None,
         if _tier is not None:
             listing["barcode_tier"] = _tier
 
-    candidates = find_candidate_editions(db, listing)
+    candidates = find_candidate_editions(db, listing) if review_edition_ids is None else [
+        dict(row) for edition_id in review_edition_ids
+        for row in db.execute("SELECT * FROM editions WHERE id=?", (edition_id,))
+    ]
     clue_codes = detect_promo_clues(
         db, listing.get("raw_title"), listing.get("description"))
     results = []
@@ -831,6 +834,9 @@ def match_listing(db, listing: dict, listing_id: int | None = None,
             r["disposition"] = "review"
             r["breakdown"] = dict(r.get("breakdown") or {})
             r["breakdown"]["source_requires_human_review"] = True
+            if review_edition_ids is not None:
+                r["breakdown"]["collector_watch_hint"] = True
+                r.update(existence_confidence="低", price_confidence="低", variant_gate=False)
 
     if results:
         top = max(r["score"] for r in results)
@@ -945,5 +951,6 @@ def match_listing(db, listing: dict, listing_id: int | None = None,
                                 ensure_ascii=False, default=str),
                      fingerprint, 45, clock.now_iso(db)),
                 )
-    db.commit()
+    if commit:
+        db.commit()
     return results
