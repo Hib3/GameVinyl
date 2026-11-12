@@ -192,6 +192,48 @@ def muse_price_history(path):
                 'sourceSummary':' '.join(str(summary or '').split())[:200], 'sourceUrls':safe_urls}
         return out
 
+def official_feed_coverage(bot, now):
+    tables={r[0] for r in bot.execute("select name from sqlite_master where type='table'")}
+    if 'sources' not in tables:
+        return 'no_route','承認済みの公式RSS経路なし',None,None
+    columns={r[1] for r in bot.execute('pragma table_info(sources)')}
+    if not {'id','name','kind','status','discovered_via'}<=columns:
+        return 'stale','公式フィード情報を十分に監査できない',None,None
+    cadence='expected_cadence_days' if 'expected_cadence_days' in columns else 'NULL'
+    sources=bot.execute(
+        f"select id,name,{cadence} from sources "
+        "where upper(kind) in ('RSS','ATOM') and lower(status)='approved' "
+        "and lower(discovered_via) like 'official_%'"
+    ).fetchall()
+    if not sources:
+        return 'no_route','承認済みの公式RSS経路なし',None,None
+    health={}
+    if 'source_health' in tables:
+        health_cols={r[1] for r in bot.execute('pragma table_info(source_health)')}
+        if {'source_id','state','last_success_at'}<=health_cols:
+            health={r[0]:(r[1],r[2]) for r in bot.execute(
+                'select source_id,state,last_success_at from source_health')}
+    fresh=[]
+    last_success=[]
+    for sid,name,days in sources:
+        state,stamp=health.get(sid,('',None))
+        checked=parse_date(stamp)
+        if checked:
+            last_success.append((checked,name,stamp))
+        try:
+            max_age_hours=max(12.0,float(days or 1)*48)
+        except (TypeError,ValueError):
+            max_age_hours=48.0
+        if checked and str(state).upper()=='HEALTHY' and 0<=(now-checked).total_seconds()<=max_age_hours*3600:
+            fresh.append((checked,name,stamp))
+    if fresh:
+        _,name,stamp=max(fresh)
+        return ('source_unverified',
+                f'低優先度の公式RSSは{len(fresh)}/{len(sources)}系統が規定内に成功。盤別一致は未確認',
+                stamp,name)
+    latest=max(last_success) if last_success else (None,None,None)
+    return ('stale','公式RSS経路は登録済みだが直近成功を確認できない',latest[2],latest[1])
+
 
 def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector_db=None, price_history_db=None):
     now=datetime.now(timezone.utc)
@@ -208,6 +250,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
         monitored=len(monitored_ids)
         discoveries=pending_candidates(bot)
         yahoo_market=approved_yahoo_listings(bot,now)
+        new_release_coverage=official_feed_coverage(bot,now)
     with closing(sqlite3.connect(db)) as c:
         c.execute('pragma foreign_keys=on')
         columns={row[1] for row in c.execute('pragma table_info(editions)')}
@@ -389,8 +432,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
             else:
                 add_coverage('metadata','source_unverified','共有カタログIDは盤単位の一次資料照合を証明しない',lookup[1] if lookup else None,'musicbrainz' if lookup else None)
             official=key[0]=='data discs' and key[1] in merchants
-            add_coverage('official_new_release','no_route',
-                         '利用条件と対象盤一致を確認した公開公式新譜フィード/APIなし')
+            add_coverage('official_new_release',*new_release_coverage)
             market_candidate=bool(offers) or rid in market or rid in yahoo_market
             used_status=('candidate_needs_review' if market_candidate else
                          'source_unverified' if collector_state=='healthy' else

@@ -339,6 +339,31 @@ def test_edition_coverage_has_seven_evidence_bound_rows(site_fixture,tmp_path):
     assert '候補・要確認' in template_source
     assert '<a href="./edition_coverage.csv">3,777盤の7領域別監査CSV</a>' in template_source
 
+def test_official_release_coverage_uses_rss_health_and_keeps_low_priority_route(site_fixture):
+    audit,_,bot,_=site_fixture
+    checked=datetime.now(timezone.utc)
+    c=sqlite3.connect(bot)
+    with c:
+        c.executescript("""
+        create table sources(id integer primary key,name,kind,status,discovered_via,expected_cadence_days);
+        create table source_health(source_id,state,last_success_at);
+        """)
+        c.execute('insert into sources values(?,?,?,?,?,?)',
+                  (6,'game-music-records-official','RSS','approved','official_product_rss',0.25))
+        c.execute('insert into source_health values(?,?,?)',
+                  (6,'HEALTHY',checked.isoformat()))
+    fresh=audit.official_feed_coverage(c,checked)
+    assert fresh[0]=='source_unverified'
+    assert '低優先度' in fresh[1] and '盤別' in fresh[1]
+    assert fresh[2]==checked.isoformat() and fresh[3]=='game-music-records-official'
+    with c:
+        c.execute('update source_health set state=?,last_success_at=? where source_id=6',
+                  ('DOWN',(checked-timedelta(days=2)).isoformat()))
+    stale=audit.official_feed_coverage(c,checked)
+    assert stale[0]=='stale'
+    assert '直近成功' in stale[1]
+    c.close()
+
 def test_collector_products_become_unverified_store_links_read_only(site_fixture,tmp_path):
     audit,site,bot,template=site_fixture
     c=sqlite3.connect(site)
