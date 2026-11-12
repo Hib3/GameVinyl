@@ -18,6 +18,7 @@ import shutil
 import socket
 import sqlite3
 import time
+import unicodedata
 from urllib.parse import urljoin, urlsplit, urlunsplit, parse_qs, quote
 from urllib.robotparser import RobotFileParser
 import xml.etree.ElementTree as ET
@@ -796,10 +797,14 @@ class Worker:
                 requested_query=parse_qs(requested.query,keep_blank_values=True).get('p',[])
                 redirected_query=parse_qs(redirected.query,keep_blank_values=True).get('p',[])
                 query_match=bool(requested_query) and requested_query==redirected_query
+                normalized_query_match=(len(requested_query)==len(redirected_query)==1
+                    and bool(requested_query[0]) and bool(redirected_query[0])
+                    and ' '.join(unicodedata.normalize('NFKC',requested_query[0]).casefold().split())
+                    == ' '.join(unicodedata.normalize('NFKC',redirected_query[0]).casefold().split()))
                 safe_search_redirect=(host_relation=='same' and requested.path.startswith('/search/')
                     and redirected.path.startswith('/search/') and query_match and not challenge)
                 if not safe_search_redirect:
-                    raise ValueError(f'Yahoo redirect blocked: host_relation={host_relation} route={route} challenge_marker={int(challenge)} query_match={int(query_match)}')
+                    raise ValueError(f'Yahoo redirect blocked: host_relation={host_relation} route={route} challenge_marker={int(challenge)} query_match={int(query_match)} normalized_match={int(normalized_query_match)}')
             if source['id']=='yahoo_watch' and urlsplit(job['url']).path=='/search/search':
                 with self.store.db() as db:
                     modes={row[0] for row in db.execute('SELECT mode FROM market_search_targets WHERE search_url=?',(job['url'],))}
