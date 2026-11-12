@@ -18,6 +18,11 @@ if not defined GRT_HOME_FOUND (
 if not defined GRT_DATA_DIR set "GRT_DATA_DIR=%GRT_HOME%\data"
 for %%I in ("%GRT_HOME%\app") do set "GRT_APP_DIR=%%~fI"
 for %%I in ("%~dp0.") do set "GRT_INSTALL_DIR=%%~fI"
+if /i not "%GRT_INSTALL_DIR%"=="%GRT_APP_DIR%" (
+  echo [ERROR] This project uses one checkout at "%GRT_APP_DIR%".
+  echo [ERROR] Do not install into a versioned release folder; no files were changed.
+  exit /b 1
+)
 if /i "%GRT_INSTALL_DIR%"=="%GRT_APP_DIR%" if not exist "%GRT_DATA_DIR%\." if exist "%GRT_INSTALL_DIR%\data\collector\collector.sqlite3" (
   echo [ERROR] The Git checkout contains an old local Collector database.
   echo [ERROR] It will not be copied automatically into the shared data folder.

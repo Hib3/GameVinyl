@@ -78,6 +78,14 @@ SHORTCUT_SCRIPTS = ((MAIN_TASK, "run.py"), (WATCHDOG_TASK, "watchdog_loop.py"),
                     (SITE_TASK, "site/freshness_loop.py"))
 
 
+def is_primary_install(root: Path = ROOT) -> bool:
+    """Reject versioned installs beneath a recognized project root."""
+    for parent in (root, *root.parents):
+        if parent.name.casefold() == "gamerecordtool":
+            return root.resolve() == (parent / "app").resolve()
+    return True
+
+
 def _stamp() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
@@ -695,6 +703,10 @@ def main(argv: list[str]) -> int:
         sys.stdout.reconfigure(errors="replace")  # type: ignore[attr-defined]
     except Exception:
         pass
+    if not is_primary_install():
+        print("ERROR: use the single GameRecordTool\\app checkout; "
+              "versioned installs are disabled.", flush=True)
+        return 1
     if "--start" in argv:
         return start_now()
     if "--remove" in argv:

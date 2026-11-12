@@ -218,6 +218,24 @@ def test_task_names_match_setup_bat():
             encoding="utf-8")
 
 
+def test_setup_rejects_versioned_install_folders():
+    setup = (ROOT / "setup.bat").read_text(encoding="utf-8")
+    guide = (ROOT / "SETUP_GUIDE.md").read_text(encoding="utf-8")
+    assert 'if /i not "%GRT_INSTALL_DIR%"=="%GRT_APP_DIR%" (' in setup
+    assert "Do not install into a versioned release folder" in setup
+    assert "releases\\<version>\\game-record-tool" not in guide
+    assert "setupも`app`以外では停止します" in guide
+
+
+def test_task_setup_only_accepts_primary_project_checkout(tmp_path):
+    from setup_tasks import is_primary_install
+
+    project = tmp_path / "GameRecordTool"
+    assert is_primary_install(project / "app")
+    assert not is_primary_install(project / "releases" / "2.0.93" / "app")
+    assert is_primary_install(Path("/tmp/custom-tool/app"))
+
+
 def test_diagnose_settings_keys_exist_in_implementation():
     impl = ""
     for p in (ROOT / "src" / "grt").glob("*.py"):
