@@ -626,7 +626,7 @@ class Store:
                 params.extend(seeds)
             if exclude_watched_searches:
                 query += " AND NOT EXISTS (SELECT 1 FROM market_search_targets t WHERE t.search_url=jobs.url AND t.mode='catalog' AND t.priority=1)"
-            query += ' ORDER BY (source IN (' + ','.join('?' for _ in priority) + ')) DESC,COALESCE((SELECT MAX(t.priority) FROM market_search_targets t WHERE t.search_url=jobs.url),0) DESC,(last_checked IS NULL) DESC,due LIMIT 1'
+            query += ' ORDER BY (source IN (' + ','.join('?' for _ in priority) + ')) DESC,COALESCE((SELECT MAX(t.priority) FROM market_search_targets t WHERE t.search_url=jobs.url),0) DESC,(status IN (\'blocked\',\'error\')) DESC,(last_checked IS NULL) DESC,due,last_checked LIMIT 1'
             params.extend(priority)
             row = db.execute(query, params).fetchone()
             if row:

@@ -45,6 +45,25 @@ class WatchTest(unittest.TestCase):
                     self.assertIsNone(store.claim(config))
                     self.assertIsNotNone(store.claim(config))
 
+    def test_overdue_failure_retries_before_never_checked_job_after_priority(self):
+        config={'sources':[{'id':'feed','enabled':True,'priority':False,'hosts':['example.com'],'seeds':[],'min_request_gap_seconds':0}],
+                'watches':[],'interval_seconds':3600,'freshness_seconds':86400,
+                'min_request_gap_seconds':0,'max_jobs_per_hour':180,'priority_slots_per_hour':12}
+        with TemporaryDirectory() as folder:
+            root=Path(folder)
+            (root/'seed').mkdir()
+            (root/'seed'/'records.json').write_text('[]',encoding='utf-8')
+            with patch.object(core,'ROOT',root):
+                store=Store(root/'collector.sqlite3')
+                store.initialize(config)
+                overdue='https://example.com/overdue'
+                fresh='https://example.com/fresh'
+                with store.db() as db:
+                    db.execute("insert into jobs(url,source,due,status,last_checked) values(?, 'feed',9990,'blocked',9900)",(overdue,))
+                    db.execute("insert into jobs(url,source,due,status,last_checked) values(?, 'feed',9995,'pending',NULL)",(fresh,))
+                with patch.object(core.time,'time',return_value=10000):
+                    self.assertEqual(store.claim(config)['url'],overdue)
+
     def test_initialize_preserves_block_reason_across_restart(self):
         with TemporaryDirectory() as folder:
             root=Path(folder)/'package'
