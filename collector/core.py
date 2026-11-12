@@ -22,7 +22,7 @@ from urllib.parse import urljoin, urlsplit, urlunsplit, parse_qs, quote
 from urllib.robotparser import RobotFileParser
 import xml.etree.ElementTree as ET
 
-from bs4 import BeautifulSoup, FeatureNotFound
+from bs4 import BeautifulSoup
 
 ROOT = Path(__file__).resolve().parent.parent
 MIN_FREE_SPACE_RATIO = 0.20
@@ -189,13 +189,7 @@ def auction_links(html, config, *, filter_watches=True):
 
 def extract(html, url, kind, selectors=None):
     is_feed = '<rss' in html[:1000] or '<feed' in html[:1000]
-    if is_feed:
-        try:
-            soup = BeautifulSoup(html, 'xml')
-        except FeatureNotFound:
-            soup = BeautifulSoup(html, 'html.parser')
-    else:
-        soup = BeautifulSoup(html, 'html.parser')
+    soup = BeautifulSoup(html, 'html.parser')
     nodes = []
     for script in soup.select('script[type="application/ld+json"]'):
         try:

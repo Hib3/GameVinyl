@@ -8,7 +8,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from core import Store, Worker, Robots, canonical, public_target, extract, fetch_browser
+from core import Store, Worker, Robots, BeautifulSoup, canonical, public_target, extract, fetch_browser
 from server import query_api
 
 
@@ -72,6 +72,17 @@ class ExtractionTests(unittest.TestCase):
     def test_feed_links(self):
         html='<rss><channel><item><title>New vinyl</title><link>https://example.com/new-vinyl/</link></item></channel></rss>'
         facts,_,links=extract(html,'https://example.com/feed/','discovery')
+        self.assertEqual(facts['page_type'],'feed')
+        self.assertIn(('https://example.com/new-vinyl/','feed item'),links)
+
+    def test_feed_extraction_does_not_require_optional_xml_builder(self):
+        html='<rss><channel><item><title>New vinyl</title><link>https://example.com/new-vinyl/</link></item></channel></rss>'
+        def parse(markup, features):
+            if features == 'xml':
+                raise AssertionError('optional XML builder was requested')
+            return BeautifulSoup(markup, features)
+        with patch('core.BeautifulSoup', side_effect=parse):
+            facts,_,links=extract(html,'https://example.com/feed/','discovery')
         self.assertEqual(facts['page_type'],'feed')
         self.assertIn(('https://example.com/new-vinyl/','feed item'),links)
 
