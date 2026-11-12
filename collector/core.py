@@ -461,11 +461,26 @@ class Store:
         with self.db() as db:
             last = db.execute("SELECT value FROM meta WHERE key='daily_backup'").fetchone()
             if last and json.loads(last['value']) == day and target.is_file() and target.stat().st_size:
+                self.meta('daily_backup_status', {
+                    'status': 'created',
+                    'checked_at': time.time(),
+                    'file': target.name,
+                    'bytes': target.stat().st_size,
+                })
                 return True
             page_count = db.execute('PRAGMA page_count').fetchone()[0]
             page_size = db.execute('PRAGMA page_size').fetchone()[0]
         usage = shutil.disk_usage(self.path.parent)
-        if usage.free-page_count*page_size < usage.total*MIN_FREE_SPACE_RATIO:
+        required_bytes = page_count*page_size
+        minimum_free_bytes = int(usage.total*MIN_FREE_SPACE_RATIO)
+        if usage.free-required_bytes < minimum_free_bytes:
+            self.meta('daily_backup_status', {
+                'status': 'skipped_low_disk',
+                'checked_at': time.time(),
+                'required_bytes': required_bytes,
+                'free_bytes': usage.free,
+                'minimum_free_bytes': minimum_free_bytes,
+            })
             return False
         folder.mkdir(exist_ok=True)
         for stale in folder.glob('daily-*.sqlite3.tmp'):
@@ -475,6 +490,12 @@ class Store:
             self._write_backup(temporary)
             temporary.replace(target)
             self.meta('daily_backup',day)
+            self.meta('daily_backup_status', {
+                'status': 'created',
+                'checked_at': time.time(),
+                'file': target.name,
+                'bytes': target.stat().st_size,
+            })
             # Keep one verified daily restore point; manual backups have their own one-copy limit.
             for old in folder.glob('daily-*.sqlite3'):
                 if old != target and re.fullmatch(r'daily-\d{8}\.sqlite3',old.name) and old.resolve().parent == folder.resolve():

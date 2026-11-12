@@ -5,14 +5,34 @@ from tempfile import TemporaryDirectory
 import time
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import core
 from core import Store, Worker, extract
-from server import query_api
+from server import daily_backup_loop, query_api
 
 
 class WatchTest(unittest.TestCase):
+    def test_daily_backup_loop_retries_and_stops(self):
+        class StopAfterThreeWaits:
+            def __init__(self):
+                self.waits=[]
+            def is_set(self):
+                return False
+            def wait(self,seconds):
+                self.waits.append(seconds)
+                return len(self.waits)==3
+
+        stop=StopAfterThreeWaits()
+        store=SimpleNamespace(backup_daily=Mock(side_effect=[OSError('disk error'),False,True]),meta=Mock())
+        daily_backup_loop(store,stop)
+        self.assertEqual(store.backup_daily.call_count,3)
+        self.assertEqual(stop.waits,[3600,3600,3600])
+        store.meta.assert_called_once()
+        self.assertEqual(store.meta.call_args.args[0],'daily_backup_status')
+        self.assertEqual(store.meta.call_args.args[1]['status'],'failed')
+        self.assertEqual(store.meta.call_args.args[1]['error_type'],'OSError')
+
     def test_vintage_search_quota_keeps_source_gap_and_global_limits(self):
         config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
         yahoo=next(s for s in config['sources'] if s['id']=='yahoo_watch')
@@ -106,6 +126,8 @@ class WatchTest(unittest.TestCase):
                 status=query_api(store,{'sources':[],'max_jobs_per_hour':10},'/api/status',{})
         self.assertTrue(status['meta']['storage_protection']['paused'])
         self.assertEqual(status['meta']['storage_protection']['free_bytes'],99)
+        self.assertFalse(status['meta']['storage_protection']['next_daily_backup_fits'])
+        self.assertGreater(status['meta']['storage_protection']['projected_deficit_bytes'],0)
 
     def test_yahoo_redirect_block_records_route_class_without_search_query(self):
         config=json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))

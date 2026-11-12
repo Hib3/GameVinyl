@@ -369,6 +369,10 @@ class StorageTests(unittest.TestCase):
             self.assertEqual(db.execute('PRAGMA quick_check').fetchone()[0],'ok')
         finally:
             db.close()
+        with self.store.db() as db:
+            status=json.loads(db.execute("SELECT value FROM meta WHERE key='daily_backup_status'").fetchone()[0])
+        self.assertEqual(status['status'],'created')
+        self.assertEqual(status['file'],'daily-20261103.sqlite3')
 
     def test_daily_backup_failure_keeps_previous_and_cleans_temporary(self):
         folder=Path(self.temp.name)/'backups'
@@ -407,6 +411,9 @@ class StorageTests(unittest.TestCase):
             self.assertTrue(self.store.backup_daily())
         write.assert_called_once()
         self.assertEqual(len(list((Path(self.temp.name)/'backups').glob('daily-*.sqlite3'))),1)
+        with self.store.db() as db:
+            status=json.loads(db.execute("SELECT value FROM meta WHERE key='daily_backup_status'").fetchone()[0])
+        self.assertEqual(status['status'],'created')
 
     def test_daily_backup_respects_projected_twenty_percent_reserve(self):
         with self.store.db() as db:
@@ -414,6 +421,12 @@ class StorageTests(unittest.TestCase):
         with patch('core.shutil.disk_usage',return_value=SimpleNamespace(total=1000,free=200+size-1)):
             self.assertFalse(self.store.backup_daily())
         self.assertEqual(list((Path(self.temp.name)/'backups').glob('daily-*.sqlite3')),[])
+        with self.store.db() as db:
+            state=json.loads(db.execute("SELECT value FROM meta WHERE key='daily_backup_status'").fetchone()[0])
+        self.assertEqual(state['status'],'skipped_low_disk')
+        self.assertEqual(state['required_bytes'],size)
+        self.assertEqual(state['free_bytes'],200+size-1)
+        self.assertEqual(state['minimum_free_bytes'],200)
 
     def test_disabled_source_not_claimed(self):
         self.config['sources'][0]['enabled']=False

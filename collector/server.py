@@ -212,11 +212,18 @@ def query_api(store, config, path, query, bot_db_path=None):
             fresh_priced=sum(p['facts'].get('price') is not None and p['freshness']=='RECENT_OBSERVATION' for p in products)
             meta = {r['key']:json.loads(r['value']) for r in db.execute('SELECT * FROM meta')}
             usage=shutil.disk_usage(store.path.parent)
+            required_backup_bytes=db.execute('PRAGMA page_count').fetchone()[0]*db.execute('PRAGMA page_size').fetchone()[0]
+            minimum_free_bytes=int(usage.total*MIN_FREE_SPACE_RATIO)
             meta['storage_protection']={
                 'paused':usage.free < usage.total * MIN_FREE_SPACE_RATIO,
                 'free_bytes':usage.free,
                 'total_bytes':usage.total,
                 'minimum_free_percent':int(MIN_FREE_SPACE_RATIO*100),
+                'minimum_free_bytes':minimum_free_bytes,
+                'reserve_headroom_bytes':max(0,usage.free-minimum_free_bytes),
+                'next_daily_backup_bytes':required_backup_bytes,
+                'next_daily_backup_fits':usage.free-required_backup_bytes >= minimum_free_bytes,
+                'projected_deficit_bytes':max(0,minimum_free_bytes-(usage.free-required_backup_bytes)),
             }
             states = {r['status']:r['n'] for r in db.execute('SELECT status,COUNT(*) n FROM jobs GROUP BY status')}
             market_search={r['status']:r['n'] for r in db.execute('SELECT status,COUNT(*) n FROM market_search_coverage GROUP BY status')}
@@ -298,6 +305,25 @@ def query_api(store, config, path, query, bot_db_path=None):
     return None
 
 
+def daily_backup_loop(store, stop):
+    while not stop.is_set():
+        try:
+            if not store.backup_daily():
+                logging.warning('Collector daily restore point skipped; projected free space would breach the 20% reserve')
+        except Exception as error:
+            try:
+                store.meta('daily_backup_status', {
+                    'status': 'failed',
+                    'checked_at': time.time(),
+                    'error_type': type(error).__name__,
+                })
+            except Exception:
+                pass
+            logging.exception('Collector daily restore point failed; existing copy retained')
+        if stop.wait(3600):
+            return
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--port',type=int,default=8766)
@@ -363,13 +389,7 @@ def main():
     store.meta('worker_enabled',not args.no_worker)
 
     def work():
-        def daily_backup():
-            try:
-                store.backup_daily()
-            except Exception:
-                logging.exception('Collector daily restore point failed; existing copy retained')
-
-        threading.Thread(target=daily_backup,name='collector-daily-backup',daemon=True).start()
+        threading.Thread(target=daily_backup_loop,args=(store,stop),name='collector-daily-backup',daemon=True).start()
         while not stop.is_set():
             try:
                 worker.once()
