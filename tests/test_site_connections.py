@@ -591,7 +591,8 @@ def test_only_human_approved_yahoo_listing_is_exported_with_attribution(site_fix
     assert 'marketListings' in html
     production_template=(Path(__file__).resolve().parents[1]/'site'/'site_template.html').read_text(encoding='utf-8')
     assert '<!-- Begin Yahoo! JAPAN Web Services Attribution Snippet -->' in production_template
-    assert '<span style="margin:15px 15px 15px 15px"><a href="https://developer.yahoo.co.jp/sitemap/">Webサービス by Yahoo! JAPAN</a></span>' in production_template
+    assert '<span><a href="https://developer.yahoo.co.jp/sitemap/">Webサービス by Yahoo! JAPAN</a></span>' in production_template
+    assert 'style=' not in production_template[production_template.index('<!-- Begin Yahoo! JAPAN Web Services Attribution Snippet -->'):production_template.index('<!-- End Yahoo! JAPAN Web Services Attribution Snippet -->')]
 
 
 
