@@ -482,10 +482,15 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                           '画像候補の利用権が未確認' if image_status=='candidate_needs_review' else '利用権確認済み画像なし')
             add_coverage('image',image_status,image_reason,source_id='image_rights_review' if image_status=='candidate_needs_review' else None)
             purchase_candidate=official or market_candidate
-            add_coverage('purchase_url','candidate_needs_review' if purchase_candidate else 'no_route',
-                         '購入ページ候補あり・最終観測日時表示、現在の購入可否は未保証' if rid in yahoo_market else ('購入ページ候補あり・対象盤/購入可否の人手確認待ち' if purchase_candidate else '盤一致を確認した購入URLなし'),
+            purchase_status=('candidate_needs_review' if purchase_candidate else
+                             'source_unverified' if q else 'no_route')
+            purchase_reason=('購入ページ候補あり・最終観測日時表示、現在の購入可否は未保証' if rid in yahoo_market else
+                             '購入ページ候補あり・対象盤/購入可否の人手確認待ち' if purchase_candidate else
+                             '市場検索リンクを提示・個別商品ページ/在庫は未確認' if q else
+                             '個別購入候補も検索語もなし')
+            add_coverage('purchase_url',purchase_status,purchase_reason,
                          offers[0]['observed'] if offers else (yahoo_market[rid][0]['lastSeen'] if rid in yahoo_market else None),
-                         offers[0]['source'] if offers else (yahoo_market[rid][0]['source'] if rid in yahoo_market else ('data_discs' if official else ('discogs_marketplace' if rid in market else None))))
+                         offers[0]['source'] if offers else (yahoo_market[rid][0]['source'] if rid in yahoo_market else ('data_discs' if official else ('discogs_marketplace' if rid in market else 'market_search_links' if q else None))))
             assert len(coverage_items)==len(COVERAGE_AREAS)
             r['fieldAudit']={'summary':summary,'priceDate':None,
               'priceStatus':'価格表示停止中（出典・通貨・利用条件を再確認中）',

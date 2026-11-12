@@ -339,6 +339,23 @@ def test_edition_coverage_has_seven_evidence_bound_rows(site_fixture,tmp_path):
     assert '候補・要確認' in template_source
     assert '<a href="./edition_coverage.csv">3,777盤の7領域別監査CSV</a>' in template_source
 
+def test_purchase_search_routes_are_not_reported_as_no_route(site_fixture,tmp_path):
+    audit,site,bot,template=site_fixture
+    c=sqlite3.connect(site)
+    with c:
+        c.execute("update editions set tool_json=? where id='AR-000001'",
+                  (json.dumps({'title':'Example record'}),))
+    c.close()
+    target=tmp_path/'index.html'
+    audit.run(site,bot,template,target,tmp_path/'audit.csv')
+    c=sqlite3.connect(site)
+    row=c.execute("select status,reason,checked_at,source_id from edition_coverage_latest where edition_id='AR-000001' and area='purchase_url'").fetchone()
+    c.close()
+    assert row==('source_unverified','市場検索リンクを提示・個別商品ページ/在庫は未確認',None,'market_search_links')
+    html=target.read_text(encoding='utf-8')
+    assert 'Discogsで探す（検索）' in html
+    assert 'Yahoo!オークションで探す（在庫未確認）' in html
+
 def test_official_release_coverage_uses_rss_health_and_keeps_low_priority_route(site_fixture):
     audit,_,bot,_=site_fixture
     checked=datetime.now(timezone.utc)
