@@ -563,6 +563,7 @@ class Store:
                     db.execute('INSERT OR IGNORE INTO jobs(url,source,due) VALUES(?,?,?)', (canonical(url),source['id'],time.time()))
                 if source['id']=='yahoo_watch':
                     manual_ids=set()
+                    scheduled_search_urls=set()
                     for watch in config.get('watches',[]):
                         record_id=watch.get('record_id')
                         if isinstance(record_id,str) and re.fullmatch(r'AR-\d{6}',record_id):
@@ -570,13 +571,31 @@ class Store:
                         for term in [watch['search'],*watch.get('search_aliases',[])]:
                             url='https://auctions.yahoo.co.jp/search/search?p='+quote(term)
                             db.execute('INSERT OR IGNORE INTO jobs(url,source,due) VALUES(?,?,?)',(url,source['id'],time.time()))
+                            scheduled_search_urls.add(url)
                             if isinstance(record_id,str) and re.fullmatch(r'AR-\d{6}',record_id):
                                 db.execute("INSERT INTO market_search_targets(search_url,edition_id,query,mode,priority) VALUES(?,?,?,'watch',1) ON CONFLICT(search_url,edition_id) DO UPDATE SET query=excluded.query,mode=excluded.mode,priority=excluded.priority",(url,record_id,term))
+                    def search_order(record):
+                        year=record.get('year')
+                        year=year if isinstance(year,int) and not isinstance(year,bool) else float('inf')
+                        return (record.get('id') not in watched_ids,year,str(record.get('id') or ''))
+                    search_records=sorted(seed_records,key=search_order)
+                    order_fingerprint=hashlib.sha256(json.dumps({
+                        'policy':1,
+                        'editions':sorted(((str(r.get('id') or ''),r.get('year')) for r in seed_records),key=lambda item:item[0]),
+                        'watched':sorted(watched_ids),
+                        'manual':sorted(manual_ids),
+                    },sort_keys=True).encode()).hexdigest()
+                    stored_fingerprint=db.execute("SELECT value FROM meta WHERE key='market_search_order_fingerprint'").fetchone()
+                    try:
+                        stored_order=json.loads(stored_fingerprint['value']) if stored_fingerprint else None
+                    except (TypeError,ValueError):
+                        stored_order=None
+                    reorder_pending=stored_order!=order_fingerprint
                     normal_index=0
                     watched_index=0
                     normal_gap=max(int(source.get('min_request_gap_seconds',config['min_request_gap_seconds'])),1)
                     watched_gap=max(int(3600/max(config.get('catalog_priority_slots_per_hour',12),1)),normal_gap)
-                    for record in seed_records:
+                    for record in search_records:
                         record_id=record.get('id')
                         if not isinstance(record_id,str) or not re.fullmatch(r'AR-\d{6}',record_id):
                             continue
@@ -589,12 +608,18 @@ class Store:
                         if record_id not in manual_ids:
                             url='https://auctions.yahoo.co.jp/search/search?p='+quote(query)
                             is_watched=record_id in watched_ids
-                            offset=watched_index*watched_gap if is_watched else normal_index*normal_gap
-                            if is_watched: watched_index+=1
-                            else: normal_index+=1
-                            db.execute('INSERT OR IGNORE INTO jobs(url,source,due) VALUES(?,?,?)',(url,source['id'],now+offset))
+                            if url not in scheduled_search_urls:
+                                offset=watched_index*watched_gap if is_watched else normal_index*normal_gap
+                                if is_watched: watched_index+=1
+                                else: normal_index+=1
+                                scheduled_search_urls.add(url)
+                                db.execute('INSERT OR IGNORE INTO jobs(url,source,due) VALUES(?,?,?)',(url,source['id'],now+offset))
+                                if reorder_pending:
+                                    db.execute("UPDATE jobs SET due=? WHERE url=? AND source=? AND status='pending' AND last_checked IS NULL",(now+offset,url,source['id']))
                             db.execute("INSERT INTO market_search_targets(search_url,edition_id,query,mode,priority) VALUES(?,?,?,'catalog',?) ON CONFLICT(search_url,edition_id) DO UPDATE SET query=excluded.query,mode=excluded.mode,priority=excluded.priority",(url,record_id,query,int(is_watched)))
                         db.execute("INSERT INTO market_search_coverage VALUES(?,'queued',NULL,NULL) ON CONFLICT(edition_id) DO UPDATE SET status=CASE WHEN market_search_coverage.status='no_route' THEN 'queued' ELSE market_search_coverage.status END,last_error=CASE WHEN market_search_coverage.status='no_route' THEN NULL ELSE market_search_coverage.last_error END",(record_id,))
+                    if reorder_pending:
+                        db.execute('INSERT OR REPLACE INTO meta VALUES(?,?)',('market_search_order_fingerprint',json.dumps(order_fingerprint)))
                 for path in config.get('catalog_pages',{}).get(source['id'],[]):
                     db.execute('INSERT OR IGNORE INTO jobs(url,source,due) VALUES(?,?,?)', ('https://'+source['hosts'][0]+path,source['id'],time.time()))
             # Older redirect errors may embed a search URL; keep coverage safe.

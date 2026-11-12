@@ -8,6 +8,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import core
 from core import Store, Worker, Robots, BeautifulSoup, canonical, public_target, extract, fetch_browser
 from server import query_api
 
@@ -196,6 +197,69 @@ class BrowserFetchTests(unittest.IsolatedAsyncioTestCase):
         ws=WebSocket()
         await captured['websocket_handler'](ws)
         self.assertTrue(ws.closed)
+
+
+class MarketSearchOrderTests(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory()
+        self.root=Path(self.temp.name)
+        (self.root/'seed').mkdir()
+        self.records=[
+            {'id':'AR-000001','title':'New Game','catalog':'N1','year':2025},
+            {'id':'AR-000002','title':'Old 1990','catalog':'O90','year':1990},
+            {'id':'AR-000003','title':'Old 1980','catalog':'O80','year':1980},
+            {'id':'AR-000004','title':'Old 1980','catalog':'O80','year':1983},
+            {'id':'AR-000005','title':'Watched New','catalog':'W24','year':2024},
+            {'id':'AR-000006','title':'Undated','catalog':'U0','year':None},
+        ]
+        (self.root/'seed'/'records.json').write_text(json.dumps(self.records),encoding='utf-8')
+        self.bot_db=self.root/'bot.sqlite3'
+        with sqlite3.connect(self.bot_db) as bot:
+            bot.execute('CREATE TABLE editions(id TEXT PRIMARY KEY,watch_level INTEGER)')
+            bot.execute("INSERT INTO editions VALUES('AR-000005',1)")
+        self.store=Store(self.root/'collector.sqlite3')
+        self.config={
+            'sources':[{'id':'yahoo_watch','seeds':[],'min_request_gap_seconds':60}],
+            'watches':[], 'catalog_pages':{}, 'min_request_gap_seconds':60,
+            'catalog_priority_slots_per_hour':12,
+        }
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def initialize(self, now):
+        with patch('core.ROOT',self.root), patch('core.ARCHIVE',self.root/'archive'), patch('core.time.time',return_value=now):
+            self.store.initialize(self.config,self.bot_db)
+
+    def test_vintage_order_dedup_and_one_time_pending_migration(self):
+        self.initialize(1000)
+        with self.store.db() as db:
+            due={row['query']:row['due'] for row in db.execute('''SELECT t.query,j.due FROM market_search_targets t
+                JOIN jobs j ON j.url=t.search_url''')}
+            self.assertEqual(due['Watched New W24'],1000)
+            self.assertEqual(due['Old 1980 O80'],1000)
+            self.assertEqual(due['Old 1990 O90'],1060)
+            self.assertEqual(due['New Game N1'],1120)
+            self.assertEqual(due['Undated U0'],1180)
+            self.assertEqual(db.execute('SELECT COUNT(*) FROM jobs WHERE source=\'yahoo_watch\'').fetchone()[0],5)
+            self.assertEqual(db.execute('SELECT COUNT(*) FROM market_search_targets').fetchone()[0],6)
+            old_url=db.execute("SELECT search_url FROM market_search_targets WHERE edition_id='AR-000003'").fetchone()[0]
+            new_url=db.execute("SELECT search_url FROM market_search_targets WHERE edition_id='AR-000001'").fetchone()[0]
+            db.execute("UPDATE jobs SET status='blocked',due=7000,last_checked=500 WHERE url=?",(old_url,))
+            db.execute("UPDATE jobs SET status='ok',due=8000,last_checked=600 WHERE url=?",(new_url,))
+            db.execute("UPDATE meta SET value=? WHERE key='market_search_order_fingerprint'",(json.dumps('stale'),))
+
+        self.initialize(2000)
+        with self.store.db() as db:
+            old=db.execute('SELECT status,due FROM jobs WHERE url=?',(old_url,)).fetchone()
+            new=db.execute('SELECT status,due FROM jobs WHERE url=?',(new_url,)).fetchone()
+            self.assertEqual((old['status'],old['due']),('blocked',7000))
+            self.assertEqual((new['status'],new['due']),('ok',8000))
+            db.execute("UPDATE jobs SET due=7777 WHERE url=?",(old_url,))
+
+        self.initialize(3000)
+        with self.store.db() as db:
+            self.assertEqual(db.execute('SELECT due FROM jobs WHERE url=?',(old_url,)).fetchone()[0],7777)
 
 
 class StorageTests(unittest.TestCase):
