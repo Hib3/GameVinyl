@@ -678,6 +678,9 @@ class Store:
         now = time.time()
         error_text = str(error)[:500]
         with self.db() as db:
+            if 'HTTP 429' in error_text:
+                db.execute('UPDATE source_state SET next_allowed=MAX(next_allowed,?) WHERE id=?',
+                           (now+delay,job['source']))
             if job['source'] == 'yahoo_watch' and error_text.startswith('Yahoo redirect blocked:'):
                 targets = db.execute('''SELECT
                     MAX(mode='catalog' AND priority=0),

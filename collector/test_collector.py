@@ -249,6 +249,22 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(out['items'][0]['freshness'],'EXPIRED')
         self.assertFalse(out['items'][0]['purchase_recommended'])
 
+    def test_http_429_pauses_only_that_source_until_retry(self):
+        other_source=self.config['sources'][0]|{'id':'other','hosts':['other.example'],'seeds':['https://other.example/p']}
+        self.config['sources'].append(other_source)
+        with self.store.db() as db:
+            db.execute("INSERT INTO jobs(url,source,due) VALUES('https://example.com/p2','test',0)")
+        with patch('core.time.time', return_value=1000):
+            job=self.store.claim(self.config)
+            self.store.failed(job,PermissionError('HTTP 429'),self.config)
+            self.assertIsNone(self.store.claim(self.config))
+            with self.store.db() as db:
+                self.assertEqual(db.execute('SELECT next_allowed FROM source_state WHERE id=?',('test',)).fetchone()[0],22600)
+                self.assertEqual(db.execute("SELECT COUNT(*) FROM jobs WHERE status='blocked' AND last_error='HTTP 429'").fetchone()[0],1)
+                db.execute('INSERT INTO source_state VALUES(?,?)',('other',0))
+                db.execute('INSERT INTO jobs(url,source,due) VALUES(?,?,0)',('https://other.example/p','other'))
+            self.assertEqual(self.store.claim(self.config)['source'],'other')
+
     def test_repeated_same_failure_updates_event_instead_of_adding_rows(self):
         with self.store.db() as db:
             plan=[row['detail'] for row in db.execute("EXPLAIN QUERY PLAN SELECT id,detail FROM events WHERE url=? AND kind='fetch_failed' ORDER BY id DESC LIMIT 1",('https://example.com/p',))]
