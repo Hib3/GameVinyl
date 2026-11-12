@@ -214,9 +214,13 @@ class MarketSearchOrderTests(unittest.TestCase):
         ]
         (self.root/'seed'/'records.json').write_text(json.dumps(self.records),encoding='utf-8')
         self.bot_db=self.root/'bot.sqlite3'
-        with sqlite3.connect(self.bot_db) as bot:
+        bot=sqlite3.connect(self.bot_db)
+        try:
             bot.execute('CREATE TABLE editions(id TEXT PRIMARY KEY,watch_level INTEGER)')
             bot.execute("INSERT INTO editions VALUES('AR-000005',1)")
+            bot.commit()
+        finally:
+            bot.close()
         self.store=Store(self.root/'collector.sqlite3')
         self.config={
             'sources':[{'id':'yahoo_watch','seeds':[],'min_request_gap_seconds':60}],
