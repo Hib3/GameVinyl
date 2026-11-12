@@ -90,7 +90,8 @@ class YahooShoppingFetcher(BaseFetcher):
         result = classify_http(resp.status_code)
         if result != "OK":
             raise FetchError(result, "HTTP " + str(resp.status_code)
-                             + " for Yahoo Shopping catalog search")
+                             + " for Yahoo Shopping catalog search",
+                             http_status=resp.status_code)
         try:
             data = resp.json()
         except Exception as exc:  # broken / empty JSON body

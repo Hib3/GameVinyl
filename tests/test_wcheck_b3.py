@@ -717,11 +717,26 @@ def test_failure_body_saved_and_recorded(db, monkeypatch, tmp_path):
     res = _FailFetcher(db, sid).run("https://shop.jp/l")
     assert res["ok"] is False
     row = db.execute(
-        "SELECT result, body_path, raw_hash FROM fetch_runs ORDER BY"
+        "SELECT result, body_path, raw_hash, http_status FROM fetch_runs ORDER BY"
         " rowid DESC LIMIT 1").fetchone()
     assert row[0] == "HTTP_ERROR"
     assert row[1] and "oops-body" in open(row[1]).read()
     assert row[2]  # the hash on the run is the RAW hash now
+    assert row[3] == 500
+
+
+class _NetworkFailFetcher(BaseFetcher):
+    def fetch_items(self, url):
+        raise FetchError("NETWORK", "connection failed")
+
+
+def test_network_failure_has_no_http_status(db):
+    sid = _source(db)
+    _NetworkFailFetcher(db, sid).run("https://shop.jp/l")
+    row = db.execute(
+        "SELECT result,http_status FROM fetch_runs ORDER BY rowid DESC LIMIT 1"
+    ).fetchone()
+    assert tuple(row) == ("NETWORK", None)
 
 
 def test_gtin12_and_gtin14_inner_recovery():

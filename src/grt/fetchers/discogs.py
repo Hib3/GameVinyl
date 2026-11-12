@@ -43,7 +43,8 @@ class DiscogsFetcher(BaseFetcher):
             raise FetchError("NETWORK", str(exc))
         result = classify_http(resp.status_code)
         if result != "OK":
-            raise FetchError(result, "HTTP " + str(resp.status_code))
+            raise FetchError(result, "HTTP " + str(resp.status_code),
+                             http_status=resp.status_code)
         try:
             data = resp.json()
         except Exception as exc:  # broken / empty JSON body
