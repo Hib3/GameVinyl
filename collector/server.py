@@ -83,8 +83,8 @@ def static_content_security_policy(target, site_dir, body):
     return CONTENT_SECURITY_POLICY
 
 
-LATEST = '''FROM observations o JOIN (SELECT url,MAX(id) id FROM observations GROUP BY url) x ON o.id=x.id
-    JOIN jobs j ON j.url=o.url'''
+LATEST = '''FROM jobs j JOIN observations o
+    ON o.id=(SELECT MAX(id) FROM observations WHERE url=j.url)'''
 
 
 def static_target(path, site_dir=SITE_DATA):
