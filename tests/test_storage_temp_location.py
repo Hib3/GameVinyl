@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def test_python_and_pytest_temporary_files_stay_in_checkout_drive(tmp_path):
-    expected = Path(__file__).resolve().parents[2] / "work" / "pytest-tmp"
+    expected = Path(__file__).resolve().parents[3] / "GameRecordTool-pytest-tmp"
     assert Path(tempfile.gettempdir()).resolve() == expected.resolve()
     assert tmp_path.resolve().is_relative_to(expected.resolve())
 

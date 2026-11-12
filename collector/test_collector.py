@@ -265,6 +265,23 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(event['detail']['repeat_count'],2)
         self.assertIn('last_seen',event['detail'])
 
+    def test_yahoo_catalog_redirect_block_has_daily_cooldown_but_priority_search_does_not(self):
+        error = ValueError('Yahoo redirect blocked: host_relation=same route=search challenge_marker=0 query_match=0')
+        cases = [('catalog', 0, 86400), ('catalog', 1, 21600), ('watch', 1, 21600)]
+        with patch('core.time.time', return_value=1000):
+            for index, (mode, priority, expected_delay) in enumerate(cases, 1):
+                url = f'https://auctions.yahoo.co.jp/search/search?p=SAFE_TEST_{index}'
+                with self.store.db() as db:
+                    db.execute("INSERT INTO jobs(url,source,due,status) VALUES(?, 'yahoo_watch', 0, 'running')", (url,))
+                    db.execute('INSERT INTO market_search_targets(search_url,edition_id,query,mode,priority) VALUES(?,?,?,?,?)',
+                               (url, f'AR-{index:06d}', f'SAFE_TEST_{index}', mode, priority))
+                self.store.failed({'url': url, 'source': 'yahoo_watch', 'attempts': 1}, error, self.config)
+                with self.store.db() as db:
+                    row = db.execute('SELECT status,due,last_error FROM jobs WHERE url=?', (url,)).fetchone()
+                self.assertEqual(row['status'], 'blocked')
+                self.assertEqual(row['due'], 1000 + expected_delay)
+                self.assertNotIn(f'SAFE_TEST_{index}', row['last_error'])
+
     def test_discovery_scope_dedup(self):
         source=self.config['sources'][0]
         self.store.discover(source,[('https://example.com/p2','x'),('https://example.com/p2','x'),('http://127.0.0.1/p3','x'),('https://evil.com/p','x')],self.config)

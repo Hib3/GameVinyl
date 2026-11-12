@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 
-_TEST_TEMP = Path(__file__).resolve().parent.parent / "work" / "pytest-tmp"
+_TEST_TEMP = Path(__file__).resolve().parents[2] / "GameRecordTool-pytest-tmp"
 
 
 @pytest.hookimpl(tryfirst=True)

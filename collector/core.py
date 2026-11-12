@@ -27,6 +27,7 @@ from bs4 import BeautifulSoup
 
 ROOT = Path(__file__).resolve().parent.parent
 MIN_FREE_SPACE_RATIO = 0.20
+YAHOO_CATALOG_REDIRECT_RETRY_SECONDS = 24 * 60 * 60
 ARCHIVE = ROOT / 'outputs/game-record-audit-2026-08-25/records-dashboard'
 DATA = Path(os.environ.get('GRT_DATA_DIR') or ROOT / 'data') / 'collector'
 AGENT = 'VGMVinylCollector/1.0'
@@ -677,6 +678,13 @@ class Store:
         now = time.time()
         error_text = str(error)[:500]
         with self.db() as db:
+            if job['source'] == 'yahoo_watch' and error_text.startswith('Yahoo redirect blocked:'):
+                targets = db.execute('''SELECT
+                    MAX(mode='catalog' AND priority=0),
+                    MAX(mode='watch' OR priority=1)
+                    FROM market_search_targets WHERE search_url=?''', (job['url'],)).fetchone()
+                if targets and targets[0] and not targets[1]:
+                    delay = max(delay, YAHOO_CATALOG_REDIRECT_RETRY_SECONDS)
             db.execute("UPDATE jobs SET status=?,due=?,lease=0,last_error=? WHERE url=?", ('blocked' if blocked else 'error', now+delay,error_text,job['url']))
             result='blocked' if blocked else 'error'
             db.execute('UPDATE market_search_targets SET status=?,last_error=? WHERE search_url=?',(result,error_text[:300],job['url']))
