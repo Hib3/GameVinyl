@@ -286,19 +286,19 @@ class StorageTests(unittest.TestCase):
             self.assertEqual(db.execute('pragma integrity_check').fetchone()[0],'ok')
             self.assertEqual(db.execute('select count(*) from observations').fetchone()[0],1)
 
-    def test_low_disk_pauses_collection_and_resumes_at_ten_percent(self):
+    def test_low_disk_pauses_collection_and_resumes_at_twenty_percent(self):
         worker=Worker(self.store,self.config)
-        with patch('core.shutil.disk_usage',return_value=SimpleNamespace(total=1000,free=99)):
+        with patch('core.shutil.disk_usage',return_value=SimpleNamespace(total=1000,free=199)):
             self.assertFalse(worker.once())
         with self.store.db() as db:
             self.assertEqual(db.execute("SELECT status FROM jobs WHERE url='https://example.com/p'").fetchone()[0],'pending')
             self.assertTrue(json.loads(db.execute("SELECT value FROM meta WHERE key='storage_protection'").fetchone()[0])['paused'])
-        with patch('core.shutil.disk_usage',return_value=SimpleNamespace(total=1000,free=100)), patch.object(self.store,'claim',return_value=None):
+        with patch('core.shutil.disk_usage',return_value=SimpleNamespace(total=1000,free=200)), patch.object(self.store,'claim',return_value=None):
             self.assertFalse(worker.once())
         with self.store.db() as db:
             state=json.loads(db.execute("SELECT value FROM meta WHERE key='storage_protection'").fetchone()[0])
         self.assertFalse(state['paused'])
-        self.assertEqual(state['minimum_free_percent'],10)
+        self.assertEqual(state['minimum_free_percent'],20)
 
     def test_manual_backup_keeps_only_latest_valid_copy(self):
         with patch('core.datetime') as clock:
@@ -364,10 +364,10 @@ class StorageTests(unittest.TestCase):
         write.assert_called_once()
         self.assertEqual(len(list((Path(self.temp.name)/'backups').glob('daily-*.sqlite3'))),1)
 
-    def test_daily_backup_respects_projected_ten_percent_reserve(self):
+    def test_daily_backup_respects_projected_twenty_percent_reserve(self):
         with self.store.db() as db:
             size=db.execute('PRAGMA page_count').fetchone()[0]*db.execute('PRAGMA page_size').fetchone()[0]
-        with patch('core.shutil.disk_usage',return_value=SimpleNamespace(total=1000,free=100+size-1)):
+        with patch('core.shutil.disk_usage',return_value=SimpleNamespace(total=1000,free=200+size-1)):
             self.assertFalse(self.store.backup_daily())
         self.assertEqual(list((Path(self.temp.name)/'backups').glob('daily-*.sqlite3')),[])
 

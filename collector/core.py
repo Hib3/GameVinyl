@@ -25,7 +25,7 @@ import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup, FeatureNotFound
 
 ROOT = Path(__file__).resolve().parent.parent
-MIN_FREE_SPACE_RATIO = 0.10
+MIN_FREE_SPACE_RATIO = 0.20
 ARCHIVE = ROOT / 'outputs/game-record-audit-2026-08-25/records-dashboard'
 DATA = Path(os.environ.get('GRT_DATA_DIR') or ROOT / 'data') / 'collector'
 AGENT = 'VGMVinylCollector/1.0'
