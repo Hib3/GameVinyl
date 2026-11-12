@@ -186,6 +186,37 @@ class WatchTest(unittest.TestCase):
         self.assertNotIn('PRIVATE_QUERY_MARKER',row['last_error'])
         self.assertNotIn('DIFFERENT_QUERY',row['last_error'])
 
+    def test_yahoo_search_redirect_with_reordered_terms_is_classified_but_blocked(self):
+        config=json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        source=next(s for s in config['sources'] if s['id']=='yahoo_watch')
+        config['sources']=[source]
+        config['min_request_gap_seconds']=0
+        source['min_request_gap_seconds']=0
+        search='https://auctions.yahoo.co.jp/search/search?p=GAME+VINYL'
+        with TemporaryDirectory() as folder:
+            store=Store(Path(folder)/'collector.sqlite3')
+            with store.db() as db:
+                db.execute('INSERT INTO source_state(id,next_allowed) VALUES(?,0)',('yahoo_watch',))
+                db.execute('INSERT INTO jobs(url,source,due) VALUES(?,?,0)',(search,'yahoo_watch'))
+                db.execute("INSERT INTO market_search_targets(search_url,edition_id,query,mode) VALUES(?,?,?,'catalog')",
+                           (search,'AR-000001','PRIVATE_QUERY_MARKER'))
+                db.execute("INSERT INTO market_search_coverage(edition_id,status) VALUES(?,'queued')",
+                           ('AR-000001',))
+            worker=Worker(store,config)
+            with patch.object(worker.robots,'check',return_value=0), patch(
+                    'core.fetch_http',return_value=(200,'<html></html>',
+                    'https://auctions.yahoo.co.jp/search/?p=VINYL+GAME')):
+                self.assertTrue(worker.once())
+            with store.db() as db:
+                row=db.execute('SELECT status,last_error FROM market_search_targets WHERE search_url=?',(search,)).fetchone()
+        self.assertEqual(row['status'],'blocked')
+        self.assertIn('query_match=0',row['last_error'])
+        self.assertIn('normalized_match=0',row['last_error'])
+        self.assertIn('token_multiset_match=1',row['last_error'])
+        self.assertNotIn('PRIVATE_QUERY_MARKER',row['last_error'])
+        self.assertNotIn('GAME',row['last_error'])
+        self.assertNotIn('VINYL',row['last_error'])
+
     def test_yahoo_search_redirect_reports_safe_normalization_match(self):
         config=json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
         source=next(s for s in config['sources'] if s['id']=='yahoo_watch')

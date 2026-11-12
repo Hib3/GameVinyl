@@ -18,5 +18,5 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install -r requirements-dev.txt
-      - run: python -m pytest tests/ -q
+      - run: python -m pytest tests/ collector/ -q
       - run: python -X utf8 -c "import diagnose; diagnose.check_manifest()"
