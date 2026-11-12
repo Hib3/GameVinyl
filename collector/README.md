@@ -61,7 +61,7 @@ Disable-ScheduledTask -TaskName GameRecordToolCollector
 .\.venv-collector\Scripts\python.exe -m unittest discover -s collector -p test_collector.py
 ```
 
-統合インストールではデータは`data/collector/collector.sqlite3`、ログは`data/collector/collector.log`です。Botの`data/grt.db`は読み取り専用でAR-ID結合します。ログは1MB×最大4ファイル。自動バックアップはUTC日単位で1回、`data/collector/backups/daily-YYYYMMDD.sqlite3`を直近2日分保持。手動バックアップは最新の検証済み1点だけを保持します。新しいコピーは quick_check に成功してから旧コピーを置き換えるため、失敗時は旧復元点が残ります。
+統合インストールではデータは`data/collector/collector.sqlite3`、ログは`data/collector/collector.log`です。Botの`data/grt.db`は読み取り専用でAR-ID結合します。ログは1MB×最大4ファイル。Collectorは起動時と1時間ごとにUTC日単位の復元点を確認し、`data/collector/backups/daily-YYYYMMDD.sqlite3`へ最大1世代保存します。空き容量が20%を保てない場合は作成を見送り、`/api/status`の`meta.daily_backup_status`に理由・必要容量を記録し、ログにも警告します。容量が戻れば1時間以内に再試行します。SQLite backup APIで一時ファイルへ複製し、`quick_check`成功後に原子的に確定します。新しい復元点が検証されるまで旧復元点を保持します。手動バックアップは最新の検証済み1点だけを保持します。`meta.storage_protection`には次回バックアップの予測容量・20%枠を維持して作成可能か・不足量も含まれます。
 
 復元はタスク停止後に現在のDBと`-wal`/`-shm`を別フォルダーへ退避してから、バックアップを`collector.sqlite3`へコピーして再開します。現DBを直接上書きして退避なしに戻すことはしないでください。
 

@@ -682,7 +682,7 @@
         <p>価格データの根拠が確認できた範囲から再掲載します。</p>
         <p>Yahoo!ショッピングの画像は出品商品写真です。最終観測日時を表示し、現在の在庫や販売継続を保証しません。</p>
         <!-- Begin Yahoo! JAPAN Web Services Attribution Snippet -->
-        <span style="margin:15px 15px 15px 15px"><a href="https://developer.yahoo.co.jp/sitemap/">Webサービス by Yahoo! JAPAN</a></span>
+        <span><a href="https://developer.yahoo.co.jp/sitemap/">Webサービス by Yahoo! JAPAN</a></span>
         <!-- End Yahoo! JAPAN Web Services Attribution Snippet -->
       </div>
     </footer>
@@ -988,6 +988,7 @@
         var openDetails = {};
         var coverageAreaLabels = { metadata: "基本情報", official_new_release: "公式新譜", used_listing: "中古出品", price: "価格", availability: "在庫", image: "画像権利", purchase_url: "購入URL" };
         var coverageStatusLabels = { verified_current: "現在確認済み", verified_historical: "過去確認", candidate_needs_review: "候補・要確認", no_route: "取得経路なし", not_found: "対象ソースで一致なし", blocked: "取得遮断", stale: "情報が古い", source_unverified: "出典未確認", not_applicable: "対象外", error: "取得エラー" };
+        var marketSearchStatusLabels = { queued: "巡回待ち", searched: "検索済み（出品なしを保証しない）", blocked: "取得遮断", error: "取得エラー", no_route: "検索情報不足" };
         function cardHTML(r) {
           var st = statusBadge(r);
           var searchMatches = searchHitFields(r);
@@ -1028,10 +1029,29 @@
           ];
           var a = r.fieldAudit;
           rows.push(["監査結果", a.summary], ["調査時価格の確認日", a.priceDate], ["最新の調査記録", a.surveyDate], ["外部目録検索", a.lookupNote], ["Botの価格確認", a.botPrice], ["店舗商品ページ候補", a.collectorOffers]);
+          if (a.marketSearch) rows.push(["Yahoo!オークション巡回", (marketSearchStatusLabels[a.marketSearch.status] || a.marketSearch.status) + (a.marketSearch.checkedAt ? "・確認 " + a.marketSearch.checkedAt : "")]);
           (a.coverage || []).forEach(function (item) {
             rows.push([coverageAreaLabels[item.area] || item.area, coverageStatusLabels[item.status] || item.status]);
           });
           if (a.gameAlternative) rows.push(["Muse目録のゲーム表記", a.gameAlternative]);
+          if (a.museGameEvidence) {
+            var me = a.museGameEvidence;
+            if (me.category) rows.push(["Muse調査のゲーム判定", auditLabels[me.category] || me.category]);
+            if (me.game) rows.push(["Museゲーム候補", me.game]);
+            if (me.confidence) rows.push(["Muse確度", me.confidence]);
+            if (me.basis) rows.push(["Muse根拠", me.basis]);
+          }
+          if (a.musePriceHistory) {
+            var mh = a.musePriceHistory;
+            var musePriceLabel = 'Muse過去調査 ' + mh.surveyDate + '（個別確認 ' + mh.checkedAt + '）・' + mh.status;
+            if (mh.priceUsd) musePriceLabel += '・記録価格 $' + mh.priceUsd + ' USD';
+            musePriceLabel += '・現在価格/在庫ではなく、出典と盤一致は未検証';
+            rows.push(['Muse価格履歴（過去）', musePriceLabel]);
+            if (mh.sourceSummary) rows.push(['Muse記録の出典名', mh.sourceSummary]);
+            (mh.sourceUrls || []).forEach(function (url) {
+              a.links.push({label: 'Muse参照URL（未検証・現行出品ではない）', url: url});
+            });
+          }
           var links = a.links.map(function (link) {
             return '<a href="' + esc(link.url) + '" target="_blank" rel="noopener noreferrer">' + esc(link.label) + '</a>';
           }).join("");

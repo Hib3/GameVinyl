@@ -5,9 +5,11 @@ import sqlite3
 import tempfile
 import time
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
-from core import Store, Worker, Robots, canonical, public_target, extract, fetch_browser
+import core
+from core import Store, Worker, Robots, BeautifulSoup, canonical, public_target, extract, fetch_browser
 from server import query_api
 
 
@@ -71,6 +73,17 @@ class ExtractionTests(unittest.TestCase):
     def test_feed_links(self):
         html='<rss><channel><item><title>New vinyl</title><link>https://example.com/new-vinyl/</link></item></channel></rss>'
         facts,_,links=extract(html,'https://example.com/feed/','discovery')
+        self.assertEqual(facts['page_type'],'feed')
+        self.assertIn(('https://example.com/new-vinyl/','feed item'),links)
+
+    def test_feed_extraction_does_not_require_optional_xml_builder(self):
+        html='<rss><channel><item><title>New vinyl</title><link>https://example.com/new-vinyl/</link></item></channel></rss>'
+        def parse(markup, features):
+            if features == 'xml':
+                raise AssertionError('optional XML builder was requested')
+            return BeautifulSoup(markup, features)
+        with patch('core.BeautifulSoup', side_effect=parse):
+            facts,_,links=extract(html,'https://example.com/feed/','discovery')
         self.assertEqual(facts['page_type'],'feed')
         self.assertIn(('https://example.com/new-vinyl/','feed item'),links)
 
@@ -186,6 +199,73 @@ class BrowserFetchTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(ws.closed)
 
 
+class MarketSearchOrderTests(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory()
+        self.root=Path(self.temp.name)
+        (self.root/'seed').mkdir()
+        self.records=[
+            {'id':'AR-000001','title':'New Game','catalog':'N1','year':2025},
+            {'id':'AR-000002','title':'Old 1990','catalog':'O90','year':1990},
+            {'id':'AR-000003','title':'Old 1980','catalog':'O80','year':1980},
+            {'id':'AR-000004','title':'Old 1980','catalog':'O80','year':1983},
+            {'id':'AR-000005','title':'Watched New','catalog':'W24','year':2024},
+            {'id':'AR-000006','title':'Undated','catalog':'U0','year':None},
+        ]
+        (self.root/'seed'/'records.json').write_text(json.dumps(self.records),encoding='utf-8')
+        self.bot_db=self.root/'bot.sqlite3'
+        bot=sqlite3.connect(self.bot_db)
+        try:
+            bot.execute('CREATE TABLE editions(id TEXT PRIMARY KEY,watch_level INTEGER)')
+            bot.execute("INSERT INTO editions VALUES('AR-000005',1)")
+            bot.commit()
+        finally:
+            bot.close()
+        self.store=Store(self.root/'collector.sqlite3')
+        self.config={
+            'sources':[{'id':'yahoo_watch','seeds':[],'min_request_gap_seconds':60}],
+            'watches':[], 'catalog_pages':{}, 'min_request_gap_seconds':60,
+            'catalog_priority_slots_per_hour':12,
+        }
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def initialize(self, now):
+        with patch('core.ROOT',self.root), patch('core.ARCHIVE',self.root/'archive'), patch('core.time.time',return_value=now):
+            self.store.initialize(self.config,self.bot_db)
+
+    def test_vintage_order_dedup_and_one_time_pending_migration(self):
+        self.initialize(1000)
+        with self.store.db() as db:
+            due={row['query']:row['due'] for row in db.execute('''SELECT t.query,j.due FROM market_search_targets t
+                JOIN jobs j ON j.url=t.search_url''')}
+            self.assertEqual(due['Watched New W24'],1000)
+            self.assertEqual(due['Old 1980 O80'],1000)
+            self.assertEqual(due['Old 1990 O90'],1060)
+            self.assertEqual(due['New Game N1'],1120)
+            self.assertEqual(due['Undated U0'],1180)
+            self.assertEqual(db.execute('SELECT COUNT(*) FROM jobs WHERE source=\'yahoo_watch\'').fetchone()[0],5)
+            self.assertEqual(db.execute('SELECT COUNT(*) FROM market_search_targets').fetchone()[0],6)
+            old_url=db.execute("SELECT search_url FROM market_search_targets WHERE edition_id='AR-000003'").fetchone()[0]
+            new_url=db.execute("SELECT search_url FROM market_search_targets WHERE edition_id='AR-000001'").fetchone()[0]
+            db.execute("UPDATE jobs SET status='blocked',due=7000,last_checked=500 WHERE url=?",(old_url,))
+            db.execute("UPDATE jobs SET status='ok',due=8000,last_checked=600 WHERE url=?",(new_url,))
+            db.execute("UPDATE meta SET value=? WHERE key='market_search_order_fingerprint'",(json.dumps('stale'),))
+
+        self.initialize(2000)
+        with self.store.db() as db:
+            old=db.execute('SELECT status,due FROM jobs WHERE url=?',(old_url,)).fetchone()
+            new=db.execute('SELECT status,due FROM jobs WHERE url=?',(new_url,)).fetchone()
+            self.assertEqual((old['status'],old['due']),('blocked',7000))
+            self.assertEqual((new['status'],new['due']),('ok',8000))
+            db.execute("UPDATE jobs SET due=7777 WHERE url=?",(old_url,))
+
+        self.initialize(3000)
+        with self.store.db() as db:
+            self.assertEqual(db.execute('SELECT due FROM jobs WHERE url=?',(old_url,)).fetchone()[0],7777)
+
+
 class StorageTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory()
@@ -237,6 +317,55 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(out['items'][0]['freshness'],'EXPIRED')
         self.assertFalse(out['items'][0]['purchase_recommended'])
 
+    def test_http_429_pauses_only_that_source_until_retry(self):
+        other_source=self.config['sources'][0]|{'id':'other','hosts':['other.example'],'seeds':['https://other.example/p']}
+        self.config['sources'].append(other_source)
+        with self.store.db() as db:
+            db.execute("INSERT INTO jobs(url,source,due) VALUES('https://example.com/p2','test',0)")
+        with patch('core.time.time', return_value=1000):
+            job=self.store.claim(self.config)
+            self.store.failed(job,PermissionError('HTTP 429'),self.config)
+            self.assertIsNone(self.store.claim(self.config))
+            with self.store.db() as db:
+                self.assertEqual(db.execute('SELECT next_allowed FROM source_state WHERE id=?',('test',)).fetchone()[0],22600)
+                self.assertEqual(db.execute("SELECT COUNT(*) FROM jobs WHERE status='blocked' AND last_error='HTTP 429'").fetchone()[0],1)
+                db.execute('INSERT INTO source_state VALUES(?,?)',('other',0))
+                db.execute('INSERT INTO jobs(url,source,due) VALUES(?,?,0)',('https://other.example/p','other'))
+            self.assertEqual(self.store.claim(self.config)['source'],'other')
+
+    def test_repeated_same_failure_updates_event_instead_of_adding_rows(self):
+        with self.store.db() as db:
+            plan=[row['detail'] for row in db.execute("EXPLAIN QUERY PLAN SELECT id,detail FROM events WHERE url=? AND kind='fetch_failed' ORDER BY id DESC LIMIT 1",('https://example.com/p',))]
+        self.assertTrue(any('fetch_failed_url' in step for step in plan))
+        job=self.store.claim(self.config)
+        self.store.failed(job,ValueError('Yahoo redirected away from requested page'),self.config)
+        with self.store.db() as db:
+            first_created=db.execute("SELECT created FROM events WHERE kind='fetch_failed'").fetchone()[0]
+        self.store.failed(job,ValueError('Yahoo redirected away from requested page'),self.config)
+        with self.store.db() as db:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM events WHERE kind='fetch_failed'").fetchone()[0],1)
+            self.assertEqual(db.execute("SELECT created FROM events WHERE kind='fetch_failed'").fetchone()[0],first_created)
+        event=query_api(self.store,self.config,'/api/events',{})['items'][0]
+        self.assertEqual(event['detail']['repeat_count'],2)
+        self.assertIn('last_seen',event['detail'])
+
+    def test_yahoo_catalog_redirect_block_has_daily_cooldown_but_priority_search_does_not(self):
+        error = ValueError('Yahoo redirect blocked: host_relation=same route=search challenge_marker=0 query_match=0')
+        cases = [('catalog', 0, 86400), ('catalog', 1, 21600), ('watch', 1, 21600)]
+        with patch('core.time.time', return_value=1000):
+            for index, (mode, priority, expected_delay) in enumerate(cases, 1):
+                url = f'https://auctions.yahoo.co.jp/search/search?p=SAFE_TEST_{index}'
+                with self.store.db() as db:
+                    db.execute("INSERT INTO jobs(url,source,due,status) VALUES(?, 'yahoo_watch', 0, 'running')", (url,))
+                    db.execute('INSERT INTO market_search_targets(search_url,edition_id,query,mode,priority) VALUES(?,?,?,?,?)',
+                               (url, f'AR-{index:06d}', f'SAFE_TEST_{index}', mode, priority))
+                self.store.failed({'url': url, 'source': 'yahoo_watch', 'attempts': 1}, error, self.config)
+                with self.store.db() as db:
+                    row = db.execute('SELECT status,due,last_error FROM jobs WHERE url=?', (url,)).fetchone()
+                self.assertEqual(row['status'], 'blocked')
+                self.assertEqual(row['due'], 1000 + expected_delay)
+                self.assertNotIn(f'SAFE_TEST_{index}', row['last_error'])
+
     def test_discovery_scope_dedup(self):
         source=self.config['sources'][0]
         self.store.discover(source,[('https://example.com/p2','x'),('https://example.com/p2','x'),('http://127.0.0.1/p3','x'),('https://evil.com/p','x')],self.config)
@@ -269,6 +398,20 @@ class StorageTests(unittest.TestCase):
             self.assertEqual(db.execute('pragma integrity_check').fetchone()[0],'ok')
             self.assertEqual(db.execute('select count(*) from observations').fetchone()[0],1)
 
+    def test_low_disk_pauses_collection_and_resumes_at_twenty_percent(self):
+        worker=Worker(self.store,self.config)
+        with patch('core.shutil.disk_usage',return_value=SimpleNamespace(total=1000,free=199)):
+            self.assertFalse(worker.once())
+        with self.store.db() as db:
+            self.assertEqual(db.execute("SELECT status FROM jobs WHERE url='https://example.com/p'").fetchone()[0],'pending')
+            self.assertTrue(json.loads(db.execute("SELECT value FROM meta WHERE key='storage_protection'").fetchone()[0])['paused'])
+        with patch('core.shutil.disk_usage',return_value=SimpleNamespace(total=1000,free=200)), patch.object(self.store,'claim',return_value=None):
+            self.assertFalse(worker.once())
+        with self.store.db() as db:
+            state=json.loads(db.execute("SELECT value FROM meta WHERE key='storage_protection'").fetchone()[0])
+        self.assertFalse(state['paused'])
+        self.assertEqual(state['minimum_free_percent'],20)
+
     def test_manual_backup_keeps_only_latest_valid_copy(self):
         with patch('core.datetime') as clock:
             clock.now.side_effect=[datetime(2026,11,1,tzinfo=timezone.utc),datetime(2026,11,2,tzinfo=timezone.utc)]
@@ -282,13 +425,76 @@ class StorageTests(unittest.TestCase):
         finally:
             db.close()
 
-    def test_daily_backup_retains_only_two_latest_days(self):
+    def test_daily_backup_retains_only_latest_verified_day(self):
         with patch('core.datetime') as clock:
             clock.now.side_effect=[datetime(2026,11,1,tzinfo=timezone.utc),datetime(2026,11,2,tzinfo=timezone.utc),datetime(2026,11,3,tzinfo=timezone.utc)]
             for _ in range(3):
                 self.store.backup_daily()
         backups=sorted(p.name for p in (Path(self.temp.name)/'backups').glob('daily-*.sqlite3'))
-        self.assertEqual(backups,['daily-20261102.sqlite3','daily-20261103.sqlite3'])
+        self.assertEqual(backups,['daily-20261103.sqlite3'])
+        db=sqlite3.connect(Path(self.temp.name)/'backups'/backups[0])
+        try:
+            self.assertEqual(db.execute('PRAGMA quick_check').fetchone()[0],'ok')
+        finally:
+            db.close()
+        with self.store.db() as db:
+            status=json.loads(db.execute("SELECT value FROM meta WHERE key='daily_backup_status'").fetchone()[0])
+        self.assertEqual(status['status'],'created')
+        self.assertEqual(status['file'],'daily-20261103.sqlite3')
+
+    def test_daily_backup_failure_keeps_previous_and_cleans_temporary(self):
+        folder=Path(self.temp.name)/'backups'
+        with patch('core.datetime') as clock:
+            clock.now.side_effect=[datetime(2026,11,1,tzinfo=timezone.utc),datetime(2026,11,2,tzinfo=timezone.utc)]
+            self.store.backup_daily()
+            previous=folder/'daily-20261101.sqlite3'
+            previous_bytes=previous.read_bytes()
+            (folder/'daily-20261101.sqlite3-wal').write_bytes(b'old wal')
+            (folder/'daily-20261101.sqlite3-shm').write_bytes(b'old shm')
+            with patch.object(self.store,'_write_backup',side_effect=sqlite3.DatabaseError('interrupted')):
+                with self.assertRaises(sqlite3.DatabaseError):
+                    self.store.backup_daily()
+        self.assertEqual(previous.read_bytes(),previous_bytes)
+        self.assertTrue((folder/'daily-20261101.sqlite3-wal').exists())
+        self.assertTrue((folder/'daily-20261101.sqlite3-shm').exists())
+        self.assertFalse((folder/'daily-20261102.sqlite3').exists())
+        self.assertEqual(list(folder.glob('*.tmp')),[])
+
+    def test_daily_backup_rotation_removes_old_database_sidecars_after_success(self):
+        folder=Path(self.temp.name)/'backups'
+        with patch('core.datetime') as clock:
+            clock.now.side_effect=[datetime(2026,11,1,tzinfo=timezone.utc),datetime(2026,11,2,tzinfo=timezone.utc)]
+            self.store.backup_daily()
+            (folder/'daily-20261101.sqlite3-wal').write_bytes(b'old wal')
+            (folder/'daily-20261101.sqlite3-shm').write_bytes(b'old shm')
+            self.store.backup_daily()
+        self.assertFalse((folder/'daily-20261101.sqlite3').exists())
+        self.assertFalse((folder/'daily-20261101.sqlite3-wal').exists())
+        self.assertFalse((folder/'daily-20261101.sqlite3-shm').exists())
+
+    def test_daily_backup_does_not_duplicate_same_day(self):
+        with patch('core.datetime') as clock, patch.object(self.store,'_write_backup',wraps=self.store._write_backup) as write:
+            clock.now.side_effect=[datetime(2026,11,1,tzinfo=timezone.utc),datetime(2026,11,1,tzinfo=timezone.utc)]
+            self.assertTrue(self.store.backup_daily())
+            self.assertTrue(self.store.backup_daily())
+        write.assert_called_once()
+        self.assertEqual(len(list((Path(self.temp.name)/'backups').glob('daily-*.sqlite3'))),1)
+        with self.store.db() as db:
+            status=json.loads(db.execute("SELECT value FROM meta WHERE key='daily_backup_status'").fetchone()[0])
+        self.assertEqual(status['status'],'created')
+
+    def test_daily_backup_respects_projected_twenty_percent_reserve(self):
+        with self.store.db() as db:
+            size=db.execute('PRAGMA page_count').fetchone()[0]*db.execute('PRAGMA page_size').fetchone()[0]
+        with patch('core.shutil.disk_usage',return_value=SimpleNamespace(total=1000,free=200+size-1)):
+            self.assertFalse(self.store.backup_daily())
+        self.assertEqual(list((Path(self.temp.name)/'backups').glob('daily-*.sqlite3')),[])
+        with self.store.db() as db:
+            state=json.loads(db.execute("SELECT value FROM meta WHERE key='daily_backup_status'").fetchone()[0])
+        self.assertEqual(state['status'],'skipped_low_disk')
+        self.assertEqual(state['required_bytes'],size)
+        self.assertEqual(state['free_bytes'],200+size-1)
+        self.assertEqual(state['minimum_free_bytes'],200)
 
     def test_disabled_source_not_claimed(self):
         self.config['sources'][0]['enabled']=False

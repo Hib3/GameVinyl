@@ -12,6 +12,7 @@ from logging.handlers import RotatingFileHandler
 import mimetypes
 import os
 from pathlib import Path
+import shutil
 import signal
 import sqlite3
 import sys
@@ -19,7 +20,7 @@ import threading
 import time
 from urllib.parse import parse_qs, urlsplit
 
-from core import DATA, ROOT, Store, Worker, norm
+from core import DATA, MIN_FREE_SPACE_RATIO, ROOT, Store, Worker, norm
 
 HERE = Path(__file__).resolve().parent
 SITE_DATA = DATA.parent / 'site'
@@ -82,8 +83,8 @@ def static_content_security_policy(target, site_dir, body):
     return CONTENT_SECURITY_POLICY
 
 
-LATEST = '''FROM observations o JOIN (SELECT url,MAX(id) id FROM observations GROUP BY url) x ON o.id=x.id
-    JOIN jobs j ON j.url=o.url'''
+LATEST = '''FROM jobs j JOIN observations o
+    ON o.id=(SELECT MAX(id) FROM observations WHERE url=j.url)'''
 
 
 def static_target(path, site_dir=SITE_DATA):
@@ -109,6 +110,8 @@ def possible_match(record, item):
     if item['url'] in {s.get('url') for s in record.get('sources', [])}:
         return 'source_url'
     f = item['facts']
+    if record.get('id') in f.get('candidate_ids',[]):
+        return 'market_search_candidate_needs_review'
     if record.get('id') in f.get('watch_ids',[]):
         return 'watch_title_or_catalog'
     if norm(record.get('catalog')) and norm(record.get('catalog')) == norm(f.get('catalog')):
@@ -208,7 +211,22 @@ def query_api(store, config, path, query, bot_db_path=None):
             priced=sum(p['facts'].get('price') is not None for p in products)
             fresh_priced=sum(p['facts'].get('price') is not None and p['freshness']=='RECENT_OBSERVATION' for p in products)
             meta = {r['key']:json.loads(r['value']) for r in db.execute('SELECT * FROM meta')}
+            usage=shutil.disk_usage(store.path.parent)
+            required_backup_bytes=db.execute('PRAGMA page_count').fetchone()[0]*db.execute('PRAGMA page_size').fetchone()[0]
+            minimum_free_bytes=int(usage.total*MIN_FREE_SPACE_RATIO)
+            meta['storage_protection']={
+                'paused':usage.free < usage.total * MIN_FREE_SPACE_RATIO,
+                'free_bytes':usage.free,
+                'total_bytes':usage.total,
+                'minimum_free_percent':int(MIN_FREE_SPACE_RATIO*100),
+                'minimum_free_bytes':minimum_free_bytes,
+                'reserve_headroom_bytes':max(0,usage.free-minimum_free_bytes),
+                'next_daily_backup_bytes':required_backup_bytes,
+                'next_daily_backup_fits':usage.free-required_backup_bytes >= minimum_free_bytes,
+                'projected_deficit_bytes':max(0,minimum_free_bytes-(usage.free-required_backup_bytes)),
+            }
             states = {r['status']:r['n'] for r in db.execute('SELECT status,COUNT(*) n FROM jobs GROUP BY status')}
+            market_search={r['status']:r['n'] for r in db.execute('SELECT status,COUNT(*) n FROM market_search_coverage GROUP BY status')}
             sources = []
             hourly = db.execute('SELECT COUNT(*) count,MIN(last_checked) oldest FROM jobs WHERE last_checked>?',(now-3600,)).fetchone()
             for s in config['sources']:
@@ -217,7 +235,7 @@ def query_api(store, config, path, query, bot_db_path=None):
                 sources.append({'id':s['id'],'name':s['name'],'enabled':s['enabled'],'method':s['method'],'note':s['note'],**dict(row),'errors':[dict(r) for r in errors]})
             quota={'used_last_hour':hourly['count'],'limit':config['max_jobs_per_hour'],'waiting':hourly['count']>=config['max_jobs_per_hour'],'resume_at':hourly['oldest']+3600 if hourly['oldest'] else None}
             coverage={'observed_products':len(products),'priced_products':priced,'fresh_priced_products':fresh_priced,'unknown_price_products':len(products)-priced,'price_coverage_pct':round(priced*100/len(products),1) if products else 0,'edition_verified_rows':0}
-            return {'server_time':now,'worker_alive':now-meta.get('heartbeat',0)<120,'meta':meta,'jobs':states,'record_count':db.execute('SELECT COUNT(*) FROM records').fetchone()[0], 'candidate_count':db.execute('SELECT COUNT(*) FROM candidates').fetchone()[0], 'coverage':coverage,'sources':sources,'bot_catalog':bot_data(bot_db_path, now=now),'scope':'全盤一覧と店舗の商品観測。商品価格は店舗価格取得率の分母で、全3,777盤の価格カバー率ではありません。Bot台帳とはAR-ID完全一致で読み取り専用結合します。','llm_calls':0}
+            return {'server_time':now,'worker_alive':now-meta.get('heartbeat',0)<120,'meta':meta,'jobs':states,'record_count':db.execute('SELECT COUNT(*) FROM records').fetchone()[0], 'candidate_count':db.execute('SELECT COUNT(*) FROM candidates').fetchone()[0], 'coverage':coverage,'market_search_coverage':market_search,'sources':sources,'bot_catalog':bot_data(bot_db_path, now=now),'scope':'全盤一覧、店舗商品観測、Yahoo Auctionsの対象盤別検索状態。商品価格のcoverageは全3,777盤の価格カバー率ではありません。検索結果は候補であり盤一致を証明しません。','llm_calls':0}
         if path == '/api/records':
             where=' WHERE norm_title LIKE ? OR norm_catalog LIKE ? OR data LIKE ?'
             args=('%'+norm(q)+'%','%'+norm(q)+'%','%'+q+'%')
@@ -266,7 +284,7 @@ def query_api(store, config, path, query, bot_db_path=None):
             items=[]
             for row in rows[:limit]:
                 detail=json.loads(row['detail'])
-                items.append(dict(row)|{'detail':{key:detail[key] for key in ('title','error','reason','observation_id') if key in detail}})
+                items.append(dict(row)|{'detail':{key:detail[key] for key in ('title','error','reason','observation_id','repeat_count','last_seen') if key in detail}})
             return {'items':items,'total':db.execute('SELECT COUNT(*) FROM events').fetchone()[0],'limit':limit,'has_more':len(rows)>limit,'offset':offset}
         if path == '/api/evidence':
             rid = int(query.get('id',['0'])[0])
@@ -287,6 +305,25 @@ def query_api(store, config, path, query, bot_db_path=None):
     return None
 
 
+def daily_backup_loop(store, stop):
+    while not stop.is_set():
+        try:
+            if not store.backup_daily():
+                logging.warning('Collector daily restore point skipped; projected free space would breach the 20% reserve')
+        except Exception as error:
+            try:
+                store.meta('daily_backup_status', {
+                    'status': 'failed',
+                    'checked_at': time.time(),
+                    'error_type': type(error).__name__,
+                })
+            except Exception:
+                pass
+            logging.exception('Collector daily restore point failed; existing copy retained')
+        if stop.wait(3600):
+            return
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--port',type=int,default=8766)
@@ -301,7 +338,7 @@ def main():
     store = Store(args.db)
     handler = RotatingFileHandler(args.db.parent/'collector.log',maxBytes=1000000,backupCount=3,encoding='utf-8')
     logging.basicConfig(level=logging.WARNING,handlers=[handler])
-    store.initialize(config)
+    store.initialize(config,args.bot_db)
     worker = Worker(store,config)
     if args.once:
         print(json.dumps({'processed':worker.once()},ensure_ascii=True))
@@ -352,6 +389,7 @@ def main():
     store.meta('worker_enabled',not args.no_worker)
 
     def work():
+        threading.Thread(target=daily_backup_loop,args=(store,stop),name='collector-daily-backup',daemon=True).start()
         while not stop.is_set():
             try:
                 worker.once()

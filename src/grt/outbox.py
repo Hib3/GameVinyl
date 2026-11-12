@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import sqlite3
 from datetime import datetime, time as dtime, timedelta
 
@@ -298,7 +299,8 @@ def enqueue(db, *, event_type: str, body: str, edition_id: str | None = None,
             floor_applied: bool = False, price: float | None = None,
             quiet_exempt: bool = False, quiet_override: bool = False,
             quiet_override_reason: str | None = None,
-            reply_markup: dict | None = None) -> int | None:
+            reply_markup: dict | None = None,
+            require_transaction: bool = False) -> int | None:
     """Insert one outbox row. Returns the row id, or None on duplicate key.
 
     Failure contract (maniac B D-12): None means 'duplicate — or a
@@ -312,6 +314,8 @@ def enqueue(db, *, event_type: str, body: str, edition_id: str | None = None,
     undone by exactly that), and a successful enqueue no longer
     commits the caller's work early. 'Detection and outbox insertion
     happen in the same transaction' is now literally true.
+    With require_transaction, failures are raised to the caller
+    without logging via a separate commit or altering the schema.
     """
     try:
         return _enqueue_inner(
@@ -321,7 +325,7 @@ def enqueue(db, *, event_type: str, body: str, edition_id: str | None = None,
             floor_applied=floor_applied, price=price,
             quiet_exempt=quiet_exempt, quiet_override=quiet_override,
             quiet_override_reason=quiet_override_reason,
-            reply_markup=reply_markup)
+            reply_markup=reply_markup, require_transaction=require_transaction)
     except Exception as exc:
         # R14 (adversarial 中-4): this used to db.rollback() — a FULL
         # rollback that silently erased the CALLER's uncommitted
@@ -337,6 +341,8 @@ def enqueue(db, *, event_type: str, body: str, edition_id: str | None = None,
             db.execute("RELEASE grt_enqueue")
         except Exception:
             pass  # no savepoint was live; nothing of ours to undo
+        if require_transaction:
+            raise
         _record_enqueue_failure(db, event_type, exc)
         return None
 
@@ -344,7 +350,11 @@ def enqueue(db, *, event_type: str, body: str, edition_id: str | None = None,
 def _enqueue_inner(db, *, event_type, body, edition_id, idempotency_key,
                    source, listing_url, score, floor_applied, price,
                    quiet_exempt, quiet_override, quiet_override_reason,
-                   reply_markup) -> int | None:
+                   reply_markup, require_transaction=False) -> int | None:
+    if require_transaction and (not db.in_transaction
+            or not _has_column(db, "notification_outbox", "quiet_exempt")
+            or not _has_column(db, "notification_outbox", "reply_markup_json")):
+        raise RuntimeError("Outbox schema/transaction not ready")
     if idempotency_key is None:
         if edition_id and source and listing_url:
             idempotency_key = listing_event_key(edition_id, source,
@@ -378,6 +388,8 @@ def _enqueue_inner(db, *, event_type, body, edition_id, idempotency_key,
         db.execute("SAVEPOINT grt_enqueue")
         savepoint = True
     except Exception:
+        if require_transaction:
+            raise
         savepoint = False
     try:
         if has_markup_col:
@@ -826,6 +838,21 @@ def process_outbox(db, transport, chat_id: str | None = None) -> dict:
                         pass
                     stats["db_errors"] += 1
                 stats["deferred_quiet"] += 1
+                continue
+        if (row["event_type"] == "match_review"
+                and (row["idempotency_key"] or "").startswith("collector_match_review|")):
+            from . import collector_bridge
+            try:
+                if not collector_bridge.delivery_allowed(db,row["idempotency_key"],row["edition_id"]):
+                    db.execute("UPDATE notification_outbox SET state='cancelled'"
+                               " WHERE id=? AND state IN ('pending','failed_retryable')",(row["id"],))
+                    db.commit()
+                    continue
+            except Exception as exc:
+                db.rollback()
+                stats["db_errors"] += 1
+                logging.getLogger(__name__).warning(
+                    "Collector review delivery deferred (%s)",type(exc).__name__)
                 continue
         try:
             cur = db.execute(

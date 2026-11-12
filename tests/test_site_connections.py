@@ -26,7 +26,7 @@ def site_fixture(tmp_path, monkeypatch):
     c=sqlite3.connect(site)
     with c:
         c.executescript("""
-        create table editions(id text primary key,identity_status,tool_json,muse_json,html_json);
+        create table editions(id text primary key,identity_status,tool_json,muse_json,html_json,game_enrichment_json text default '{}');
         create table observations(matched_edition_id,checked_at,price_usd,source_url);
         create table site_thumbnail_eligible(edition_id,image_url);
         create table offer_candidates(matched_edition_id,listing_url);
@@ -35,7 +35,7 @@ def site_fixture(tmp_path, monkeypatch):
         create table catalog_lookup_queue(edition_id,field,search_value,label);
         create table catalog_lookup(field,search_value,label,result,checked_at,match_json);
         """)
-        c.executemany("insert into editions values(?, 'shared_catalog_identity', '{}','{}','{}')",
+        c.executemany("insert into editions(id,identity_status,tool_json,muse_json,html_json) values(?, 'shared_catalog_identity', '{}','{}','{}')",
                       ((f'AR-{i:06d}',) for i in range(1,3778)))
     c.close()
     template=tmp_path/'template.html'
@@ -58,6 +58,23 @@ def test_audit_closes_database_connections(site_fixture,tmp_path,monkeypatch):
     monkeypatch.setattr(audit.sqlite3,'connect',connect)
     audit.run(site,bot,template,tmp_path/'index.html',tmp_path/'audit.csv')
     assert len(opened)==2
+
+def test_collector_candidates_exposes_market_search_coverage(site_fixture,tmp_path):
+    audit,_,_,_=site_fixture
+    collector=tmp_path/'collector.sqlite3'
+    c=sqlite3.connect(collector)
+    with c:
+        c.executescript("""
+        create table observations(id integer primary key,url,source,observed,expires,facts);
+        create table jobs(url,last_error);
+        create table market_search_coverage(edition_id,status,checked_at,last_error);
+        """)
+        c.execute("insert into market_search_coverage values('AR-000001','searched',1790000000,null)")
+    c.close()
+    _,coverage,state=audit.collector_candidates(collector,{'AR-000001':{'title':'Game Vinyl'}},1800000000)
+    assert state=='healthy'
+    assert coverage['AR-000001']['status']=='searched'
+    assert coverage['AR-000001']['error'] is None
 
 def test_same_external_candidate_across_editions_is_flagged(site_fixture,tmp_path):
     audit,site,bot,template=site_fixture
@@ -322,6 +339,48 @@ def test_edition_coverage_has_seven_evidence_bound_rows(site_fixture,tmp_path):
     assert '候補・要確認' in template_source
     assert '<a href="./edition_coverage.csv">3,777盤の7領域別監査CSV</a>' in template_source
 
+def test_purchase_search_routes_are_not_reported_as_no_route(site_fixture,tmp_path):
+    audit,site,bot,template=site_fixture
+    c=sqlite3.connect(site)
+    with c:
+        c.execute("update editions set tool_json=? where id='AR-000001'",
+                  (json.dumps({'title':'Example record'}),))
+    c.close()
+    target=tmp_path/'index.html'
+    audit.run(site,bot,template,target,tmp_path/'audit.csv')
+    c=sqlite3.connect(site)
+    row=c.execute("select status,reason,checked_at,source_id from edition_coverage_latest where edition_id='AR-000001' and area='purchase_url'").fetchone()
+    c.close()
+    assert row==('source_unverified','市場検索リンクを提示・個別商品ページ/在庫は未確認',None,'market_search_links')
+    html=target.read_text(encoding='utf-8')
+    assert 'Discogsで探す（検索）' in html
+    assert 'Yahoo!オークションで探す（在庫未確認）' in html
+
+def test_official_release_coverage_uses_rss_health_and_keeps_low_priority_route(site_fixture):
+    audit,_,bot,_=site_fixture
+    checked=datetime.now(timezone.utc)
+    c=sqlite3.connect(bot)
+    with c:
+        c.executescript("""
+        create table sources(id integer primary key,name,kind,status,discovered_via,expected_cadence_days);
+        create table source_health(source_id,state,last_success_at);
+        """)
+        c.execute('insert into sources values(?,?,?,?,?,?)',
+                  (6,'game-music-records-official','RSS','approved','official_product_rss',0.25))
+        c.execute('insert into source_health values(?,?,?)',
+                  (6,'HEALTHY',checked.isoformat()))
+    fresh=audit.official_feed_coverage(c,checked)
+    assert fresh[0]=='source_unverified'
+    assert '低優先度' in fresh[1] and '盤別' in fresh[1]
+    assert fresh[2]==checked.isoformat() and fresh[3]=='game-music-records-official'
+    with c:
+        c.execute('update source_health set state=?,last_success_at=? where source_id=6',
+                  ('DOWN',(checked-timedelta(days=2)).isoformat()))
+    stale=audit.official_feed_coverage(c,checked)
+    assert stale[0]=='stale'
+    assert '直近成功' in stale[1]
+    c.close()
+
 def test_collector_products_become_unverified_store_links_read_only(site_fixture,tmp_path):
     audit,site,bot,template=site_fixture
     c=sqlite3.connect(site)
@@ -387,6 +446,24 @@ def test_game_source_absence_is_distinguished_from_conflicting_values(site_fixtu
     assert 'Museゲーム名未転記（HTML記載は未検証）' in notes['AR-000005']
     assert 'ゲーム表記差あり' not in notes['AR-000005']
     assert '不明（BlipBlop個別ReleaseのGame(s)欄は表示確認済み、今回未転記）' not in text
+
+def test_muse_game_enrichment_provenance_reaches_site_details(site_fixture,tmp_path):
+    audit,site,bot,template=site_fixture
+    enrichment={'category':'GAME_IDENTIFIED','game_identified':'Example Game',
+                'confidence':'高','basis':'Muse source evidence'}
+    with sqlite3.connect(site) as db:
+        db.execute("update editions set game_enrichment_json=? where id='AR-000001'",
+                   (json.dumps(enrichment,ensure_ascii=False),))
+    target=tmp_path/'index.html'
+    audit.run(site,bot,template,target,tmp_path/'audit.csv')
+    text=target.read_text(encoding='utf-8')
+    records,_=json.JSONDecoder().raw_decode(text[text.index('[{'):])
+    record=next(row for row in records if row['id']=='AR-000001')
+    assert record['fieldAudit']['museGameEvidence']=={
+        'category':'GAME_IDENTIFIED','game':'Example Game',
+        'confidence':'高','basis':'Muse source evidence'}
+    template_source=(Path(__file__).resolve().parents[1]/'site'/'site_template.html').read_text(encoding='utf-8')
+    assert 'Muse調査のゲーム判定' in template_source
 
 def test_price_comparison_pauses_without_embedded_marketplace_observations():
     template=Path(__file__).resolve().parents[1]/"site"/"site_template.html"
@@ -514,7 +591,8 @@ def test_only_human_approved_yahoo_listing_is_exported_with_attribution(site_fix
     assert 'marketListings' in html
     production_template=(Path(__file__).resolve().parents[1]/'site'/'site_template.html').read_text(encoding='utf-8')
     assert '<!-- Begin Yahoo! JAPAN Web Services Attribution Snippet -->' in production_template
-    assert '<span style="margin:15px 15px 15px 15px"><a href="https://developer.yahoo.co.jp/sitemap/">Webサービス by Yahoo! JAPAN</a></span>' in production_template
+    assert '<span><a href="https://developer.yahoo.co.jp/sitemap/">Webサービス by Yahoo! JAPAN</a></span>' in production_template
+    assert 'style=' not in production_template[production_template.index('<!-- Begin Yahoo! JAPAN Web Services Attribution Snippet -->'):production_template.index('<!-- End Yahoo! JAPAN Web Services Attribution Snippet -->')]
 
 
 

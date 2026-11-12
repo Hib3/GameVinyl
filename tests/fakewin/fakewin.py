@@ -131,7 +131,7 @@ def _store_task(tasks: dict, name: str, command: str, arguments: str,
         script = ("watchdog.py" if "Watchdog" in name else
                   "collector/server.py" if "Collector" in name else "run.py")
         arguments = f'"C:\\some\\old\\folder\\{script}"'
-    tasks[name] = {"command": command, "arguments": arguments,
+    tasks[name] = {"command": command, "arguments": arguments, "enabled": True,
                    "settings": settings}
 
 
@@ -180,7 +180,7 @@ def schtasks(argv: list[str]) -> int:
             else:
                 print("  <Triggers><LogonTrigger><Enabled>true</Enabled>"
                       "</LogonTrigger></Triggers>")
-            print("  <Settings><Enabled>true</Enabled>"
+            print(f"  <Settings><Enabled>{str(task.get('enabled', True)).lower()}</Enabled>"
                   f"<ExecutionTimeLimit>{st['execution_time_limit']}"
                   "</ExecutionTimeLimit>"
                   "<DisallowStartIfOnBatteries>"
@@ -198,6 +198,12 @@ def schtasks(argv: list[str]) -> int:
         return 0
     if op == "/run":
         return 0 if name in tasks else 1
+    if op == "/change" and "/disable" in low:
+        if name not in tasks:
+            return 1
+        tasks[name]["enabled"] = False
+        _save(tasks)
+        return 0
     if op == "/delete":
         tasks.pop(name, None)
         _save(tasks)

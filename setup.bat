@@ -16,6 +16,19 @@ if not defined GRT_HOME_FOUND (
   exit /b 1
 )
 if not defined GRT_DATA_DIR set "GRT_DATA_DIR=%GRT_HOME%\data"
+for %%I in ("%GRT_HOME%\app") do set "GRT_APP_DIR=%%~fI"
+for %%I in ("%~dp0.") do set "GRT_INSTALL_DIR=%%~fI"
+if /i not "%GRT_INSTALL_DIR%"=="%GRT_APP_DIR%" (
+  echo [ERROR] This project uses one checkout at "%GRT_APP_DIR%".
+  echo [ERROR] Do not install into a versioned release folder; no files were changed.
+  exit /b 1
+)
+if /i "%GRT_INSTALL_DIR%"=="%GRT_APP_DIR%" if not exist "%GRT_DATA_DIR%\." if exist "%GRT_INSTALL_DIR%\data\collector\collector.sqlite3" (
+  echo [ERROR] The Git checkout contains an old local Collector database.
+  echo [ERROR] It will not be copied automatically into the shared data folder.
+  echo [ERROR] Restore or compare it manually before setup. No local data was changed.
+  exit /b 1
+)
 for %%I in ("%GRT_DATA_DIR%") do set "GRT_DATA_DIR=%%~fI"
 set "PLAYWRIGHT_BROWSERS_PATH=%GRT_HOME%\runtime\playwright"
 for %%I in ("%~dp0.") do set "APP_DRIVE=%%~dI"
@@ -207,10 +220,18 @@ REM     (free public packages only)
 REM ------------------------------------------------------------
 echo [4/7] Installing packages (this may take a few minutes) ...
 echo [4/7] Installing packages ...>> "%SETUP_LOG%"
+call :prepare_setup_temp
+if errorlevel 1 (
+  echo [ERROR] Could not create a setup scratch folder on the application drive.>> "%SETUP_LOG%"
+  echo [ERROR] Setup stopped to avoid filling the Windows system drive.
+  call :restore_setup_temp
+  exit /b 1
+)
 
-".venv\Scripts\python.exe" -m pip install --upgrade pip
+".venv\Scripts\python.exe" -m pip install --no-cache-dir --upgrade pip
 if errorlevel 1 (
   echo [ERROR] step 4: pip self-upgrade failed>> "%SETUP_LOG%"
+  call :restore_setup_temp
   echo.
   echo [ERROR] Failed to update pip. Check your network connection.
   echo         See SETUP_GUIDE.md section 11 for troubleshooting.
@@ -219,9 +240,10 @@ if errorlevel 1 (
   exit /b 1
 )
 
-".venv\Scripts\python.exe" -m pip install -r requirements.txt
+".venv\Scripts\python.exe" -m pip install --no-cache-dir -r requirements.txt
 if errorlevel 1 (
   echo [ERROR] step 4: pip install failed>> "%SETUP_LOG%"
+  call :restore_setup_temp
   echo.
   echo [ERROR] Failed to install packages from requirements.txt.
   echo         Check your network connection and run setup.bat again.
@@ -235,11 +257,13 @@ echo Playwright Chromium setup started>> "%SETUP_LOG%"
 if not exist "%PLAYWRIGHT_BROWSERS_PATH%\." mkdir "%PLAYWRIGHT_BROWSERS_PATH%"
 if errorlevel 1 (
   echo [ERROR] Could not create shared Playwright runtime folder: %PLAYWRIGHT_BROWSERS_PATH%
+  call :restore_setup_temp
   exit /b 1
 )
 ".venv\Scripts\python.exe" -m playwright install chromium >> "%SETUP_LOG%" 2>&1
 if errorlevel 1 (
   echo [ERROR] Playwright Chromium setup failed>> "%SETUP_LOG%"
+  call :restore_setup_temp
   echo.
   echo [ERROR] The catalog collector browser could not be installed.
   echo         See data\logs\setup_bat.log for the complete output.
@@ -248,6 +272,7 @@ if errorlevel 1 (
   exit /b 1
 )
 echo Playwright Chromium setup completed>> "%SETUP_LOG%"
+call :restore_setup_temp
 echo        Packages installed.
 echo        packages installed>> "%SETUP_LOG%"
 
@@ -382,6 +407,7 @@ echo        The bot is running now.
 echo        BOT RUNNING - setup complete>> "%SETUP_LOG%"
 
 :finish
+call :restore_setup_temp
 echo.
 echo ============================================================
 echo  Setup finished.
@@ -397,6 +423,32 @@ echo       about the quiet-hours exception, tap a button.)
 echo.
 pause
 endlocal
+exit /b 0
+
+:prepare_setup_temp
+set "GRT_ORIGINAL_TEMP=%TEMP%"
+set "GRT_ORIGINAL_TMP=%TMP%"
+if not exist "%GRT_HOME%\runtime\." mkdir "%GRT_HOME%\runtime"
+:setup_temp_unique
+set "GRT_SETUP_TEMP=%GRT_HOME%\runtime\setup-temp-%RANDOM%-%RANDOM%"
+if exist "%GRT_SETUP_TEMP%" goto :setup_temp_unique
+mkdir "%GRT_SETUP_TEMP%"
+if errorlevel 1 exit /b 1
+set "TEMP=%GRT_SETUP_TEMP%"
+set "TMP=%GRT_SETUP_TEMP%"
+exit /b 0
+
+:restore_setup_temp
+if not defined GRT_ORIGINAL_TEMP exit /b 0
+set "TEMP=%GRT_ORIGINAL_TEMP%"
+set "TMP=%GRT_ORIGINAL_TMP%"
+if defined GRT_SETUP_TEMP if exist "%GRT_SETUP_TEMP%\." (
+  rmdir /s /q "%GRT_SETUP_TEMP%"
+  if exist "%GRT_SETUP_TEMP%\." echo [WARN] setup scratch remains at %GRT_SETUP_TEMP%>> "%SETUP_LOG%"
+)
+set "GRT_SETUP_TEMP="
+set "GRT_ORIGINAL_TEMP="
+set "GRT_ORIGINAL_TMP="
 exit /b 0
 
 :set_shared_data_dir

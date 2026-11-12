@@ -21,7 +21,7 @@ def safe_https(x):
 def collector_candidates(path, records, now):
     path=Path(path)
     if not path.is_file():
-        return {},'missing'
+        return {},{},'missing'
     try:
         config=json.loads((Path(__file__).resolve().parents[1]/'collector'/'sources.json').read_text(encoding='utf-8'))
         sources={s['id']:s for s in config['sources']}
@@ -31,8 +31,13 @@ def collector_candidates(path, records, now):
             rows=db.execute("""select o.url,o.source,o.observed,o.expires,o.facts,j.last_error
               from observations o join (select url,max(id) id from observations group by url) x on x.id=o.id
               join jobs j on j.url=o.url where json_extract(o.facts,'$.page_type')='product'""").fetchall()
+            search_coverage={}
+            if db.execute("select 1 from sqlite_master where type='table' and name='market_search_coverage'").fetchone():
+                for item in db.execute('select edition_id,status,checked_at,last_error from market_search_coverage'):
+                    checked=(datetime.fromtimestamp(item['checked_at'],timezone.utc).astimezone().isoformat(timespec='minutes') if item['checked_at'] else None)
+                    search_coverage[item['edition_id']]={'status':item['status'],'checkedAt':checked,'error':str(item['last_error'] or '')[:120] or None}
     except (OSError,sqlite3.Error,ValueError,KeyError,TypeError):
-        return {},'error'
+        return {},{},'error'
     titles={rid:[norm(r.get(k)) for k in ('title','originalTitle','englishTitle') if len(norm(r.get(k)))>=8]
             for rid,r in records.items()}
     catalogs={rid:norm(r.get('catalog')) for rid,r in records.items() if valid_catalog(r.get('catalog'))}
@@ -55,6 +60,8 @@ def collector_candidates(path, records, now):
             reason=None
             if row['url'] in {s.get('url') for s in record.get('sources',[]) if isinstance(s,dict)}:
                 reason='出典URL一致（盤一致は未確認）'
+            elif rid in facts.get('candidate_ids',[]):
+                reason='Yahoo市場検索候補（盤一致は未確認）'
             elif rid in facts.get('watch_ids',[]):
                 reason='重要盤ウォッチ検索'
             elif catalog and catalog==catalogs.get(rid):
@@ -66,8 +73,8 @@ def collector_candidates(path, records, now):
                 item={'url':row['url'],'title':str(facts.get('title') or '')[:160],
                       'source':source['name'],'observed':observed,'reason':reason}
                 out[rid][row['url']]=item
-    return {rid:sorted(items.values(),key=lambda x:x['observed'],reverse=True)[:2]
-            for rid,items in out.items()},'healthy'
+    return ({rid:sorted(items.values(),key=lambda x:x['observed'],reverse=True)[:2]
+            for rid,items in out.items()},search_coverage,'healthy')
 
 def pending_candidates(bot):
     if not bot.execute("select 1 from sqlite_master where type='table' and name='candidate_editions'").fetchone():
@@ -158,9 +165,80 @@ def atomic_text(path, text):
 def compact_json(x):
     return json.dumps(x,ensure_ascii=False,separators=(',',':'),allow_nan=False).replace('<','\\u003c')
 
-def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector_db=None):
+def muse_price_history(path):
+    if not path or not path.exists():
+        return {}
+    with closing(sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True)) as history:
+        history.execute('pragma query_only=on')
+        if not history.execute("select 1 from sqlite_master where type='table' and name='muse_price_history'").fetchone():
+            return {}
+        out={}
+        for edition_id,survey_date,checked_at,status,price,summary,urls in history.execute("""
+          select h.edition_id,h.survey_date,h.checked_at,h.status,h.price_usd,
+                 h.source_summary,h.source_urls_json
+          from muse_price_history h join muse_price_imports i using(dataset_id)
+          order by h.survey_date desc,h.checked_at desc,i.imported_at desc
+        """):
+            if edition_id in out:
+                continue
+            try:
+                parsed=json.loads(urls)
+                safe_urls=[url for url in parsed if safe_https(url) and not urlsplit(url).query
+                           and not urlsplit(url).fragment] if isinstance(parsed,list) else []
+            except (TypeError,ValueError):
+                safe_urls=[]
+            out[edition_id]={'surveyDate':survey_date,'checkedAt':checked_at,'status':status,
+                'priceUsd':price if price_ok(price) else None,
+                'sourceSummary':' '.join(str(summary or '').split())[:200], 'sourceUrls':safe_urls}
+        return out
+
+def official_feed_coverage(bot, now):
+    tables={r[0] for r in bot.execute("select name from sqlite_master where type='table'")}
+    if 'sources' not in tables:
+        return 'no_route','承認済みの公式RSS経路なし',None,None
+    columns={r[1] for r in bot.execute('pragma table_info(sources)')}
+    if not {'id','name','kind','status','discovered_via'}<=columns:
+        return 'stale','公式フィード情報を十分に監査できない',None,None
+    cadence='expected_cadence_days' if 'expected_cadence_days' in columns else 'NULL'
+    sources=bot.execute(
+        f"select id,name,{cadence} from sources "
+        "where upper(kind) in ('RSS','ATOM') and lower(status)='approved' "
+        "and lower(discovered_via) like 'official_%'"
+    ).fetchall()
+    if not sources:
+        return 'no_route','承認済みの公式RSS経路なし',None,None
+    health={}
+    if 'source_health' in tables:
+        health_cols={r[1] for r in bot.execute('pragma table_info(source_health)')}
+        if {'source_id','state','last_success_at'}<=health_cols:
+            health={r[0]:(r[1],r[2]) for r in bot.execute(
+                'select source_id,state,last_success_at from source_health')}
+    fresh=[]
+    last_success=[]
+    for sid,name,days in sources:
+        state,stamp=health.get(sid,('',None))
+        checked=parse_date(stamp)
+        if checked:
+            last_success.append((checked,name,stamp))
+        try:
+            max_age_hours=max(12.0,float(days or 1)*48)
+        except (TypeError,ValueError):
+            max_age_hours=48.0
+        if checked and str(state).upper()=='HEALTHY' and 0<=(now-checked).total_seconds()<=max_age_hours*3600:
+            fresh.append((checked,name,stamp))
+    if fresh:
+        _,name,stamp=max(fresh)
+        return ('source_unverified',
+                f'低優先度の公式RSSは{len(fresh)}/{len(sources)}系統が規定内に成功。盤別一致は未確認',
+                stamp,name)
+    latest=max(last_success) if last_success else (None,None,None)
+    return ('stale','公式RSS経路は登録済みだが直近成功を確認できない',latest[2],latest[1])
+
+
+def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector_db=None, price_history_db=None):
     now=datetime.now(timezone.utc)
     cutoff=now-timedelta(hours=6)
+    muse_history=muse_price_history(price_history_db)
     with closing(sqlite3.connect(botdb.as_uri()+'?mode=ro',uri=True)) as bot:
         bot.execute('pragma query_only=on')
         snapshots={}
@@ -172,15 +250,21 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
         monitored=len(monitored_ids)
         discoveries=pending_candidates(bot)
         yahoo_market=approved_yahoo_listings(bot,now)
+        new_release_coverage=official_feed_coverage(bot,now)
     with closing(sqlite3.connect(db)) as c:
         c.execute('pragma foreign_keys=on')
-        rows=c.execute('select id,identity_status,tool_json,muse_json,html_json from editions order by id').fetchall()
+        columns={row[1] for row in c.execute('pragma table_info(editions)')}
+        enrichment_column='game_enrichment_json' if 'game_enrichment_json' in columns else 'NULL'
+        rows=c.execute(f'select id,identity_status,tool_json,muse_json,html_json,{enrichment_column} from editions order by id').fetchall()
         assert len(rows)==3777 and all(re.fullmatch(r'AR-\d{6}',r[0]) for r in rows)
-        parsed=[(rid,state,json.loads(a),json.loads(b),json.loads(h)) for rid,state,a,b,h in rows]
-        collector_map,collector_state=collector_candidates(
+        parsed=[]
+        for rid,state,a,b,h,enrichment in rows:
+            value=json.loads(enrichment) if enrichment else {}
+            parsed.append((rid,state,json.loads(a),json.loads(b),json.loads(h),value if isinstance(value,dict) else {}))
+        collector_map,market_search_coverage,collector_state=collector_candidates(
             collector_db or Path(botdb).parent/'collector'/'collector.sqlite3',
-            {rid:(a or {}) for rid,_,a,_,_ in parsed},now.timestamp())
-        groups=Counter((norm(a.get('label')),norm(a.get('catalog'))) for _,_,a,_,_ in parsed if a and valid_catalog(a.get('catalog')))
+            {rid:(a or {}) for rid,_,a,_,_,_ in parsed},now.timestamp())
+        groups=Counter((norm(a.get('label')),norm(a.get('catalog'))) for _,_,a,_,_,_ in parsed if a and valid_catalog(a.get('catalog')))
         evidence=defaultdict(list)
         for rid,date,p,url in c.execute("select matched_edition_id,checked_at,price_usd,source_url from observations where matched_edition_id is not null"):
             d=parse_date(date)
@@ -224,7 +308,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                 if isinstance(uid,str) and re.fullmatch(r'[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}',uid):
                     candidate_editions[uid].add(edition_id)
         export=[]; audit=[]; coverage=[]
-        for rid,identity,a,b,h in parsed:
+        for rid,identity,a,b,h,enrichment in parsed:
             a,b,h=a or {},b or {},h or {}
             r=dict(h)
             r['id']=rid
@@ -258,6 +342,18 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                 checks.append('Museゲーム名未転記（HTML記載は未検証）' if muse_game_untranscribed else 'ゲーム情報はHTMLのみ収録（Muse未収録・要確認）')
             elif muse_game_key!=html_game_key: checks.append('Muse/HTMLのゲーム表記不一致（要確認）')
             if b.get('status')=='CURRENT_CONFIRMED' and not price_ok(b.get('price')): checks.append('出品記録に数値価格なし')
+            category=enrichment.get('category') if isinstance(enrichment.get('category'),str) else None
+            confidence=enrichment.get('confidence') if isinstance(enrichment.get('confidence'),str) else None
+            basis=enrichment.get('basis') if isinstance(enrichment.get('basis'),str) else None
+            identified=enrichment.get('game_identified') if isinstance(enrichment.get('game_identified'),str) else None
+            muse_game_evidence=None
+            if category or confidence or basis or identified:
+                game_candidate=(identified.strip()[:200] if identified and identified.strip()
+                                and category in ('GAME_IDENTIFIED','GAME_COMPILATION')
+                                and confidence in ('高','中') else None)
+                muse_game_evidence={
+                    'category':category,'game':game_candidate,'confidence':confidence,
+                    'basis':' '.join(basis.split())[:500] if basis and basis.strip() else None}
             obs=evidence[rid]
             survey=max((x[1] for x in obs),default=None)
             if not any(x[3] for x in obs): checks.append('監査台帳に確認用URLなし')
@@ -336,8 +432,7 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
             else:
                 add_coverage('metadata','source_unverified','共有カタログIDは盤単位の一次資料照合を証明しない',lookup[1] if lookup else None,'musicbrainz' if lookup else None)
             official=key[0]=='data discs' and key[1] in merchants
-            add_coverage('official_new_release','no_route',
-                         '利用条件と対象盤一致を確認した公開公式新譜フィード/APIなし')
+            add_coverage('official_new_release',*new_release_coverage)
             market_candidate=bool(offers) or rid in market or rid in yahoo_market
             used_status=('candidate_needs_review' if market_candidate else
                          'source_unverified' if collector_state=='healthy' else
@@ -352,14 +447,17 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                           offers[0]['source'] if offers else (yahoo_market[rid][0]['source'] if rid in yahoo_market else ('discogs_marketplace' if rid in market else None)))
             priced_observations=[item for item in evidence[rid] if price_ok(item[2])]
             latest_price=max(priced_observations,key=lambda item:item[0]) if priced_observations else None
+            historical_price=muse_history.get(rid)
             has_price=bool(snap) or bool(latest_price)
             price_status=('candidate_needs_review' if has_price else
+                          'candidate_needs_review' if historical_price else
                           'source_unverified' if rid in monitored_ids else 'no_route')
             price_reason=('価格の出典・原通貨・送料条件・盤一致をそろえて確認できていない' if has_price else
+                          'Museの過去調査記録あり。現在価格ではなく、出典と盤一致の確認待ち' if historical_price else
                           'Bot監視対象だが現行価格証拠なし' if rid in monitored_ids else 'この盤の現在価格を取得する経路なし')
             add_coverage('price',price_status,price_reason,
-                         snap[1] if snap else (latest_price[1] if latest_price else None),
-                         'bot_snapshot' if snap else (urlsplit(latest_price[4]).hostname if latest_price and latest_price[4] else None))
+                         snap[1] if snap else (latest_price[1] if latest_price else (historical_price['checkedAt'] if historical_price else None)),
+                         'bot_snapshot' if snap else (urlsplit(latest_price[4]).hostname if latest_price and latest_price[4] else ('muse_historical' if historical_price else None)))
             if snap:
                 availability_status='candidate_needs_review' if fresh else 'stale'
                 availability_reason='6時間以内のBot在庫観測だが出典/版の完全照合待ち' if fresh else 'Bot在庫観測は6時間より古い'
@@ -384,14 +482,22 @@ def run(db, botdb, template, target, csv_path, *, catalog_result=None, collector
                           '画像候補の利用権が未確認' if image_status=='candidate_needs_review' else '利用権確認済み画像なし')
             add_coverage('image',image_status,image_reason,source_id='image_rights_review' if image_status=='candidate_needs_review' else None)
             purchase_candidate=official or market_candidate
-            add_coverage('purchase_url','candidate_needs_review' if purchase_candidate else 'no_route',
-                         '購入ページ候補あり・最終観測日時表示、現在の購入可否は未保証' if rid in yahoo_market else ('購入ページ候補あり・対象盤/購入可否の人手確認待ち' if purchase_candidate else '盤一致を確認した購入URLなし'),
+            purchase_status=('candidate_needs_review' if purchase_candidate else
+                             'source_unverified' if q else 'no_route')
+            purchase_reason=('購入ページ候補あり・最終観測日時表示、現在の購入可否は未保証' if rid in yahoo_market else
+                             '購入ページ候補あり・対象盤/購入可否の人手確認待ち' if purchase_candidate else
+                             '市場検索リンクを提示・個別商品ページ/在庫は未確認' if q else
+                             '個別購入候補も検索語もなし')
+            add_coverage('purchase_url',purchase_status,purchase_reason,
                          offers[0]['observed'] if offers else (yahoo_market[rid][0]['lastSeen'] if rid in yahoo_market else None),
-                         offers[0]['source'] if offers else (yahoo_market[rid][0]['source'] if rid in yahoo_market else ('data_discs' if official else ('discogs_marketplace' if rid in market else None))))
+                         offers[0]['source'] if offers else (yahoo_market[rid][0]['source'] if rid in yahoo_market else ('data_discs' if official else ('discogs_marketplace' if rid in market else 'market_search_links' if q else None))))
             assert len(coverage_items)==len(COVERAGE_AREAS)
             r['fieldAudit']={'summary':summary,'priceDate':None,
               'priceStatus':'価格表示停止中（出典・通貨・利用条件を再確認中）',
               'surveyDate':survey,'lookupNote':lookup_note,'botPrice':bot_note,'gameAlternative':alt,
+              'museGameEvidence':muse_game_evidence,
+              'musePriceHistory':historical_price,
+              'marketSearch':market_search_coverage.get(rid),
               'collectorOffers':offer_note,'collectorStatus':collector_state,'links':links,'image':thumb,
               'coverage':coverage_items,'marketListings':yahoo_market.get(rid,[])}
             export.append(r)

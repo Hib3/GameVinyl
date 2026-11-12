@@ -1,14 +1,423 @@
 import json
 from pathlib import Path
+import sqlite3
 from tempfile import TemporaryDirectory
+import time
+from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+import core
 from core import Store, Worker, extract
-from server import query_api
+from server import daily_backup_loop, query_api
 
 
 class WatchTest(unittest.TestCase):
+    def test_daily_backup_loop_retries_and_stops(self):
+        class StopAfterThreeWaits:
+            def __init__(self):
+                self.waits=[]
+            def is_set(self):
+                return False
+            def wait(self,seconds):
+                self.waits.append(seconds)
+                return len(self.waits)==3
+
+        stop=StopAfterThreeWaits()
+        store=SimpleNamespace(backup_daily=Mock(side_effect=[OSError('disk error'),False,True]),meta=Mock())
+        daily_backup_loop(store,stop)
+        self.assertEqual(store.backup_daily.call_count,3)
+        self.assertEqual(stop.waits,[3600,3600,3600])
+        store.meta.assert_called_once()
+        self.assertEqual(store.meta.call_args.args[0],'daily_backup_status')
+        self.assertEqual(store.meta.call_args.args[1]['status'],'failed')
+        self.assertEqual(store.meta.call_args.args[1]['error_type'],'OSError')
+
+    def test_vintage_search_quota_keeps_source_gap_and_global_limits(self):
+        config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        yahoo=next(s for s in config['sources'] if s['id']=='yahoo_watch')
+        self.assertEqual(config['max_jobs_per_hour'],180)
+        self.assertEqual(config['catalog_priority_slots_per_hour'],12)
+        self.assertEqual(config['market_search_slots_per_hour'],36)
+        self.assertEqual(config['market_detail_slots_per_hour'],24)
+        self.assertGreaterEqual(yahoo['min_request_gap_seconds'],60)
+        self.assertLessEqual(config['market_search_slots_per_hour']+config['market_detail_slots_per_hour'],3600//yahoo['min_request_gap_seconds'])
+
+    def test_yahoo_minimum_gap_is_reserved_atomically_before_next_claim(self):
+        config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        config['sources'] = [s for s in config['sources'] if s['id'] == 'yahoo_watch']
+        config['sources'][0]['seeds']=[]
+        config['watches']=[]
+        records=[{'id':'AR-000001','title':'First Game Record','catalog':'FG-1'},
+                 {'id':'AR-000002','title':'Second Game Record','catalog':'SG-2'}]
+        with TemporaryDirectory() as folder:
+            root=Path(folder)
+            (root/'seed').mkdir()
+            (root/'seed'/'records.json').write_text(json.dumps(records),encoding='utf-8')
+            with patch.object(core,'ROOT',root):
+                store=Store(root/'collector.sqlite3')
+                store.initialize(config)
+                with store.db() as db:
+                    db.execute('update jobs set due=0')
+                with patch.object(core.time,'time',side_effect=[1000,1000,1059,1060]):
+                    self.assertIsNotNone(store.claim(config))
+                    self.assertIsNone(store.claim(config))
+                    self.assertIsNone(store.claim(config))
+                    self.assertIsNotNone(store.claim(config))
+
+    def test_overdue_failure_retries_before_never_checked_job_after_priority(self):
+        config={'sources':[{'id':'feed','enabled':True,'priority':False,'hosts':['example.com'],'seeds':[],'min_request_gap_seconds':0}],
+                'watches':[],'interval_seconds':3600,'freshness_seconds':86400,
+                'min_request_gap_seconds':0,'max_jobs_per_hour':180,'priority_slots_per_hour':12}
+        with TemporaryDirectory() as folder:
+            root=Path(folder)
+            (root/'seed').mkdir()
+            (root/'seed'/'records.json').write_text('[]',encoding='utf-8')
+            with patch.object(core,'ROOT',root):
+                store=Store(root/'collector.sqlite3')
+                store.initialize(config)
+                overdue='https://example.com/overdue'
+                fresh='https://example.com/fresh'
+                with store.db() as db:
+                    db.execute("insert into jobs(url,source,due,status,last_checked) values(?, 'feed',9990,'blocked',9900)",(overdue,))
+                    db.execute("insert into jobs(url,source,due,status,last_checked) values(?, 'feed',9995,'pending',NULL)",(fresh,))
+                with patch.object(core.time,'time',return_value=10000):
+                    self.assertEqual(store.claim(config)['url'],overdue)
+
+    def test_initialize_preserves_block_reason_across_restart(self):
+        with TemporaryDirectory() as folder:
+            root=Path(folder)/'package'
+            (root/'seed').mkdir(parents=True)
+            (root/'seed'/'records.json').write_text(json.dumps([{'id':'AR-000001','title':'Game Vinyl','catalog':'GAME-1'}]),encoding='utf-8')
+            store=Store(Path(folder)/'collector.sqlite3')
+            config={'sources':[{'id':'yahoo_watch','seeds':[],'min_request_gap_seconds':0}], 'watches':[], 'interval_seconds':600,'min_request_gap_seconds':0,'catalog_priority_slots_per_hour':12}
+            with patch.object(core,'ROOT',root):
+                store.initialize(config)
+                with store.db() as db:
+                    db.execute("UPDATE market_search_coverage SET status='blocked',last_error='redirect diagnostics' WHERE edition_id='AR-000001'")
+                store.initialize(config)
+            with store.db() as db:
+                row=db.execute("SELECT status,last_error FROM market_search_coverage WHERE edition_id='AR-000001'").fetchone()
+        self.assertEqual(tuple(row),('blocked','redirect diagnostics'))
+
+    def test_initialize_marks_legacy_coverage_reason_kept_on_target(self):
+        with TemporaryDirectory() as folder:
+            root=Path(folder)/'package'
+            (root/'seed').mkdir(parents=True)
+            (root/'seed'/'records.json').write_text(json.dumps([{'id':'AR-000001','title':'Game Vinyl','catalog':'GAME-1'}]),encoding='utf-8')
+            store=Store(Path(folder)/'collector.sqlite3')
+            config={'sources':[{'id':'yahoo_watch','seeds':[],'min_request_gap_seconds':0}], 'watches':[], 'interval_seconds':600,'min_request_gap_seconds':0,'catalog_priority_slots_per_hour':12}
+            with patch.object(core,'ROOT',root):
+                store.initialize(config)
+                with store.db() as db:
+                    db.execute("UPDATE market_search_targets SET status='blocked',last_error='legacy detail may contain a search term'")
+                    db.execute("UPDATE market_search_coverage SET status='blocked',last_error=NULL")
+                store.initialize(config)
+            with store.db() as db:
+                row=db.execute("SELECT status,last_error FROM market_search_coverage WHERE edition_id='AR-000001'").fetchone()
+                target_error=db.execute("SELECT last_error FROM market_search_targets WHERE edition_id='AR-000001'").fetchone()[0]
+        self.assertEqual(tuple(row),('blocked','failure detail retained on query target'))
+        self.assertEqual(target_error,'legacy detail may contain a search term')
+
+    def test_status_reports_live_disk_reserve(self):
+        with TemporaryDirectory() as folder:
+            store=Store(Path(folder)/'collector.sqlite3')
+            with patch('server.shutil.disk_usage',return_value=SimpleNamespace(total=1000,free=99)):
+                status=query_api(store,{'sources':[],'max_jobs_per_hour':10},'/api/status',{})
+        self.assertTrue(status['meta']['storage_protection']['paused'])
+        self.assertEqual(status['meta']['storage_protection']['free_bytes'],99)
+        self.assertFalse(status['meta']['storage_protection']['next_daily_backup_fits'])
+        self.assertGreater(status['meta']['storage_protection']['projected_deficit_bytes'],0)
+
+    def test_yahoo_redirect_block_records_route_class_without_search_query(self):
+        config=json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        source=next(s for s in config['sources'] if s['id']=='yahoo_watch')
+        config['sources']=[source]
+        config['min_request_gap_seconds']=0
+        source['min_request_gap_seconds']=0
+        search='https://auctions.yahoo.co.jp/search/search?p=PRIVATE_QUERY_MARKER'
+        with TemporaryDirectory() as folder:
+            store=Store(Path(folder)/'collector.sqlite3')
+            with store.db() as db:
+                db.execute('INSERT INTO source_state(id,next_allowed) VALUES(?,0)',('yahoo_watch',))
+                db.execute('INSERT INTO jobs(url,source,due) VALUES(?,?,0)',(search,'yahoo_watch'))
+            worker=Worker(store,config)
+            with patch.object(worker.robots,'check',return_value=0), patch('core.fetch_http',return_value=(200,'<title>アクセスが集中しています</title>','https://auctions.yahoo.co.jp/')):
+                self.assertTrue(worker.once())
+            with store.db() as db:
+                row=db.execute('SELECT status,last_error FROM jobs WHERE url=?',(search,)).fetchone()
+            self.assertEqual(row['status'],'blocked')
+            self.assertIn('route=root challenge_marker=1',row['last_error'])
+            self.assertNotIn('PRIVATE_QUERY_MARKER',row['last_error'])
+
+    def test_yahoo_same_host_search_redirect_keeps_query_and_counts_search(self):
+        config=json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        source=next(s for s in config['sources'] if s['id']=='yahoo_watch')
+        config['sources']=[source]
+        config['min_request_gap_seconds']=0
+        source['min_request_gap_seconds']=0
+        search='https://auctions.yahoo.co.jp/search/search?p=SAFE_QUERY_MARKER'
+        with TemporaryDirectory() as folder:
+            store=Store(Path(folder)/'collector.sqlite3')
+            with store.db() as db:
+                db.execute('INSERT INTO source_state(id,next_allowed) VALUES(?,0)',('yahoo_watch',))
+                db.execute('INSERT INTO jobs(url,source,due) VALUES(?,?,0)',(search,'yahoo_watch'))
+                db.execute("INSERT INTO market_search_targets(search_url,edition_id,query,mode) VALUES(?,?,?,'catalog')",
+                           (search,'AR-000001','SAFE_QUERY_MARKER'))
+                db.execute("INSERT INTO market_search_coverage(edition_id,status) VALUES(?,'queued')",
+                           ('AR-000001',))
+            worker=Worker(store,config)
+            html='<script id="__NEXT_DATA__">{"props":{"pageProps":{"initialState":{"search":{"items":{"listing":{"items":[]}}}}}}}</script>'
+            with patch.object(worker.robots,'check',return_value=0), patch(
+                    'core.fetch_http',return_value=(200,html,
+                    'https://auctions.yahoo.co.jp/search/search/?p=SAFE_QUERY_MARKER')):
+                self.assertTrue(worker.once())
+            with store.db() as db:
+                target=db.execute('SELECT status,last_error FROM market_search_targets WHERE search_url=?',(search,)).fetchone()
+                coverage=db.execute('SELECT status,last_error FROM market_search_coverage WHERE edition_id=?',('AR-000001',)).fetchone()
+        self.assertEqual(tuple(target),('searched',None))
+        self.assertEqual(coverage['status'],'searched')
+        self.assertNotIn('SAFE_QUERY_MARKER',coverage['last_error'] or '')
+
+    def test_yahoo_search_redirect_with_changed_query_stays_blocked(self):
+        config=json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        source=next(s for s in config['sources'] if s['id']=='yahoo_watch')
+        config['sources']=[source]
+        config['min_request_gap_seconds']=0
+        source['min_request_gap_seconds']=0
+        search='https://auctions.yahoo.co.jp/search/search?p=PRIVATE_QUERY_MARKER'
+        with TemporaryDirectory() as folder:
+            store=Store(Path(folder)/'collector.sqlite3')
+            with store.db() as db:
+                db.execute('INSERT INTO source_state(id,next_allowed) VALUES(?,0)',('yahoo_watch',))
+                db.execute('INSERT INTO jobs(url,source,due) VALUES(?,?,0)',(search,'yahoo_watch'))
+                db.execute("INSERT INTO market_search_targets(search_url,edition_id,query,mode) VALUES(?,?,?,'catalog')",
+                           (search,'AR-000001','PRIVATE_QUERY_MARKER'))
+                db.execute("INSERT INTO market_search_coverage(edition_id,status) VALUES(?,'queued')",
+                           ('AR-000001',))
+            worker=Worker(store,config)
+            with patch.object(worker.robots,'check',return_value=0), patch(
+                    'core.fetch_http',return_value=(200,'<html></html>',
+                    'https://auctions.yahoo.co.jp/search/other?p=DIFFERENT_QUERY')):
+                self.assertTrue(worker.once())
+            with store.db() as db:
+                row=db.execute('SELECT status,last_error FROM market_search_targets WHERE search_url=?',(search,)).fetchone()
+        self.assertEqual(row['status'],'blocked')
+        self.assertIn('route=search',row['last_error'])
+        self.assertIn('query_match=0',row['last_error'])
+        self.assertNotIn('PRIVATE_QUERY_MARKER',row['last_error'])
+        self.assertNotIn('DIFFERENT_QUERY',row['last_error'])
+
+    def test_yahoo_search_redirect_with_reordered_terms_is_classified_but_blocked(self):
+        config=json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        source=next(s for s in config['sources'] if s['id']=='yahoo_watch')
+        config['sources']=[source]
+        config['min_request_gap_seconds']=0
+        source['min_request_gap_seconds']=0
+        search='https://auctions.yahoo.co.jp/search/search?p=GAME+VINYL'
+        with TemporaryDirectory() as folder:
+            store=Store(Path(folder)/'collector.sqlite3')
+            with store.db() as db:
+                db.execute('INSERT INTO source_state(id,next_allowed) VALUES(?,0)',('yahoo_watch',))
+                db.execute('INSERT INTO jobs(url,source,due) VALUES(?,?,0)',(search,'yahoo_watch'))
+                db.execute("INSERT INTO market_search_targets(search_url,edition_id,query,mode) VALUES(?,?,?,'catalog')",
+                           (search,'AR-000001','PRIVATE_QUERY_MARKER'))
+                db.execute("INSERT INTO market_search_coverage(edition_id,status) VALUES(?,'queued')",
+                           ('AR-000001',))
+            worker=Worker(store,config)
+            with patch.object(worker.robots,'check',return_value=0), patch(
+                    'core.fetch_http',return_value=(200,'<html></html>',
+                    'https://auctions.yahoo.co.jp/search/?p=VINYL+GAME')):
+                self.assertTrue(worker.once())
+            with store.db() as db:
+                row=db.execute('SELECT status,last_error FROM market_search_targets WHERE search_url=?',(search,)).fetchone()
+        self.assertEqual(row['status'],'blocked')
+        self.assertIn('query_match=0',row['last_error'])
+        self.assertIn('normalized_match=0',row['last_error'])
+        self.assertIn('token_multiset_match=1',row['last_error'])
+        self.assertIn('p_count=1/1',row['last_error'])
+        self.assertIn('p_chars=10/10',row['last_error'])
+        self.assertIn('token_count=2/2',row['last_error'])
+        self.assertIn('shared_tokens=2',row['last_error'])
+        self.assertNotIn('PRIVATE_QUERY_MARKER',row['last_error'])
+        self.assertNotIn('GAME',row['last_error'])
+        self.assertNotIn('VINYL',row['last_error'])
+
+    def test_yahoo_search_redirect_reports_safe_normalization_match(self):
+        config=json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        source=next(s for s in config['sources'] if s['id']=='yahoo_watch')
+        config['sources']=[source]
+        config['min_request_gap_seconds']=0
+        source['min_request_gap_seconds']=0
+        search='https://auctions.yahoo.co.jp/search/search?p=GAME%E3%80%80VINYL'
+        with TemporaryDirectory() as folder:
+            store=Store(Path(folder)/'collector.sqlite3')
+            with store.db() as db:
+                db.execute('INSERT INTO source_state(id,next_allowed) VALUES(?,0)',('yahoo_watch',))
+                db.execute('INSERT INTO jobs(url,source,due) VALUES(?,?,0)',(search,'yahoo_watch'))
+                db.execute("INSERT INTO market_search_targets(search_url,edition_id,query,mode) VALUES(?,?,?,'catalog')",
+                           (search,'AR-000001','PRIVATE_QUERY_MARKER'))
+                db.execute("INSERT INTO market_search_coverage(edition_id,status) VALUES(?,'queued')",
+                           ('AR-000001',))
+            worker=Worker(store,config)
+            with patch.object(worker.robots,'check',return_value=0), patch(
+                    'core.fetch_http',return_value=(200,'<html></html>',
+                    'https://auctions.yahoo.co.jp/search/?p=game+vinyl')):
+                self.assertTrue(worker.once())
+            with store.db() as db:
+                row=db.execute('SELECT status,last_error FROM market_search_targets WHERE search_url=?',(search,)).fetchone()
+        self.assertEqual(row['status'],'blocked')
+        self.assertIn('query_match=0',row['last_error'])
+        self.assertIn('normalized_match=1',row['last_error'])
+        self.assertNotIn('PRIVATE_QUERY_MARKER',row['last_error'])
+
+    def test_all_seed_editions_are_queued_or_have_a_route_reason(self):
+        config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        config['sources'] = [s for s in config['sources'] if s['id'] == 'yahoo_watch']
+        with TemporaryDirectory() as folder:
+            store=Store(Path(folder)/'collector.sqlite3')
+            store.initialize(config)
+            with store.db() as db:
+                total=db.execute('select count(*) from records').fetchone()[0]
+                covered=db.execute('select count(*) from market_search_coverage').fetchone()[0]
+                missing=db.execute('select count(*) from records r left join market_search_coverage c on c.edition_id=r.id where c.edition_id is null').fetchone()[0]
+                self.assertEqual((total,covered,missing),(3777,3777,0))
+                self.assertEqual(db.execute("select count(*) from market_search_coverage where status='no_route' and coalesce(last_error,'')=''").fetchone()[0],0)
+            status=query_api(store,config,'/api/status',{})
+            self.assertEqual(status['market_search_coverage'].get('queued'),3777)
+
+    def test_catalog_searches_are_resumable_and_candidates_do_not_alert(self):
+        config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        config['sources'] = [s for s in config['sources'] if s['id'] == 'yahoo_watch']
+        config['watches'] = []
+        config['min_request_gap_seconds'] = 0
+        config['sources'][0]['min_request_gap_seconds'] = 0
+        records = [
+            {'id':'AR-000001','title':'Vintage Game Soundtrack','catalog':'VG-001'},
+            {'id':'AR-000002','title':'Another Game Soundtrack','catalog':'VG-002'},
+        ]
+        with TemporaryDirectory() as folder:
+            root=Path(folder)
+            (root/'seed').mkdir()
+            (root/'seed'/'records.json').write_text(json.dumps(records),encoding='utf-8')
+            bot=root/'bot.sqlite3'
+            bot_db=sqlite3.connect(bot)
+            with bot_db as db:
+                db.execute('create table editions(id text,watch_level integer)')
+                db.execute("insert into editions values('AR-000002',1)")
+            bot_db.close()
+            with patch.object(core,'ROOT',root):
+                store=Store(root/'collector.sqlite3')
+                store.initialize(config,bot)
+                store.initialize(config,bot)
+                with store.db() as db:
+                    self.assertEqual(db.execute('select count(*) from market_search_coverage').fetchone()[0],2)
+                    self.assertEqual(db.execute("select count(*) from market_search_targets where mode='catalog'").fetchone()[0],2)
+                    self.assertEqual(db.execute("select priority from market_search_targets where edition_id='AR-000002'").fetchone()[0],1)
+                    search=db.execute("select search_url from market_search_targets where edition_id='AR-000001'").fetchone()[0]
+                listing='https://auctions.yahoo.co.jp/jp/auction/abc123'
+                store.save_market_search(search,[(listing,'Vintage Game Soundtrack')])
+                with store.db() as db:
+                    db.execute("insert into jobs(url,source,due) values(?,'yahoo_watch',0)",(listing,))
+                store.save({'url':listing,'source':'yahoo_watch','attempts':1},
+                    {'title':'Vintage Game Soundtrack','page_type':'product','price':'1000','currency':'JPY','availability':'AUCTION_OPEN'},
+                    '', '<h1>fixture</h1>', config)
+                with store.db() as db:
+                    facts=json.loads(db.execute('select facts from observations where url=?',(listing,)).fetchone()[0])
+                    self.assertEqual(facts['candidate_ids'],['AR-000001'])
+                    self.assertFalse(db.execute("select 1 from events where kind='watch_new'").fetchone())
+                joined=query_api(store,config,'/api/records',{'q':['Vintage Game Soundtrack']})
+                self.assertEqual(joined['items'][0]['possible_offers'][0]['match_reason'],'market_search_candidate_needs_review')
+
+    def test_reserved_yahoo_capacity_rotates_from_priority_to_normal_search(self):
+        config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        config['sources'] = [s for s in config['sources'] if s['id'] == 'yahoo_watch']
+        config['sources'][0]['seeds']=[]
+        config['sources'][0]['min_request_gap_seconds']=0
+        config['watches']=[]
+        config['max_jobs_per_hour']=2
+        config['priority_slots_per_hour']=1
+        config['catalog_priority_slots_per_hour']=1
+        config['market_search_slots_per_hour']=2
+        config['market_detail_slots_per_hour']=1
+        config['min_request_gap_seconds']=0
+        records=[{'id':'AR-000001','title':'Priority Game Record','catalog':'PG-1'},
+                 {'id':'AR-000002','title':'Normal Game Record','catalog':'NG-2'}]
+        with TemporaryDirectory() as folder:
+            root=Path(folder)
+            (root/'seed').mkdir()
+            (root/'seed'/'records.json').write_text(json.dumps(records),encoding='utf-8')
+            with patch.object(core,'ROOT',root):
+                store=Store(root/'collector.sqlite3')
+                store.initialize(config)
+                with store.db() as db:
+                    priority=db.execute("select search_url from market_search_targets where edition_id='AR-000001'").fetchone()[0]
+                    normal=db.execute("select search_url from market_search_targets where edition_id='AR-000002'").fetchone()[0]
+                    db.execute('update market_search_targets set priority=1 where edition_id=?',('AR-000001',))
+                    db.execute('update jobs set due=0 where url in (?,?)',(priority,normal))
+                self.assertEqual(store.claim(config)['url'],priority)
+                with store.db() as db:
+                    db.execute("update jobs set status='ok',due=0 where url=?",(priority,))
+                self.assertEqual(store.claim(config)['url'],normal)
+
+    def test_yahoo_search_and_detail_hourly_caps_are_independent(self):
+        config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        config['sources'] = [s for s in config['sources'] if s['id'] == 'yahoo_watch']
+        config['sources'][0]['seeds']=[]
+        config['sources'][0]['min_request_gap_seconds']=0
+        config['watches']=[]
+        config['min_request_gap_seconds']=0
+        config['max_jobs_per_hour']=180
+        config['market_search_slots_per_hour']=1
+        config['market_detail_slots_per_hour']=1
+        records=[{'id':'AR-000001','title':'Priority Game Record','catalog':'PG-1'}]
+        with TemporaryDirectory() as folder:
+            root=Path(folder)
+            (root/'seed').mkdir()
+            (root/'seed'/'records.json').write_text(json.dumps(records),encoding='utf-8')
+            with patch.object(core,'ROOT',root):
+                store=Store(root/'collector.sqlite3')
+                store.initialize(config)
+                now=time.time()
+                with store.db() as db:
+                    search=db.execute("select search_url from market_search_targets where edition_id='AR-000001'").fetchone()[0]
+                    db.execute('update market_search_targets set priority=1 where search_url=?',(search,))
+                    db.execute("update jobs set last_checked=?,status='ok',due=0 where url=?",(now,search))
+                    detail='https://auctions.yahoo.co.jp/jp/auction/detail001'
+                    db.execute("insert into jobs(url,source,due) values(?,'yahoo_watch',0)",(detail,))
+                    db.execute('insert into market_search_matches values(?,?,?,?)',(search,detail,'AR-000001',now))
+                # Search quota is full, so one related detail may run.
+                self.assertEqual(store.claim(config)['url'],detail)
+                with store.db() as db:
+                    db.execute('update jobs set last_checked=0,status=\'ok\',due=0 where url=?',(search,))
+                # Detail quota is now full, so the catalog search may run.
+                self.assertEqual(store.claim(config)['url'],search)
+
+    def test_yahoo_detail_cap_rotates_without_requeueing_ended_listings(self):
+        config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        config['sources']=[s for s in config['sources'] if s['id']=='yahoo_watch']
+        source=config['sources'][0]
+        source['seeds']=[]
+        source['max_urls']=1
+        with TemporaryDirectory() as folder:
+            store=Store(Path(folder)/'collector.sqlite3')
+            store.initialize(config)
+            old='https://auctions.yahoo.co.jp/jp/auction/old001'
+            new='https://auctions.yahoo.co.jp/jp/auction/new001'
+            with store.db() as db:
+                db.execute("insert into jobs(url,source,due) values(?,?,0)",(old,source['id']))
+            store.discover(source,[(new,'new')],config)
+            with store.db() as db:
+                self.assertEqual(db.execute('select status from jobs where url=?',(old,)).fetchone()[0],'rotated')
+                self.assertEqual(db.execute('select status from jobs where url=?',(new,)).fetchone()[0],'pending')
+            store.discover(source,[(old,'old')],config)
+            with store.db() as db:
+                self.assertEqual(db.execute('select status from jobs where url=?',(old,)).fetchone()[0],'pending')
+                db.execute("update jobs set status='ended' where url=?",(old,))
+            store.discover(source,[(old,'old')],config)
+            with store.db() as db:
+                self.assertEqual(db.execute('select status from jobs where url=?',(old,)).fetchone()[0],'ended')
+
     def test_pdf_is_not_vinyl(self):
         self.assertEqual(extract('<h1>Book (PDF + Media Gallery)</h1>', 'https://example.com/pdf', 'product')[0]['page_type'],'excluded_media')
 
@@ -24,7 +433,9 @@ class WatchTest(unittest.TestCase):
             worker = Worker(store, config)
             found = 'https://auctions.yahoo.co.jp/jp/auction/test123'
             with store.db() as db:
-                db.execute("UPDATE jobs SET due=0 WHERE url LIKE '%/search/search?%'")
+                db.execute("UPDATE jobs SET due=9999999999 WHERE url LIKE '%/search/search?%'")
+                watch_url=db.execute("select search_url from market_search_targets where mode='watch' limit 1").fetchone()[0]
+                db.execute('UPDATE jobs SET due=0 WHERE url=?',(watch_url,))
             title = 'ポケモン ピカチュウレコード 3周年記念 レコード・CD1枚'
             rows = [{'auctionId':'test123','title':title}, {'auctionId':'other999','title':'ピカチュウ 人形'}]
             state = {'props':{'initialState':{'search':{'items':{'listing':{'items':rows}}}}}}

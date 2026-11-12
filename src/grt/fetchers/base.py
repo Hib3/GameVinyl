@@ -59,10 +59,11 @@ def classify_http(status: int) -> str:
 
 
 class FetchError(Exception):
-    def __init__(self, result: str, detail: str = ""):
+    def __init__(self, result: str, detail: str = "", http_status=None):
         super().__init__(detail or result)
         self.result = result
         self.detail = detail
+        self.http_status = http_status
         # Raw-hash of a response body received before the failure
         # (W-check B3 evidence wiring): lets the run record retain
         # the failure body without the fetcher re-fetching it.
@@ -111,7 +112,8 @@ def http_get(url: str, headers: dict | None = None, timeout: int = 30) -> httpx.
     resp = httpx.Response(status, content=body, headers=resp_headers)
     result = classify_http(resp.status_code)
     if result != "OK":
-        err = FetchError(result, f"HTTP {resp.status_code} for {url}")
+        err = FetchError(result, f"HTTP {resp.status_code} for {url}",
+                         http_status=resp.status_code)
         try:
             from ..evidence import save_raw_evidence
             ev = save_raw_evidence("http", url, resp.text or "",
@@ -212,6 +214,7 @@ class BaseFetcher:
             effective = self._record(
                 result=exc.result, started_at=started,
                 finished_at=clock.now_iso(self.db),
+                http_status=exc.http_status,
                 error_detail=exc.detail, fetcher_kind=self.kind,
                 raw_hash=raw_hash,
                 normalized_hash=(self._last_ev or {}).get(

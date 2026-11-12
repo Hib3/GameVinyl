@@ -25,6 +25,8 @@ data/logs/setup_tasks.log, so a failure is never silent again.
 A mechanism counts as success only after verification:
   - task route: `schtasks /Query /XML` shows all four tasks present,
     enabled, and pointing at THIS folder's venv python + scripts;
+  - already-verified tasks are reused if registration is denied, and
+    Startup shortcuts are removed so both autostart routes cannot overlap;
   - startup route: all four .lnk files exist in the Startup folder.
 The winning mechanism is recorded in data/logs/autostart_mode.txt
 ("task-scheduler" or "startup-folder"); diagnose.py reads it too.
@@ -74,6 +76,14 @@ TASK_SCRIPTS = ((MAIN_TASK, "run.py"), (WATCHDOG_TASK, "watchdog.py"),
 SHORTCUT_SCRIPTS = ((MAIN_TASK, "run.py"), (WATCHDOG_TASK, "watchdog_loop.py"),
                     (COLLECTOR_TASK, "collector/server.py"),
                     (SITE_TASK, "site/freshness_loop.py"))
+
+
+def is_primary_install(root: Path = ROOT) -> bool:
+    """Reject versioned installs beneath a recognized project root."""
+    for parent in (root, *root.parents):
+        if parent.name.casefold() == "gamerecordtool":
+            return root.resolve() == (parent / "app").resolve()
+    return True
 
 
 def _stamp() -> str:
@@ -405,6 +415,14 @@ def shortcut_paths() -> list[Path]:
 
 def try_startup_fallback() -> bool:
     log("== Route 3: Startup-folder shortcuts ==")
+    for name, _ in TASK_SCRIPTS:
+        info = query_task(name)
+        if info and info["enabled"]:
+            run_cmd(["schtasks", "/Change", "/TN", name, "/Disable"])
+            info = query_task(name)
+            if info and info["enabled"]:
+                log(f"cannot safely enable Startup shortcut while task remains enabled: {name}")
+                return False
     rc = _run_ps_script("make_startup_shortcuts.ps1",
                         ["-Root", str(ROOT), "-DataDir", str(DATA_DIR),
                          "-Mode", "create"])
@@ -466,6 +484,10 @@ def register() -> int:
 
     if try_schtasks() and verify_tasks():
         remove_startup_shortcuts()
+        if any(path.exists() for path in shortcut_paths()):
+            log("NG: verified scheduled tasks coexist with Startup shortcuts; refusing duplicate autostart.")
+            flush_log()
+            return 1
         record_mode("task-scheduler")
         log("RESULT: task-scheduler registration verified.")
         flush_log()
@@ -474,8 +496,23 @@ def register() -> int:
     log("schtasks route did not verify; trying PowerShell route.")
     if try_powershell() and verify_tasks():
         remove_startup_shortcuts()
+        if any(path.exists() for path in shortcut_paths()):
+            log("NG: verified scheduled tasks coexist with Startup shortcuts; refusing duplicate autostart.")
+            flush_log()
+            return 1
         record_mode("task-scheduler")
         log("RESULT: task-scheduler registration verified (PowerShell).")
+        flush_log()
+        return 0
+
+    if verify_tasks():
+        remove_startup_shortcuts()
+        if any(path.exists() for path in shortcut_paths()):
+            log("NG: existing scheduled tasks are valid but Startup shortcuts could not be removed.")
+            flush_log()
+            return 1
+        record_mode("task-scheduler")
+        log("RESULT: reusing existing verified task-scheduler registration.")
         flush_log()
         return 0
 
@@ -666,6 +703,10 @@ def main(argv: list[str]) -> int:
         sys.stdout.reconfigure(errors="replace")  # type: ignore[attr-defined]
     except Exception:
         pass
+    if not is_primary_install():
+        print("ERROR: use the single GameRecordTool\\app checkout; "
+              "versioned installs are disabled.", flush=True)
+        return 1
     if "--start" in argv:
         return start_now()
     if "--remove" in argv:

@@ -864,6 +864,7 @@ class Bot:
             return "match_review_unresolvable"
         now = clock.now_iso(self.db)
         if approve:
+            collector_review = listing_p.get("source") == "collector_watch"
             breakdown = result.get("breakdown")
             if not isinstance(breakdown, dict):
                 breakdown = {}
@@ -898,7 +899,7 @@ class Bot:
                  score,
                  json.dumps(breakdown, ensure_ascii=False),
                  _exist,
-                 "高", 1 if result.get("barcode_only") else 0,
+                 "低" if collector_review else "高", 1 if result.get("barcode_only") else 0,
                  _tier,
                  current_policy_version(self.db), now))
             self.db.execute(
@@ -923,8 +924,8 @@ class Bot:
         self.db.commit()
         if approve:
             self._send(chat_id, "出品レビューを承認しました。"
-                       "この出品の価格が証拠として使えるように"
-                       "なりました。")
+                       + ("Collector出品の価格は取り込んでいません。" if collector_review else
+                          "この出品の価格が証拠として使えるようになりました。"))
             return "match_review_approved"
         self._send(chat_id, "出品レビューを却下しました。"
                    "この出品の価格は証拠として使われません。")
@@ -1479,8 +1480,9 @@ class Bot:
             # left on this kind). Probe first; an unresolvable
             # row says so and names its one working exit.
             if self._match_review_resolvable(payload):
-                _tail = ("\n承認すると、この出品の価格が証拠として"
-                         "使えるようになります。")
+                _tail = ("\n承認は盤との紐づけのみです。価格は取り込みません。"
+                         if listing_p.get("source") == "collector_watch" else
+                         "\n承認すると、この出品の価格が証拠として使えるようになります。")
             else:
                 _tail = ("\n内容を検証できないため承認はできません。"
                          "却下で片付けることができます。")
