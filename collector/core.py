@@ -631,7 +631,9 @@ class Store:
             row = db.execute(query, params).fetchone()
             if row:
                 db.execute("UPDATE jobs SET status='running',lease=?,attempts=attempts+1,last_checked=? WHERE url=?", (now+180,now,row['url']))
-                db.execute('UPDATE source_state SET next_allowed=? WHERE id=?', (now+config['min_request_gap_seconds'],row['source']))
+                source = next(s for s in config['sources'] if s['id']==row['source'])
+                request_gap = max(0,int(source.get('min_request_gap_seconds',config['min_request_gap_seconds'])))
+                db.execute('UPDATE source_state SET next_allowed=? WHERE id=?', (now+request_gap,row['source']))
                 return dict(row)
 
     def save(self, job, facts, excerpt, html, config):

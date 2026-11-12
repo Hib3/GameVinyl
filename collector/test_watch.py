@@ -23,6 +23,28 @@ class WatchTest(unittest.TestCase):
         self.assertGreaterEqual(yahoo['min_request_gap_seconds'],60)
         self.assertLessEqual(config['market_search_slots_per_hour']+config['market_detail_slots_per_hour'],3600//yahoo['min_request_gap_seconds'])
 
+    def test_yahoo_minimum_gap_is_reserved_atomically_before_next_claim(self):
+        config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        config['sources'] = [s for s in config['sources'] if s['id'] == 'yahoo_watch']
+        config['sources'][0]['seeds']=[]
+        config['watches']=[]
+        records=[{'id':'AR-000001','title':'First Game Record','catalog':'FG-1'},
+                 {'id':'AR-000002','title':'Second Game Record','catalog':'SG-2'}]
+        with TemporaryDirectory() as folder:
+            root=Path(folder)
+            (root/'seed').mkdir()
+            (root/'seed'/'records.json').write_text(json.dumps(records),encoding='utf-8')
+            with patch.object(core,'ROOT',root):
+                store=Store(root/'collector.sqlite3')
+                store.initialize(config)
+                with store.db() as db:
+                    db.execute('update jobs set due=0')
+                with patch.object(core.time,'time',side_effect=[1000,1000,1059,1060]):
+                    self.assertIsNotNone(store.claim(config))
+                    self.assertIsNone(store.claim(config))
+                    self.assertIsNone(store.claim(config))
+                    self.assertIsNotNone(store.claim(config))
+
     def test_initialize_preserves_block_reason_across_restart(self):
         with TemporaryDirectory() as folder:
             root=Path(folder)/'package'
@@ -235,6 +257,7 @@ class WatchTest(unittest.TestCase):
         config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
         config['sources'] = [s for s in config['sources'] if s['id'] == 'yahoo_watch']
         config['sources'][0]['seeds']=[]
+        config['sources'][0]['min_request_gap_seconds']=0
         config['watches']=[]
         config['max_jobs_per_hour']=2
         config['priority_slots_per_hour']=1
@@ -265,6 +288,7 @@ class WatchTest(unittest.TestCase):
         config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
         config['sources'] = [s for s in config['sources'] if s['id'] == 'yahoo_watch']
         config['sources'][0]['seeds']=[]
+        config['sources'][0]['min_request_gap_seconds']=0
         config['watches']=[]
         config['min_request_gap_seconds']=0
         config['max_jobs_per_hour']=180
