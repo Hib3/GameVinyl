@@ -7,6 +7,7 @@ the layer that could never be tested before v1.8: the route ORDER,
 the verification gate (a task pointing at the wrong folder must NOT
 count as success), the fallback, and the all-routes-failed exit.
 """
+import json
 import os
 import shutil
 import subprocess
@@ -99,6 +100,54 @@ def test_route2_powershell_when_schtasks_fails(tmp_path):
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert _mode(install) == "task-scheduler"
     assert "Route 2" in proc.stdout
+
+
+def test_reuses_verified_tasks_instead_of_creating_duplicate_startup_links(tmp_path):
+    install, env = _stage(tmp_path)
+    first = _register(install, env)
+    assert first.returncode == 0, first.stdout + first.stderr
+    env["FAKEWIN_SCHTASKS_FAIL"] = "1"
+    env["FAKEWIN_PS_REGISTER_FAIL"] = "1"
+    proc = _register(install, env)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert _mode(install) == "task-scheduler"
+    startup = (tmp_path / "appdata" / "Microsoft" / "Windows"
+               / "Start Menu" / "Programs" / "Startup")
+    assert not list(startup.glob("GameRecordTool*.lnk"))
+    assert "reusing existing verified task-scheduler registration" in proc.stdout
+
+
+def test_startup_fallback_disables_unverified_existing_tasks(tmp_path):
+    install, env = _stage(tmp_path)
+    first = _register(install, env)
+    assert first.returncode == 0, first.stdout + first.stderr
+    state = Path(env["FAKEWIN_STATE"]) / "tasks.json"
+    tasks = json.loads(state.read_text(encoding="utf-8"))
+    for task in tasks.values():
+        task["arguments"] = task["arguments"].replace(str(install), str(tmp_path / "old-install"))
+    state.write_text(json.dumps(tasks), encoding="utf-8")
+    env["FAKEWIN_SCHTASKS_FAIL"] = "1"
+    env["FAKEWIN_PS_REGISTER_FAIL"] = "1"
+    proc = _register(install, env)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert _mode(install) == "startup-folder"
+    tasks = json.loads(state.read_text(encoding="utf-8"))
+    assert not any(task["enabled"] for task in tasks.values())
+
+
+def test_reuses_verified_tasks_instead_of_creating_duplicate_startup_links(tmp_path):
+    install, env = _stage(tmp_path)
+    first = _register(install, env)
+    assert first.returncode == 0, first.stdout + first.stderr
+    env["FAKEWIN_SCHTASKS_FAIL"] = "1"
+    env["FAKEWIN_PS_REGISTER_FAIL"] = "1"
+    proc = _register(install, env)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert _mode(install) == "task-scheduler"
+    startup = (tmp_path / "appdata" / "Microsoft" / "Windows"
+               / "Start Menu" / "Programs" / "Startup")
+    assert not list(startup.glob("GameRecordTool*.lnk"))
+    assert "reusing existing verified task-scheduler registration" in proc.stdout
 
 
 def test_route3_startup_folder_when_scheduler_unavailable(tmp_path, monkeypatch):
