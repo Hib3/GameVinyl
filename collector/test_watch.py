@@ -13,6 +13,16 @@ from server import query_api
 
 
 class WatchTest(unittest.TestCase):
+    def test_vintage_search_quota_keeps_source_gap_and_global_limits(self):
+        config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        yahoo=next(s for s in config['sources'] if s['id']=='yahoo_watch')
+        self.assertEqual(config['max_jobs_per_hour'],180)
+        self.assertEqual(config['catalog_priority_slots_per_hour'],12)
+        self.assertEqual(config['market_search_slots_per_hour'],36)
+        self.assertEqual(config['market_detail_slots_per_hour'],24)
+        self.assertGreaterEqual(yahoo['min_request_gap_seconds'],60)
+        self.assertLessEqual(config['market_search_slots_per_hour']+config['market_detail_slots_per_hour'],3600//yahoo['min_request_gap_seconds'])
+
     def test_initialize_preserves_block_reason_across_restart(self):
         with TemporaryDirectory() as folder:
             root=Path(folder)/'package'
@@ -221,13 +231,16 @@ class WatchTest(unittest.TestCase):
                 joined=query_api(store,config,'/api/records',{'q':['Vintage Game Soundtrack']})
                 self.assertEqual(joined['items'][0]['possible_offers'][0]['match_reason'],'market_search_candidate_needs_review')
 
-    def test_reserved_yahoo_capacity_only_processes_priority_queries(self):
+    def test_reserved_yahoo_capacity_rotates_from_priority_to_normal_search(self):
         config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
         config['sources'] = [s for s in config['sources'] if s['id'] == 'yahoo_watch']
         config['sources'][0]['seeds']=[]
         config['watches']=[]
         config['max_jobs_per_hour']=2
         config['priority_slots_per_hour']=1
+        config['catalog_priority_slots_per_hour']=1
+        config['market_search_slots_per_hour']=2
+        config['market_detail_slots_per_hour']=1
         config['min_request_gap_seconds']=0
         records=[{'id':'AR-000001','title':'Priority Game Record','catalog':'PG-1'},
                  {'id':'AR-000002','title':'Normal Game Record','catalog':'NG-2'}]
@@ -242,9 +255,43 @@ class WatchTest(unittest.TestCase):
                     priority=db.execute("select search_url from market_search_targets where edition_id='AR-000001'").fetchone()[0]
                     normal=db.execute("select search_url from market_search_targets where edition_id='AR-000002'").fetchone()[0]
                     db.execute('update market_search_targets set priority=1 where edition_id=?',('AR-000001',))
-                    db.execute("update jobs set last_checked=?,status='ok' where url=?",(time.time(),priority))
                     db.execute('update jobs set due=0 where url in (?,?)',(priority,normal))
                 self.assertEqual(store.claim(config)['url'],priority)
+                with store.db() as db:
+                    db.execute("update jobs set status='ok',due=0 where url=?",(priority,))
+                self.assertEqual(store.claim(config)['url'],normal)
+
+    def test_yahoo_search_and_detail_hourly_caps_are_independent(self):
+        config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))
+        config['sources'] = [s for s in config['sources'] if s['id'] == 'yahoo_watch']
+        config['sources'][0]['seeds']=[]
+        config['watches']=[]
+        config['min_request_gap_seconds']=0
+        config['max_jobs_per_hour']=180
+        config['market_search_slots_per_hour']=1
+        config['market_detail_slots_per_hour']=1
+        records=[{'id':'AR-000001','title':'Priority Game Record','catalog':'PG-1'}]
+        with TemporaryDirectory() as folder:
+            root=Path(folder)
+            (root/'seed').mkdir()
+            (root/'seed'/'records.json').write_text(json.dumps(records),encoding='utf-8')
+            with patch.object(core,'ROOT',root):
+                store=Store(root/'collector.sqlite3')
+                store.initialize(config)
+                now=time.time()
+                with store.db() as db:
+                    search=db.execute("select search_url from market_search_targets where edition_id='AR-000001'").fetchone()[0]
+                    db.execute('update market_search_targets set priority=1 where search_url=?',(search,))
+                    db.execute("update jobs set last_checked=?,status='ok',due=0 where url=?",(now,search))
+                    detail='https://auctions.yahoo.co.jp/jp/auction/detail001'
+                    db.execute("insert into jobs(url,source,due) values(?,'yahoo_watch',0)",(detail,))
+                    db.execute('insert into market_search_matches values(?,?,?,?)',(search,detail,'AR-000001',now))
+                # Search quota is full, so one related detail may run.
+                self.assertEqual(store.claim(config)['url'],detail)
+                with store.db() as db:
+                    db.execute('update jobs set last_checked=0,status=\'ok\',due=0 where url=?',(search,))
+                # Detail quota is now full, so the catalog search may run.
+                self.assertEqual(store.claim(config)['url'],search)
 
     def test_yahoo_detail_cap_rotates_without_requeueing_ended_listings(self):
         config = json.loads(Path(__file__).with_name('sources.json').read_text(encoding='utf-8'))

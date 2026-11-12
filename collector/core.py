@@ -600,6 +600,13 @@ class Store:
               JOIN market_search_targets t ON t.search_url=j.url
               WHERE j.last_checked>? AND t.mode='catalog' AND t.priority=1""",(now-3600,)).fetchone()[0]
             exclude_watched_searches = watched_searches >= config.get('catalog_priority_slots_per_hour',12)
+            yahoo_searches = yahoo_details = 0
+            if 'yahoo_watch' in enabled:
+                counts = db.execute("""SELECT
+                  SUM(CASE WHEN EXISTS (SELECT 1 FROM market_search_targets t WHERE t.search_url=j.url) THEN 1 ELSE 0 END),
+                  SUM(CASE WHEN NOT EXISTS (SELECT 1 FROM market_search_targets t WHERE t.search_url=j.url) THEN 1 ELSE 0 END)
+                  FROM jobs j WHERE j.source='yahoo_watch' AND j.last_checked>?""",(now-3600,)).fetchone()
+                yahoo_searches, yahoo_details = (counts[0] or 0), (counts[1] or 0)
             priority = [s['id'] for s in config['sources'] if s.get('priority')] or ['']
             reserved_capacity = count >= config['max_jobs_per_hour'] - config.get('priority_slots_per_hour',0)
             if reserved_capacity:
@@ -608,10 +615,14 @@ class Store:
                     return None
             query = "SELECT jobs.* FROM jobs JOIN source_state ON source_state.id=jobs.source WHERE status NOT IN ('running','ended','rotated') AND due<=? AND next_allowed<=? AND source IN (" + ','.join('?' for _ in enabled) + ')'
             params=[now,now,*enabled]
+            if 'yahoo_watch' in enabled and yahoo_searches >= config.get('market_search_slots_per_hour',36):
+                query += " AND (jobs.source!='yahoo_watch' OR NOT EXISTS (SELECT 1 FROM market_search_targets t WHERE t.search_url=jobs.url))"
+            if 'yahoo_watch' in enabled and yahoo_details >= config.get('market_detail_slots_per_hour',24):
+                query += " AND (jobs.source!='yahoo_watch' OR EXISTS (SELECT 1 FROM market_search_targets t WHERE t.search_url=jobs.url))"
             if reserved_capacity and 'yahoo_watch' in enabled:
                 yahoo=next(s for s in config['sources'] if s['id']=='yahoo_watch')
                 seeds=yahoo.get('seeds',[])
-                query += " AND (jobs.source!='yahoo_watch' OR jobs.url IN ("+','.join('?' for _ in seeds)+") OR EXISTS (SELECT 1 FROM market_search_targets t WHERE t.search_url=jobs.url AND t.priority=1) OR EXISTS (SELECT 1 FROM market_search_matches m JOIN market_search_targets t ON t.search_url=m.search_url AND t.edition_id=m.edition_id WHERE m.listing_url=jobs.url AND t.priority=1))"
+                query += " AND (jobs.source!='yahoo_watch' OR jobs.url IN ("+','.join('?' for _ in seeds)+") OR EXISTS (SELECT 1 FROM market_search_targets t WHERE t.search_url=jobs.url AND t.priority=1) OR EXISTS (SELECT 1 FROM market_search_matches m JOIN market_search_targets t ON t.search_url=m.search_url AND t.edition_id=m.edition_id WHERE m.listing_url=jobs.url AND t.priority=1) OR EXISTS (SELECT 1 FROM market_search_targets t WHERE t.search_url=jobs.url AND t.mode='catalog' AND t.priority=0))"
                 params.extend(seeds)
             if exclude_watched_searches:
                 query += " AND NOT EXISTS (SELECT 1 FROM market_search_targets t WHERE t.search_url=jobs.url AND t.mode='catalog' AND t.priority=1)"
